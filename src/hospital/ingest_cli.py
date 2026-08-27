@@ -189,12 +189,22 @@ def _summarise(audits: list[LoadAudit]) -> None:
     rows_seen = sum(a.rows_seen for a in audits)
     rows_in = sum(a.rows_in for a in audits)
     rows_out = sum(a.rows_out for a in audits)
+    # A failed batch is discarded, so the rows it curated before dying never
+    # reach the lake. Counting them here overstates what actually landed -- the
+    # summary must agree with what a reader of the curated tree will find.
+    rows_landed = sum(a.rows_out for a in audits if a.status == "ok")
+    lost = rows_out - rows_landed
 
     print(f"\nstatus: {dict(statuses)}")
     print(
         f"rows seen {rows_seen:,}  in scope {rows_in:,}  "
         f"curated {rows_out:,}  rejected {rows_in - rows_out:,}"
     )
+    print(f"rows landed in the curated tree: {rows_landed:,}")
+    if lost:
+        print(
+            f"  ({lost:,} curated rows discarded with {statuses.get('failed', 0)} failed batches)"
+        )
     if reasons:
         print("\nreject reasons:")
         for reason, count in reasons.most_common():

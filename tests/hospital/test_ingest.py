@@ -302,3 +302,20 @@ def test_sweep_staging_removes_orphans_from_a_killed_run(landing):
 
 def test_sweep_staging_is_safe_when_nothing_is_staged(landing):
     assert landing.sweep_staging() == []
+
+
+def test_summary_counts_only_rows_that_landed(capsys):
+    """A failed batch is discarded; its rows must not be reported as curated."""
+    from hospital.ingest_cli import _summarise
+    from hospital.landing import LoadAudit
+
+    _summarise(
+        [
+            LoadAudit("b1", "u1", "H", "t", status="ok", rows_seen=100, rows_in=10, rows_out=10),
+            LoadAudit("b2", "u2", "H", "t", status="failed", rows_seen=50, rows_in=5, rows_out=5),
+        ]
+    )
+
+    out = capsys.readouterr().out
+    assert "rows landed in the curated tree: 10" in out
+    assert "5 curated rows discarded with 1 failed batches" in out
