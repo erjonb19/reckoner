@@ -1,0 +1,53 @@
+location-name: Rochester General Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/160743134_rochester-general-hospital_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: The Unity Hospital of Rochester
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/237221763_the-unity-hospital-of-rochester_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Unity Specialty Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/237221763_the-unity-hospital-of-rochester_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Newark Wayne Community Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/150584188_newark-wayne-community-hospital_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Clifton Springs Hospital and Clinic
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/160743966_clifton-springs-hospital-and-clinic_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: United Memorial Medical Center
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/160743029_united-memorial-medical-center_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Canton-Potsdam Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/161012691_canton-potsdam-hospital_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Massena Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/843134268_massena-hospital-inc_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Gouverneur Hospital
+source-page-url: https://www.rochesterregional.org/billing-and-insurance/transparency
+mrf-url: https://msc.rochesterregional.org/practitionerPortal/docs/MRF2026/464249555_gouverneur-hospital_standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid

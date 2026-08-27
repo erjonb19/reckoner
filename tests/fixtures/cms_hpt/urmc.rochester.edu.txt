@@ -1,0 +1,35 @@
+location-name: STRONG MEMORIAL HOSPITAL
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/b1fa98a4-bf2c-4b54-883d-edbc50653e7a/161029490-STRONG-MEMORIAL-HOSPITAL-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: HIGHLAND HOSPITAL OF ROCHESTER
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/5479e418-958b-4a8a-b3ab-610f5962d661/160743037-HIGHLAND-HOSPITAL-OF-ROCHESTER-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: FREDERICK FERRIS THOMPSON HOSPITAL
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/7431070f-e78c-434a-b517-59ac67e44f05/160743024-FREDERICK-FERRIS-THOMPSON-HOSPITAL-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: NICHOLAS H NOYES MEMORIAL HOSPITAL
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/016bb4df-9b94-41b6-a803-c44ad94a879c/160743979-NICHOLAS-H-NOYES-MEMORIAL-HOSPITAL-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: ST JAMES HOSPITAL
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/824004d0-5956-4624-bbd7-018711440b65/160743310-ST-JAMES-HOSPITAL-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: JONES MEMORIAL HOSPITAL
+source-page-url: https://www.urmc.rochester.edu/pay-a-bill/cost-estimates-pricing 
+mrf-url: https://www.urmc.rochester.edu/getmedia/636ee711-58e5-4a53-abe8-aac528ae0614/222807681-JONES-MEMORIAL-HOSPITAL-standardcharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid

@@ -1,0 +1,35 @@
+location-name: Kenmore Mercy Hospital
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/02/16-0762843_Kenmore-Mercy-Hospital_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Mercy Hospital of Buffalo
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/03/16-0756336_Mercy-Hospital-of-Buffalo_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Mount St. Mary's Hospital
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/03/16-1523353_Mount-St-Marys-Hospital_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Sisters of Charity Hospital
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/02/16-0743187_Sisters-of-Charity-Hospital_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Sisters of Charity Hospital - St. Joseph Campus
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/02/16-0743187_Sisters-of-Charity-Hospital_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Lockport Memorial Hospital, a Campus of Mount St Mary's
+source-page-url: https://www.chsbuffalo.org/billing-insurance/price-transparency/
+mrf-url: https://www.chsbuffalo.org/wp-content/uploads/2025/03/16-1523353_Mount-St-Marys-Hospital_StandardCharges.csv
+contact-name: REDACTED
+contact-email: redacted@example.invalid

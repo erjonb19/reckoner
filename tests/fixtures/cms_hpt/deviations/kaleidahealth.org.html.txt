@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" class="no-js">
+
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Kaleida Health | Buffalo, New York</title>
+    <meta name="description"
+        content="Kaleida Health is the largest healthcare provider in Western New York, serving the area's eight counties with state-of-the-art technology and comprehensive healthcare services.">
+        <meta name="cf-2fa-verify" value="4pUBGkoAroLP6bCUU951" />
+
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" href="https://www.kaleidahealth.org/images/favicons/favicon.ico">
+    <link rel="apple-touch-icon" href="https://www.kaleidahealth.org/images/favicons/apple-touch-icon.png"
+        sizes="180x180">
+    <link rel="icon" href="https://www.kaleidahealth.org/images/favicons/favicon-32x32.png" sizes="32x32"
+        type="image/png">
+    <link rel="icon" href="https://www.kaleidahealth.org/images/favicons/favicon-16x16.png" sizes="16x16"
+        type="image/png">
+    <link rel="manifest" href="https://www.kaleidahealth
+<!-- truncated: full response was 110051 bytes of HTML -->

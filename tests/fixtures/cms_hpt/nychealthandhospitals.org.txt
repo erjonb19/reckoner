@@ -1,0 +1,71 @@
+location-name: Bellevue Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/bellevue
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Elmhurst Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/elmhurst
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Harlem Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/harlem
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Henry J. Carter Specialty Hospital
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/henry-carter
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Jacobi Medical Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/jacobi
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Kings County Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/kings
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Lincoln Medical Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/lincoln-medical
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Metropolitan Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/metropolitan
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: North Central Bronx
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/north-central-bronx
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Queens Hospital Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/queens
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: South Brooklyn Health
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/south-brooklyn
+contact-name: REDACTED
+contact-email: redacted@example.invalid
+
+location-name: Woodhull Medical Center
+source-page-url: https://www.nychealthandhospitals.org/paying-for-your-health-care/facility-charges/
+mrf-url: https://nychh.pt.panaceainc.com/MRFDownload/nychh/woodhull
+contact-name: REDACTED
+contact-email: redacted@example.invalid

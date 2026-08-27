@@ -1,0 +1,92 @@
+# Phase 1 hospital spine -- 15-25 NY hospitals across the five regions in
+# docs/SPEC.md. Selection criteria: file present and parseable, CMS template
+# compliant, meaningful payer/plan breadth.
+#
+# NOTE: `domain` values are the starting guess for where cms-hpt.txt lives. CMS
+# requires the file at the ROOT of the hospital's website domain, but health
+# systems commonly run the patient site on a subdomain. The crawler records a
+# miss as a result, not an error -- correct the domain here once the first run
+# reports what actually resolved.
+#
+# NOTE: this file names NY health systems, which is Open Question 5 in
+# docs/SPEC.md. Settle that before this repo gets a public remote.
+# Montefiore is deliberately absent pending that decision.
+
+hospitals:
+  # --- NYC and Long Island ---
+  - name: NYU Langone Health
+    region: NYC / Long Island
+    domain: nyulangone.org
+  - name: Mount Sinai Health System
+    region: NYC / Long Island
+    domain: mountsinai.org
+  - name: NewYork-Presbyterian
+    region: NYC / Long Island
+    domain: nyp.org
+  - name: Northwell Health
+    region: NYC / Long Island
+    domain: northwell.edu
+  - name: NYC Health + Hospitals
+    region: NYC / Long Island
+    domain: nychealthandhospitals.org
+  - name: Maimonides Medical Center
+    region: NYC / Long Island
+    domain: maimo.org
+  - name: Stony Brook Medicine
+    region: NYC / Long Island
+    domain: stonybrookmedicine.edu
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+  - name: Catholic Health (Long Island)
+    region: NYC / Long Island
+    domain: chsli.org
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+
+  # --- Hudson Valley ---
+  - name: Westchester Medical Center (WMCHealth)
+    region: Hudson Valley
+    domain: wmchealth.org
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+  # Nuvance Health (nuvancehealth.org) is deliberately omitted. Northwell
+  # acquired Nuvance, and the domain now serves a byte-identical cms-hpt.txt to
+  # northwell.edu. Including it double-counts 24 MRFs.
+
+  # --- Capital District ---
+  - name: Albany Medical Center
+    region: Capital District
+    domain: amc.edu
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+  - name: St. Peter's Health Partners
+    region: Capital District
+    domain: sphp.com
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+  - name: Ellis Medicine
+    region: Capital District
+    domain: ellismedicine.org
+
+  # --- Rochester / Syracuse / Central NY ---
+  - name: University of Rochester Medical Center
+    region: Rochester / Syracuse / Central NY
+    domain: urmc.rochester.edu
+  - name: Rochester Regional Health
+    region: Rochester / Syracuse / Central NY
+    domain: rochesterregional.org
+  - name: Upstate University Hospital
+    region: Rochester / Syracuse / Central NY
+    domain: upstate.edu
+  - name: St. Joseph's Health (Syracuse)
+    region: Rochester / Syracuse / Central NY
+    domain: sjhsyr.org
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+
+  # --- Buffalo / Western NY ---
+  - name: Kaleida Health
+    region: Buffalo / Western NY
+    domain: kaleidahealth.org
+    note: serves its homepage (HTML) at /cms-hpt.txt; soft-404 as of 2026-08-27
+  - name: Catholic Health System (Buffalo)
+    region: Buffalo / Western NY
+    domain: chsbuffalo.org
+  - name: Erie County Medical Center
+    region: Buffalo / Western NY
+    domain: ecmc.edu
+    note: blocked by WAF challenge on 2026-08-27; needs manual capture
