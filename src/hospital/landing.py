@@ -175,10 +175,15 @@ class Landing:
         key = source_key(source_url)
         moved: list[Path] = []
         for source in sorted(staged.glob("*.parquet")):
+            # Partition key is `hospital_slug`, not `hospital`: a Hive partition
+            # key that shares a name with a column in the file makes the whole
+            # dataset unreadable ("incompatible types: string vs dictionary"),
+            # because pyarrow reconstructs the key as a dictionary column and
+            # then cannot merge it with the real one.
             target_dir = (
                 self.curated
                 / f"hospital_{source.stem}"
-                / f"hospital={hospital_slug}"
+                / f"hospital_slug={hospital_slug}"
                 / f"vintage={vintage_part}"
             )
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -192,6 +197,21 @@ class Landing:
 
     def discard(self, batch_id: str) -> None:
         shutil.rmtree(self.staging / batch_id, ignore_errors=True)
+
+    def sweep_staging(self) -> list[str]:
+        """Remove staged batches orphaned by a killed run.
+
+        A process killed mid-batch cannot run its own cleanup, so staging
+        accumulates directories that will never be promoted. They are invisible
+        to readers, but they are not free -- one interrupted pass over this
+        corpus left hundreds of MB behind.
+        """
+        if not self.staging.exists():
+            return []
+        orphans = [path.name for path in self.staging.iterdir() if path.is_dir()]
+        for name in orphans:
+            shutil.rmtree(self.staging / name, ignore_errors=True)
+        return orphans
 
 
 class _StagedWriter:

@@ -85,7 +85,7 @@ def test_successful_load_writes_curated_parquet_and_audit(landing):
     assert set(table.column("payer_name_raw").to_pylist()) == {"Aetna", "Humana"}
 
     # Partitioned by hospital and vintage.
-    assert any("hospital=example-hospital" in str(f) for f in files)
+    assert any("hospital_slug=example-hospital" in str(f) for f in files)
     assert any("vintage=2026-04" in str(f) for f in files)
 
     audits = landing.read_audit()
@@ -268,3 +268,37 @@ def test_in_scope_codes_are_kept(landing, tmp_path):
     assert audit.rows_filtered == 0
     assert audit.rows_out == 2
     assert audit.status == "ok"
+
+
+@respx.mock
+def test_curated_dataset_is_readable_as_one_table(landing):
+    """A partition key sharing a column name makes the dataset unreadable."""
+    respx.get(URL).mock(return_value=httpx.Response(200, text=JSON_MRF))
+    other = "https://example.org/other.json"
+    respx.get(other).mock(return_value=httpx.Response(200, text=JSON_MRF))
+
+    with _client() as client:
+        ingest_one(client, landing, "Hospital A", URL)
+        ingest_one(client, landing, "Hospital B", other)
+
+    rate_files = [f for f in landing.curated.rglob("*.parquet") if "rates" in str(f)]
+    assert len(rate_files) == 2
+
+    table = pq.read_table(rate_files)
+    assert table.num_rows == 4
+    assert set(table.column("hospital").to_pylist()) == {"Hospital A", "Hospital B"}
+
+
+def test_sweep_staging_removes_orphans_from_a_killed_run(landing):
+    orphan = landing.staging / "20260101T000000000000-deadbeef"
+    orphan.mkdir(parents=True)
+    (orphan / "rates.parquet").write_bytes(b"partial")
+
+    swept = landing.sweep_staging()
+
+    assert swept == ["20260101T000000000000-deadbeef"]
+    assert not list(landing.staging.iterdir())
+
+
+def test_sweep_staging_is_safe_when_nothing_is_staged(landing):
+    assert landing.sweep_staging() == []

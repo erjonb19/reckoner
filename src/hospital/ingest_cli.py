@@ -151,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
         targets = targets[: args.limit]
 
     landing = Landing(args.root)
+    orphans = landing.sweep_staging()
+    if orphans:
+        print(f"swept {len(orphans)} staged batches orphaned by an earlier run")
     codes = CodeSet.everything() if args.all_codes else CodeSet.from_yaml(args.codes)
     scope = "all codes" if args.all_codes else f"{len(codes)} target codes"
     print(f"ingesting {len(targets)} MRFs into {args.root} ({scope})\n")
