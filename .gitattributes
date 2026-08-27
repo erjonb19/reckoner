@@ -1,0 +1,43 @@
+# Normalize line endings: LF in the repo, native in the working copy.
+# Keeps diffs clean between Windows dev and Linux CI.
+* text=auto eol=lf
+
+# Windows-only scripts need CRLF to run correctly
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Shell scripts must stay LF even on Windows
+*.sh text eol=lf
+
+# Explicit text types
+*.py text diff=python
+*.md text
+*.sql text
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.cfg text
+*.ini text
+*.csv text
+*.txt text
+
+# Notebooks: text, but suppress diff noise in review
+*.ipynb text linguist-documentation
+
+# Binary — never normalize, never diff
+*.parquet binary
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.zip binary
+*.gz binary
+*.7z binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pbix binary
+*.pbit binary
