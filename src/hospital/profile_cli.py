@@ -54,6 +54,7 @@ def _serialise(hospital: str, domain: str, profile: MrfProfile) -> dict[str, Any
         "methodology": dict(profile.methodology),
         "value_kind": dict(profile.value_kind),
         "product_class": dict(profile.product_class),
+        "joint": dict(profile.joint),
         "error": profile.error,
     }
 

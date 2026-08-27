@@ -184,3 +184,21 @@ class TestProfiling:
         profile = profile_stream(stream_of(csv_text))
 
         assert profile.rate_lines == 4
+
+
+class TestJointCounter:
+    def test_joint_records_product_and_value_kind_together(self):
+        profile = profile_stream(stream_of(TALL_CSV))
+
+        assert profile.joint["commercial_aggregate|dollar"] == 1
+        assert profile.joint["medicare_advantage|algorithm"] == 1
+        assert profile.joint["medicaid_managed|dollar"] == 1
+        assert profile.joint["commercial_aggregate|percentage"] == 1
+
+    def test_joint_totals_match_the_marginals(self):
+        """The joint must not drift from the two counters it decomposes."""
+        profile = profile_stream(stream_of(TALL_CSV))
+
+        assert sum(profile.joint.values()) == profile.rate_lines
+        assert sum(profile.joint.values()) == sum(profile.value_kind.values())
+        assert sum(profile.joint.values()) == sum(profile.product_class.values())

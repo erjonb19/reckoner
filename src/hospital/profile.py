@@ -24,7 +24,7 @@ import io
 import re
 import sys
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
 import ijson
@@ -132,6 +132,11 @@ class MrfProfile:
     methodology: Counter[str] = field(default_factory=Counter)
     value_kind: Counter[str] = field(default_factory=Counter)
     product_class: Counter[str] = field(default_factory=Counter)
+    #: product_class x value_kind, keyed "class|kind". The reconcilable universe
+    #: is a joint condition (commercial AND dollar-denominated); multiplying the
+    #: two marginals assumes an independence these fields do not have -- exempt
+    #: products lean far more heavily on fee-schedule algorithms.
+    joint: Counter[str] = field(default_factory=Counter)
     error: str | None = None
 
     def record(
@@ -150,15 +155,18 @@ class MrfProfile:
         self.rate_lines += 1
         self.pairs[f"{payer}{PAIR_SEPARATOR}{plan}"] += 1
         self.methodology[(methodology or "").strip().lower() or "(blank)"] += 1
-        self.product_class[classify_product(payer, plan)] += 1
+        product = classify_product(payer, plan)
+        self.product_class[product] += 1
         if _present(dollar):
-            self.value_kind["dollar"] += 1
+            kind = "dollar"
         elif _present(algorithm):
-            self.value_kind["algorithm"] += 1
+            kind = "algorithm"
         elif _present(percentage):
-            self.value_kind["percentage"] += 1
+            kind = "percentage"
         else:
-            self.value_kind["none"] += 1
+            kind = "none"
+        self.value_kind[kind] += 1
+        self.joint[f"{product}|{kind}"] += 1
 
     @property
     def hospital_only_lines(self) -> int:
@@ -215,28 +223,14 @@ def _profile_json(reader: io.BufferedReader, profile: MrfProfile) -> None:
         return
 
 
-def _profile_csv(reader: io.BufferedReader, profile: MrfProfile) -> None:
-    text = io.TextIOWrapper(reader, encoding="utf-8-sig", errors="replace", newline="")
-    rows = csv.reader(text)
-
-    header: list[str] | None = None
+def find_header(rows: Iterator[list[str]], max_rows: int = 9) -> list[str] | None:
+    """Locate the CMS template column-header row, which is not row 0."""
     for index, row in enumerate(rows):
         if _is_header(row):
-            header = row
+            return row
+        if index >= max_rows:
             break
-        if index > 8:
-            break
-    if header is None:
-        profile.error = "no CMS template header row found in first 9 rows"
-        return
-
-    index_of = {name.strip().lower(): i for i, name in enumerate(header)}
-    if "payer_name" in index_of:
-        profile.layout = "csv-tall"
-        _profile_csv_tall(rows, index_of, profile)
-    else:
-        profile.layout = "csv-wide"
-        _profile_csv_wide(rows, header, profile)
+    return None
 
 
 def _is_header(row: list[str]) -> bool:
@@ -244,9 +238,21 @@ def _is_header(row: list[str]) -> bool:
     return "payer_name" in lowered or any(_WIDE_COLUMN.match(c) for c in lowered)
 
 
-def _profile_csv_tall(
-    rows: Iterator[list[str]], index_of: dict[str, int], profile: MrfProfile
-) -> None:
+def csv_row_recorder(
+    header: list[str], profile: MrfProfile
+) -> tuple[Callable[[list[str]], None], str]:
+    """Build a per-row recorder for a CSV header, in either template layout.
+
+    Shared by the streaming pass and the range-window sampler so both agree on
+    exactly what a row means.
+    """
+    index_of = {name.strip().lower(): i for i, name in enumerate(header)}
+    if "payer_name" in index_of:
+        return _tall_recorder(index_of, profile), "csv-tall"
+    return _wide_recorder(header, profile), "csv-wide"
+
+
+def _tall_recorder(index_of: dict[str, int], profile: MrfProfile) -> Callable[[list[str]], None]:
     payer_i = index_of["payer_name"]
     plan_i = index_of.get("plan_name", -1)
     method_i = index_of.get("standard_charge|methodology", -1)
@@ -257,9 +263,9 @@ def _profile_csv_tall(
     def cell(row: list[str], i: int) -> str | None:
         return row[i] if 0 <= i < len(row) else None
 
-    for row in rows:
+    def record(row: list[str]) -> None:
         if len(row) <= payer_i:
-            continue
+            return
         profile.record(
             row[payer_i],
             cell(row, plan_i),
@@ -269,8 +275,10 @@ def _profile_csv_tall(
             percentage=cell(row, pct_i),
         )
 
+    return record
 
-def _profile_csv_wide(rows: Iterator[list[str]], header: list[str], profile: MrfProfile) -> None:
+
+def _wide_recorder(header: list[str], profile: MrfProfile) -> Callable[[list[str]], None]:
     """Wide layout encodes payer and plan in the column name itself."""
     columns: list[tuple[int, str, str, str]] = []
     for i, name in enumerate(header):
@@ -281,7 +289,7 @@ def _profile_csv_wide(rows: Iterator[list[str]], header: list[str], profile: Mrf
         if measure:
             columns.append((i, match["payer"].strip(), match["plan"].strip(), measure))
 
-    for row in rows:
+    def record(row: list[str]) -> None:
         for i, payer, plan, measure in columns:
             if i >= len(row) or not row[i].strip():
                 continue
@@ -293,3 +301,20 @@ def _profile_csv_wide(rows: Iterator[list[str]], header: list[str], profile: Mrf
                 algorithm=row[i] if measure == "algorithm" else None,
                 percentage=row[i] if measure == "percentage" else None,
             )
+
+    return record
+
+
+def _profile_csv(reader: io.BufferedReader, profile: MrfProfile) -> None:
+    text = io.TextIOWrapper(reader, encoding="utf-8-sig", errors="replace", newline="")
+    rows = csv.reader(text)
+
+    header = find_header(rows)
+    if header is None:
+        profile.error = "no CMS template header row found in first 9 rows"
+        return
+
+    record, layout = csv_row_recorder(header, profile)
+    profile.layout = layout
+    for row in rows:
+        record(row)
