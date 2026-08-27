@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -40,12 +41,61 @@ USER_AGENT = "ny-price-transparency/0.1 (price transparency research ingest)"
 #: though it completed -- rule 4 says quarantine, but also says alert.
 REJECT_RATE_ALERT = 0.25
 
+#: Transient transport faults worth retrying. Observed live: NYC Health +
+#: Hospitals' CDN truncates large responses mid-stream, which lost 4 of its 12
+#: files on the first full run. A 404 or a parse fault is not retried -- those
+#: do not get better by asking again.
+TRANSIENT_ERRORS = (
+    "RemoteProtocolError",
+    "ReadError",
+    "ReadTimeout",
+    "ConnectError",
+    "ConnectTimeout",
+    "WriteError",
+    "PoolTimeout",
+    "IncompleteRead",
+)
+MAX_ATTEMPTS = 3
+BACKOFF_SECONDS = 3.0
+
+
+def is_transient(error: str | None) -> bool:
+    if not error:
+        return False
+    return any(name in error for name in TRANSIENT_ERRORS)
+
 
 def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "unknown"
 
 
 def ingest_one(
+    client: httpx.Client,
+    landing: Landing,
+    hospital: str,
+    url: str,
+    max_rows: int | None = None,
+    codes: CodeSet | None = None,
+    max_attempts: int = MAX_ATTEMPTS,
+    backoff: float = BACKOFF_SECONDS,
+) -> LoadAudit:
+    """Ingest one MRF, retrying transient transport faults.
+
+    The audit is appended once, for the final outcome, with the attempt count.
+    """
+    audit = LoadAudit(batch_id="", source_url=url, hospital=hospital, started_at=utc_now())
+    for attempt in range(1, max_attempts + 1):
+        audit = _ingest_attempt(client, landing, hospital, url, max_rows, codes)
+        audit.attempts = attempt
+        if audit.status != "failed" or not is_transient(audit.error):
+            break
+        if attempt < max_attempts:
+            time.sleep(backoff * attempt)
+    landing.append_audit(audit)
+    return audit
+
+
+def _ingest_attempt(
     client: httpx.Client,
     landing: Landing,
     hospital: str,
@@ -119,7 +169,6 @@ def ingest_one(
         audit.error = f"{type(exc).__name__}: {exc}"
 
     audit.finished_at = utc_now()
-    landing.append_audit(audit)
     return audit
 
 
@@ -174,7 +223,9 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"[{done:>3}/{len(targets)}] {audit.status:<9} {audit.hospital[:26]:<26} "
                 f"seen {audit.rows_seen:>10,}  in {audit.rows_in:>8,}  out {audit.rows_out:>8,}  "
-                f"rej {audit.reject_rate:>5.1%}{alert}  {audit.error or ''}"
+                f"rej {audit.reject_rate:>5.1%}{alert}"
+                f"{f'  [{audit.attempts} attempts]' if audit.attempts > 1 else ''}"
+                f"  {audit.error or ''}"
             )
 
     _summarise(audits)

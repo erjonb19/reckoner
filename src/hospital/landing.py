@@ -93,6 +93,7 @@ class LoadAudit:
     rows_out: int = 0
     rows_rejected: int = 0
     reject_reasons: dict[str, int] | None = None
+    attempts: int = 1
     status: str = "running"
     error: str | None = None
 

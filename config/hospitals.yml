@@ -83,9 +83,14 @@ hospitals:
     region: Buffalo / Western NY
     domain: kaleidahealth.org
     note: serves its homepage (HTML) at /cms-hpt.txt; soft-404 as of 2026-08-27
-  - name: Catholic Health System (Buffalo)
-    region: Buffalo / Western NY
-    domain: chsbuffalo.org
+  # Catholic Health System (Buffalo) removed on 2026-08-27: ~11% of its
+  # in-scope rows name a payer with no dollar, percentage or algorithm
+  # attached, an order of magnitude above every other system. Excluded rather
+  # than quarantined row-by-row. NOTE: this leaves Buffalo / Western NY with
+  # zero resolved hospitals, since Kaleida serves a soft-404 and ECMC is
+  # WAF-blocked.
+  # - name: Catholic Health System (Buffalo)
+  #   domain: chsbuffalo.org
   - name: Erie County Medical Center
     region: Buffalo / Western NY
     domain: ecmc.edu

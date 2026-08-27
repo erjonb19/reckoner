@@ -319,3 +319,66 @@ def test_summary_counts_only_rows_that_landed(capsys):
     out = capsys.readouterr().out
     assert "rows landed in the curated tree: 10" in out
     assert "5 curated rows discarded with 1 failed batches" in out
+
+
+def test_is_transient_classifies_errors():
+    from hospital.ingest_cli import is_transient
+
+    assert is_transient("RemoteProtocolError: peer closed connection")
+    assert is_transient("ReadTimeout: timed out")
+    assert not is_transient("HTTPStatusError: 404")
+    assert not is_transient("ArrowTypeError: bad schema")
+    assert not is_transient(None)
+
+
+@respx.mock
+def test_transient_failure_is_retried_and_succeeds(landing):
+    """NYC H+H's CDN truncates large responses; one flake must not lose a batch."""
+    route = respx.get(URL).mock(
+        side_effect=[
+            httpx.RemoteProtocolError("peer closed connection"),
+            httpx.Response(200, text=JSON_MRF),
+        ]
+    )
+
+    with _client() as client:
+        audit = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+    assert route.call_count == 2
+    assert audit.status == "ok"
+    assert audit.attempts == 2
+    assert audit.rows_out == 2
+
+
+@respx.mock
+def test_retries_are_bounded(landing):
+    route = respx.get(URL).mock(side_effect=httpx.RemoteProtocolError("boom"))
+
+    with _client() as client:
+        audit = ingest_one(client, landing, "Example Hospital", URL, max_attempts=3, backoff=0)
+
+    assert route.call_count == 3
+    assert audit.status == "failed"
+    assert audit.attempts == 3
+
+
+@respx.mock
+def test_a_404_is_not_retried(landing):
+    """Permanent faults do not get better by asking again."""
+    route = respx.get(URL).mock(return_value=httpx.Response(404))
+
+    with _client() as client:
+        audit = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+    assert route.call_count == 1
+    assert audit.attempts == 1
+
+
+@respx.mock
+def test_one_audit_row_per_file_regardless_of_retries(landing):
+    respx.get(URL).mock(side_effect=[httpx.ReadTimeout("t"), httpx.Response(200, text=JSON_MRF)])
+
+    with _client() as client:
+        ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+    assert len(landing.read_audit()) == 1
