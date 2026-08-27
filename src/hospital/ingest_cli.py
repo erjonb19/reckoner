@@ -1,0 +1,202 @@
+"""Phase 1 ingest: hospital MRF -> curated Parquet, rejects and LOAD_AUDIT.
+
+    python -m hospital.ingest_cli --discovery out/discovery.jsonl --root data/lake
+
+Reads each discovered MRF exactly once, streaming, and writes a filtered curated
+slice. Raw files are never persisted -- rule 1, parse once and land curated.
+
+Every batch is audited whether it succeeds or fails, and a batch that dies
+mid-stream leaves nothing in the curated tree.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import httpx
+
+from hospital.codeset import CodeSet
+from hospital.curate import CurateContext, Reject, curate
+from hospital.landing import (
+    RATE_SCHEMA,
+    REJECT_SCHEMA,
+    HashingStream,
+    Landing,
+    LoadAudit,
+    new_batch_id,
+    utc_now,
+)
+from hospital.parser import MrfParser
+from hospital.streaming import MrfStream
+
+USER_AGENT = "ny-price-transparency/0.1 (price transparency research ingest)"
+
+#: Alert threshold. Above this share of rejected rows the load is suspect even
+#: though it completed -- rule 4 says quarantine, but also says alert.
+REJECT_RATE_ALERT = 0.25
+
+
+def slugify(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "unknown"
+
+
+def ingest_one(
+    client: httpx.Client,
+    landing: Landing,
+    hospital: str,
+    url: str,
+    max_rows: int | None = None,
+    codes: CodeSet | None = None,
+) -> LoadAudit:
+    batch_id = new_batch_id(url)
+    audit = LoadAudit(batch_id=batch_id, source_url=url, hospital=hospital, started_at=utc_now())
+    rates = landing.stage_writer(batch_id, "rates", RATE_SCHEMA)
+    rejects = landing.stage_writer(batch_id, "rejects", REJECT_SCHEMA)
+    reasons: Counter[str] = Counter()
+    codes = codes if codes is not None else CodeSet.everything()
+
+    try:
+        with client.stream("GET", url, follow_redirects=True) as response:
+            response.raise_for_status()
+            hashed = HashingStream(response.iter_bytes())
+            stream = MrfStream(hashed, None)
+            parser = MrfParser(stream)
+            context = CurateContext(batch_id, url, hospital, parser.meta)
+
+            for raw in parser:
+                audit.rows_seen += 1
+                if raw.code not in codes:
+                    # Out of scope, not invalid: filtered rows are counted but
+                    # never quarantined, so the reject rate stays meaningful.
+                    audit.rows_filtered += 1
+                    continue
+                # meta is populated as the header is consumed, so rebind it
+                # rather than capturing a stale copy from before the first row.
+                context = CurateContext(batch_id, url, hospital, parser.meta)
+                audit.rows_in += 1
+                result = curate(raw, context)
+                if isinstance(result, Reject):
+                    rejects.add(result)
+                    reasons[result.reason] += 1
+                    audit.rows_rejected += 1
+                else:
+                    rates.add(result)
+                    audit.rows_out += 1
+                if max_rows and audit.rows_seen >= max_rows:
+                    break
+
+            audit.bytes_read = hashed.bytes_read
+            audit.checksum = hashed.checksum
+            audit.layout = parser.meta.layout
+            audit.file_vintage = parser.meta.last_updated_on
+
+        rates.close()
+        rejects.close()
+        audit.reject_reasons = dict(reasons)
+
+        prior = landing.already_loaded(url, audit.checksum or "")
+        if prior:
+            landing.discard(batch_id)
+            audit.status = "duplicate"
+            audit.error = f"identical file already loaded as {prior}"
+        elif audit.rows_out == 0:
+            landing.discard(batch_id)
+            audit.status = "empty"
+            audit.error = "no curated rows produced"
+        else:
+            landing.promote(batch_id, slugify(hospital), audit.file_vintage, url)
+            audit.status = "ok"
+    except Exception as exc:  # failure must be audited, not raised
+        rates.close()
+        rejects.close()
+        landing.discard(batch_id)
+        audit.status = "failed"
+        audit.error = f"{type(exc).__name__}: {exc}"
+
+    audit.finished_at = utc_now()
+    landing.append_audit(audit)
+    return audit
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--discovery", type=Path, default=Path("out/discovery.jsonl"))
+    parser.add_argument("--root", type=Path, default=Path("data/lake"))
+    parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--limit", type=int, help="ingest only the first N MRFs")
+    parser.add_argument("--max-rows", type=int, help="stop each file after N rate rows")
+    parser.add_argument("--hospital", help="only this hospital (substring match)")
+    parser.add_argument(
+        "--codes",
+        type=Path,
+        default=Path("config/codes.yml"),
+        help="target code set; pass --all-codes to disable filtering",
+    )
+    parser.add_argument("--all-codes", action="store_true")
+    args = parser.parse_args(argv)
+
+    targets: list[tuple[str, str]] = []
+    with args.discovery.open(encoding="utf-8") as handle:
+        for line in handle:
+            row = json.loads(line)
+            if args.hospital and args.hospital.casefold() not in row["hospital"].casefold():
+                continue
+            targets.extend((row["hospital"], url) for url in row["mrf_urls"])
+    if args.limit:
+        targets = targets[: args.limit]
+
+    landing = Landing(args.root)
+    codes = CodeSet.everything() if args.all_codes else CodeSet.from_yaml(args.codes)
+    scope = "all codes" if args.all_codes else f"{len(codes)} target codes"
+    print(f"ingesting {len(targets)} MRFs into {args.root} ({scope})\n")
+
+    audits: list[LoadAudit] = []
+    with (
+        httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=900.0) as client,
+        ThreadPoolExecutor(max_workers=args.workers) as pool,
+    ):
+        futures = [
+            pool.submit(ingest_one, client, landing, hospital, url, args.max_rows, codes)
+            for hospital, url in targets
+        ]
+        for done, future in enumerate(futures, start=1):
+            audit = future.result()
+            audits.append(audit)
+            alert = "  <-- REJECT RATE" if audit.reject_rate > REJECT_RATE_ALERT else ""
+            print(
+                f"[{done:>3}/{len(targets)}] {audit.status:<9} {audit.hospital[:26]:<26} "
+                f"seen {audit.rows_seen:>10,}  in {audit.rows_in:>8,}  out {audit.rows_out:>8,}  "
+                f"rej {audit.reject_rate:>5.1%}{alert}  {audit.error or ''}"
+            )
+
+    _summarise(audits)
+    return 0
+
+
+def _summarise(audits: list[LoadAudit]) -> None:
+    statuses = Counter(a.status for a in audits)
+    reasons: Counter[str] = Counter()
+    for audit in audits:
+        reasons.update(audit.reject_reasons or {})
+    rows_seen = sum(a.rows_seen for a in audits)
+    rows_in = sum(a.rows_in for a in audits)
+    rows_out = sum(a.rows_out for a in audits)
+
+    print(f"\nstatus: {dict(statuses)}")
+    print(
+        f"rows seen {rows_seen:,}  in scope {rows_in:,}  "
+        f"curated {rows_out:,}  rejected {rows_in - rows_out:,}"
+    )
+    if reasons:
+        print("\nreject reasons:")
+        for reason, count in reasons.most_common():
+            print(f"  {reason:<26} {count:>10,}  {count / max(rows_in, 1):>6.2%}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

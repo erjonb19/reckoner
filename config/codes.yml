@@ -1,0 +1,110 @@
+# Phase 1 target code set -- the "30-50 high-value services" in docs/SPEC.md,
+# mixed inpatient and outpatient, chosen for cross-hospital comparability.
+#
+# This is the filter that makes "parse once, land curated" real: an unfiltered
+# ingest of all 72 MRFs is an overnight job producing hundreds of GB, most of it
+# codes no comparison will ever use.
+#
+# Matching is on the code string only. Hospitals disagree about code_type
+# spelling ("MS-DRG" / "MSDRG" / "DRG", "CPT" / "HCPCS" for the same code), so
+# type is recorded but not required to match -- see hospital/codeset.py.
+
+inpatient:
+  # MS-DRG. High volume, high spend, and present at nearly every acute hospital.
+  - code: "470"
+    label: Major hip and knee joint replacement w/o MCC
+  - code: "871"
+    label: Septicemia w/o MV >96h w MCC
+  - code: "291"
+    label: Heart failure and shock w MCC
+  - code: "193"
+    label: Simple pneumonia and pleurisy w MCC
+  - code: "247"
+    label: Percutaneous cardiovascular proc w drug-eluting stent w/o MCC
+  - code: "469"
+    label: Major hip and knee joint replacement w MCC
+  - code: "330"
+    label: Major small and large bowel procedures w CC
+  - code: "807"
+    label: Vaginal delivery w/o sterilization w/o CC
+  - code: "788"
+    label: Cesarean section w/o sterilization w/o CC
+  - code: "690"
+    label: Kidney and urinary tract infections w/o MCC
+  - code: "312"
+    label: Syncope and collapse
+  - code: "064"
+    label: Intracranial hemorrhage or cerebral infarction w MCC
+  - code: "281"
+    label: Acute myocardial infarction, discharged alive w CC
+  - code: "377"
+    label: GI hemorrhage w MCC
+  - code: "483"
+    label: Major joint or limb reattachment of upper extremity
+
+outpatient:
+  # Imaging -- the most frequently shopped services.
+  - code: "70450"
+    label: CT head/brain w/o contrast
+  - code: "70553"
+    label: MRI brain w/ and w/o contrast
+  - code: "71250"
+    label: CT thorax w/o contrast
+  - code: "72148"
+    label: MRI lumbar spine w/o contrast
+  - code: "73721"
+    label: MRI lower extremity joint w/o contrast
+  - code: "74177"
+    label: CT abdomen and pelvis w/ contrast
+  - code: "76700"
+    label: Ultrasound abdomen complete
+  - code: "77067"
+    label: Screening mammography bilateral
+  # Procedures
+  - code: "45378"
+    label: Colonoscopy diagnostic
+  - code: "45380"
+    label: Colonoscopy with biopsy
+  - code: "43239"
+    label: Upper GI endoscopy with biopsy
+  - code: "66984"
+    label: Cataract surgery with IOL insert
+  - code: "29881"
+    label: Knee arthroscopy with meniscectomy
+  - code: "64483"
+    label: Injection lumbar transforaminal epidural
+  - code: "27447"
+    label: Total knee arthroplasty
+  - code: "27130"
+    label: Total hip arthroplasty
+  # Labs and diagnostics
+  - code: "80053"
+    label: Comprehensive metabolic panel
+  - code: "85025"
+    label: CBC with differential
+  - code: "80061"
+    label: Lipid panel
+  - code: "84443"
+    label: TSH
+  - code: "83036"
+    label: Hemoglobin A1c
+  - code: "93000"
+    label: Electrocardiogram complete
+  - code: "93306"
+    label: Echocardiography transthoracic complete
+  # Emergency and evaluation
+  - code: "99213"
+    label: Office visit established patient, low complexity
+  - code: "99214"
+    label: Office visit established patient, moderate complexity
+  - code: "99283"
+    label: Emergency department visit, moderate severity
+  - code: "99284"
+    label: Emergency department visit, high severity
+  - code: "99285"
+    label: Emergency department visit, highest severity
+  # Therapy and infusion
+  - code: "96413"
+    label: Chemotherapy IV infusion, first hour
+  - code: "97110"
+    label: Therapeutic exercise, 15 minutes
