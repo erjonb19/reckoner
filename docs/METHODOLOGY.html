@@ -1,0 +1,923 @@
+<title>Rate Reconciliation Methodology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunken:     #eef1f5;
+    --ink:        #16202b;
+    --ink-soft:   #4a5866;
+    --ink-faint:  #74828f;
+    --rule:       #d4dae1;
+    --rule-soft:  #e4e9ee;
+    --accent:     #0b5d7a;
+    --accent-bg:  #e5eff3;
+    --flag:       #9a3412;
+    --flag-bg:    #f8ece6;
+    --good:       #1f6b4a;
+    --good-bg:    #e6f0eb;
+
+    --f-display: "Spectral", Georgia, "Times New Roman", serif;
+    --f-body:    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --f-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --measure: 68ch;
+    --gap: 1.6rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0f1720;
+      --surface:    #161f29;
+      --sunken:     #1b2531;
+      --ink:        #e3eaf1;
+      --ink-soft:   #a3b1bf;
+      --ink-faint:  #7a8896;
+      --rule:       #2b3744;
+      --rule-soft:  #232e39;
+      --accent:     #5cb3d1;
+      --accent-bg:  #13303c;
+      --flag:       #e29471;
+      --flag-bg:    #33211a;
+      --good:       #6cbb95;
+      --good-bg:    #163025;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0f1720;
+    --surface:    #161f29;
+    --sunken:     #1b2531;
+    --ink:        #e3eaf1;
+    --ink-soft:   #a3b1bf;
+    --ink-faint:  #7a8896;
+    --rule:       #2b3744;
+    --rule-soft:  #232e39;
+    --accent:     #5cb3d1;
+    --accent-bg:  #13303c;
+    --flag:       #e29471;
+    --flag-bg:    #33211a;
+    --good:       #6cbb95;
+    --good-bg:    #163025;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    gap: 3.5rem;
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  /* ---- section rail ---- */
+  .rail {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 3rem 0;
+    font-size: 0.8125rem;
+  }
+  .rail-title {
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1rem;
+  }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .rail a {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.3rem 0.55rem 0.3rem 0;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    padding-left: 0.75rem;
+    transition: color .15s, border-color .15s;
+  }
+  .rail a:hover, .rail a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+  .rail .num {
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+    padding-top: 0.15em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- masthead ---- */
+  main { padding-top: 3rem; min-width: 0; }
+
+  .masthead { border-bottom: 3px double var(--rule); padding-bottom: 2rem; margin-bottom: 3rem; }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 4.4vw, 3.1rem);
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.0625rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+    margin: 0 0 1.75rem;
+  }
+  .stamp {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2rem;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+  }
+  .stamp b { color: var(--ink); font-weight: 500; }
+
+  /* ---- sections ---- */
+  section { margin-bottom: 4rem; scroll-margin-top: 1.5rem; }
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 1.75rem;
+    letter-spacing: -0.012em;
+    margin: 0 0 0.4rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    text-wrap: balance;
+  }
+  h2 .sec {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .lede { color: var(--ink-soft); max-width: var(--measure); margin: 0 0 1.75rem; }
+  h3 {
+    font-family: var(--f-body);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.005em;
+    margin: 2.25rem 0 0.6rem;
+  }
+  p { max-width: var(--measure); margin: 0 0 1rem; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+
+  /* ---- source cards ---- */
+  .sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .source {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .source h4 { font-family: var(--f-body); font-size: 0.9375rem; font-weight: 600; margin: 0; }
+  .source dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.8rem; font-size: 0.8125rem; }
+  .source dt { font-family: var(--f-mono); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); padding-top: 0.2em; }
+  .source dd { margin: 0; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .source .how { font-size: 0.8125rem; color: var(--ink-soft); margin: 0; border-top: 1px solid var(--rule-soft); padding-top: 0.6rem; }
+
+  /* ---- formula blocks ---- */
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    margin: 1.5rem 0;
+    overflow: hidden;
+  }
+  .formula > header {
+    background: var(--sunken);
+    border-bottom: 1px solid var(--rule);
+    padding: 0.6rem 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .formula > header span:first-child { font-weight: 600; font-size: 0.9375rem; }
+  .formula > header span:last-child {
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  .steps { margin: 0; padding: 0.35rem 0; list-style: none; font-family: var(--f-mono); font-size: 0.8125rem; }
+  .steps li {
+    display: grid;
+    grid-template-columns: 3.1rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.32rem 1.1rem;
+    align-items: baseline;
+  }
+  .steps li + li { border-top: 1px solid var(--rule-soft); }
+  .steps .ln { color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .steps .op { color: var(--ink); }
+  .steps .op i { color: var(--ink-faint); font-style: normal; }
+  .steps li.total { background: var(--accent-bg); }
+  .steps li.total .op { font-weight: 600; }
+  .formula > footer {
+    border-top: 1px solid var(--rule);
+    padding: 0.75rem 1.1rem;
+    font-size: 0.8125rem;
+    color: var(--ink-soft);
+  }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+  caption {
+    caption-side: top;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    background: var(--sunken);
+  }
+  th, td { padding: 0.5rem 1rem; text-align: left; border-bottom: 1px solid var(--rule-soft); }
+  thead th { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  td code { font-size: 0.8125rem; }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.875em;
+    background: var(--sunken);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  /* ---- notes ---- */
+  .note {
+    border-left: 3px solid var(--flag);
+    background: var(--flag-bg);
+    padding: 0.9rem 1.15rem;
+    margin: 1.5rem 0;
+    max-width: var(--measure);
+    font-size: 0.9375rem;
+  }
+  .note b { color: var(--flag); }
+  .note.ok { border-left-color: var(--good); background: var(--good-bg); }
+  .note.ok b { color: var(--good); }
+  .note p:last-child { margin-bottom: 0; }
+
+  ul.plain { max-width: var(--measure); padding-left: 1.15rem; margin: 0 0 1rem; }
+  ul.plain li { margin-bottom: 0.45rem; }
+
+  .chip {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.12em 0.5em;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    vertical-align: 0.05em;
+  }
+  .chip.floor { color: var(--flag); }
+  .chip.exact { color: var(--good); }
+  .chip.sample { color: var(--accent); }
+
+  footer.colophon {
+    border-top: 3px double var(--rule);
+    padding-top: 1.5rem;
+    color: var(--ink-faint);
+    font-size: 0.8125rem;
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 62rem) {
+    .shell { grid-template-columns: 1fr; gap: 0; padding: 0 1.25rem 4rem; }
+    .rail { position: static; max-height: none; padding: 2rem 0 0; border-bottom: 1px solid var(--rule); }
+    .rail ol { flex-direction: row; flex-wrap: wrap; gap: 0.35rem 1.25rem; }
+    .rail a { border-left: none; padding-left: 0; }
+    main { padding-top: 2rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="shell">
+  <nav class="rail" aria-label="Sections">
+    <p class="rail-title">Contents</p>
+    <ol>
+      <li><a href="#sources"><span class="num">01</span><span>Data sources</span></a></li>
+      <li><a href="#acquisition"><span class="num">02</span><span>How data was acquired</span></a></li>
+      <li><a href="#codes"><span class="num">03</span><span>Code sets</span></a></li>
+      <li><a href="#curation"><span class="num">04</span><span>Curation &amp; quarantine</span></a></li>
+      <li><a href="#payment"><span class="num">05</span><span>Payment model</span></a></li>
+      <li><a href="#medicare"><span class="num">06</span><span>Percent of Medicare</span></a></li>
+      <li><a href="#margin"><span class="num">07</span><span>Margin</span></a></li>
+      <li><a href="#market"><span class="num">08</span><span>Market position</span></a></li>
+      <li><a href="#resolution"><span class="num">09</span><span>Entity resolution</span></a></li>
+      <li><a href="#provenance"><span class="num">10</span><span>Provenance rules</span></a></li>
+      <li><a href="#limits"><span class="num">11</span><span>Known limits</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <p class="eyebrow">NY Price Transparency · Methodology</p>
+      <h1>How every number in this pipeline is produced</h1>
+      <p class="standfirst">
+        A reference for the calculations, the data behind them, and the conditions under which
+        each figure can and cannot be quoted. Written so a reader who disagrees with a number can
+        find the exact step they disagree with.
+      </p>
+      <div class="stamp">
+        <span>Version <b>1.0</b></span>
+        <span>Modules <b>33</b></span>
+        <span>Tests <b>349</b></span>
+        <span>Status <b>Phases 1–2 complete</b></span>
+      </div>
+    </header>
+
+    <section id="sources">
+      <h2><span class="sec">01</span>Data sources</h2>
+      <p class="lede">
+        Five public sources. Nothing is licensed, purchased, or scraped from behind an
+        authentication wall.
+      </p>
+
+      <div class="sources">
+        <article class="source">
+          <h4>Hospital machine-readable files</h4>
+          <dl>
+            <dt>Authority</dt><dd>45 CFR 180</dd>
+            <dt>Publisher</dt><dd>Each hospital</dd>
+            <dt>Cadence</dt><dd>At least annually</dd>
+            <dt>Volume</dt><dd>72 files, 21.3 GB</dd>
+          </dl>
+          <p class="how">Negotiated rates by payer, plan and code. The only source carrying
+            Medicare Advantage and Medicaid rates.</p>
+        </article>
+
+        <article class="source">
+          <h4>APR-DRG service intensity weights</h4>
+          <dl>
+            <dt>Publisher</dt><dd>NYS DOH</dd>
+            <dt>Effective</dt><dd>1 Jul 2018</dd>
+            <dt>Grouper</dt><dd>3M APR-DRG v34</dd>
+            <dt>Rows</dt><dd>1,272</dd>
+          </dl>
+          <p class="how">Weight, average length of stay and cost outlier threshold for each
+            APR-DRG at each of four severity levels.</p>
+        </article>
+
+        <article class="source">
+          <h4>Hospital rate schedules</h4>
+          <dl>
+            <dt>Publisher</dt><dd>NYS DOH</dd>
+            <dt>Effective</dt><dd>Apr 2025 / Jan 2025</dd>
+            <dt>Facilities</dt><dd>150 MMC · 151 FFS</dd>
+            <dt>Key</dt><dd>Operating certificate</dd>
+          </dl>
+          <p class="how">Discharge rate, wage adjustment, capital, IME and DME per facility, for
+            managed care and fee-for-service separately.</p>
+        </article>
+
+        <article class="source">
+          <h4>SPARCS discharge file</h4>
+          <dl>
+            <dt>Publisher</dt><dd>NYS DOH</dd>
+            <dt>Year</dt><dd>2021</dd>
+            <dt>Grain</dt><dd>Facility × DRG × severity</dd>
+            <dt>Carries</dt><dd>Volume, cost, charges</dd>
+          </dl>
+          <p class="how">Discharge counts that turn a rate difference into a dollar figure, and
+            mean cost per case that makes margin possible.</p>
+        </article>
+
+        <article class="source">
+          <h4>Contracting rate sheet</h4>
+          <dl>
+            <dt>Origin</dt><dd>Supplied</dd>
+            <dt>Services</dt><dd>62</dd>
+            <dt>Codes</dt><dd>267</dd>
+            <dt>Corrections</dt><dd>1, logged</dd>
+          </dl>
+          <p class="how">Defines the service lines under comparison as predicates over revenue
+            and procedure codes.</p>
+        </article>
+      </div>
+
+      <div class="note">
+        <p><b>Two rules, not one.</b> Hospital Price Transparency covers every payer a hospital
+        contracts with. Transparency in Coverage covers commercial group and individual market
+        only — CMS explicitly exempts Medicare, Medicare Advantage, Medicaid and Medicaid managed
+        care. Medicare Advantage and Medicaid rates therefore exist <em>only</em> in hospital-side
+        files, and can be reported but never reconciled against a second disclosure.</p>
+      </div>
+    </section>
+
+    <section id="acquisition">
+      <h2><span class="sec">02</span>How data was acquired</h2>
+      <p class="lede">
+        Discovery is mechanical, not curated: hospitals are found through the file CMS requires
+        them to publish, and what fails is recorded with a reason rather than dropped.
+      </p>
+
+      <h3>Hospital files</h3>
+      <p>
+        45 CFR 180 requires a <code>cms-hpt.txt</code> file at the root of each hospital's web
+        domain, pointing at its machine-readable file. The crawler resolves that file for every
+        domain on the target list, parses it tolerantly — key/value and JSON forms, hyphen and
+        underscore spellings, HTML entities — and records the direct MRF links.
+      </p>
+      <p>
+        Every candidate is then sized with a <code>HEAD</code> request before anything is
+        downloaded, falling back to a one-byte ranged <code>GET</code> where a CDN refuses HEAD.
+        File size is a planning input, not something to discover mid-download.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Discovery outcome across 19 domains</caption>
+          <thead>
+            <tr><th>Outcome</th><th class="n">Domains</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Resolved</td><td class="n">11</td><td>File found and parsed; 72 MRFs located</td></tr>
+            <tr><td><code>blocked</code></td><td class="n">7</td><td>WAF challenge page — the file may well exist</td></tr>
+            <tr><td><code>soft-404</code></td><td class="n">1</td><td>HTTP 200 serving the site homepage as HTML</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The distinction between <code>blocked</code> and a genuine 404 is load-bearing. Seven
+        domains return a Cloudflare interstitial; treating those as non-compliance would overstate
+        what was observed. No attempt is made to defeat the challenge.
+      </p>
+
+      <h3>Reading at scale</h3>
+      <ul class="plain">
+        <li><b>Parse once, land curated.</b> Each file is read a single time and a filtered slice
+          written out. Raw files are never persisted.</li>
+        <li><b>Streaming throughout.</b> Zip members are inflated from the local file header, since
+          the central directory sits at the end of the file. A 2.8 MB zip in this corpus expands to
+          212 MB; the largest single file is 5.12 GB.</li>
+        <li><b>Resumable.</b> Each load records ETag, Last-Modified and Content-Length. A re-run
+          HEADs first and skips unchanged files without fetching a body.</li>
+        <li><b>Retried.</b> Transient transport faults retry three times with linear backoff. A 404
+          or a parse error does not retry.</li>
+      </ul>
+
+      <h3>Reference and volume data</h3>
+      <p>
+        The DOH weight table, rate schedules and claims-payment workbook are downloaded as
+        published spreadsheets and read by shape rather than fixed cell references, so an inserted
+        row does not break the loader. SPARCS is paged from the Socrata API and cached locally.
+      </p>
+    </section>
+
+    <section id="codes">
+      <h2><span class="sec">03</span>Code sets</h2>
+      <p class="lede">
+        Scope comes from the contracting sheet itself, so adding a service widens the ingest with
+        no second list to keep in step.
+      </p>
+
+      <p>
+        A contracting sheet does not define a service as a list of codes. It defines it as a
+        predicate over a claim line — a revenue code range, often intersected with procedure
+        codes, sometimes with exclusions. All three forms are supported, and both conditions must
+        hold <em>on the same row</em>.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Service definitions parsed from the rate sheet</caption>
+          <thead>
+            <tr><th>Form</th><th class="n">Services</th><th>Example</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Revenue codes only</td><td class="n">48</td><td><code>Hemodialysis: 0820–0825, 0829</code></td></tr>
+            <tr><td>Revenue <b>and</b> procedure</td><td class="n">11</td><td><code>Pacemaker: rev 0360–0361 … with CPT 33206–33208 …</code></td></tr>
+            <tr><td>With exclusions</td><td class="n">3</td><td><code>Radiation: 0330, 0333, 0339 excluding CPT 61796–61800 …</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Normalisation rules</h3>
+      <ul class="plain">
+        <li><b>Revenue codes are padded to four digits, never stripped.</b> Hospitals publish
+          <code>490</code> as often as <code>0490</code>. Stripping the zero would collide revenue
+          code 0470 with MS-DRG 470 — different services entirely.</li>
+        <li><b>Matching is type-aware.</b> A revenue code only matches a code typed as revenue.
+          Ignoring type admitted 70% of every file instead of 0.4%.</li>
+        <li><b>Ranges expand inclusively at the endpoints' own width.</b> <code>0360-0361</code>
+          yields two four-digit codes. En and em dashes are accepted, since sheets are pasted out
+          of word processors.</li>
+        <li><b>APR-DRG codes carry severity in the code string</b> — <code>194-2</code> — matching
+          the DOH weight table key exactly. Severity is not optional: APR-DRG 001 is weight 6.1633
+          at severity 1 and 17.5054 at severity 4.</li>
+      </ul>
+
+      <div class="note">
+        <p><b>One correction to the source sheet, applied and logged.</b> Radiation Therapy listed
+        an exclusion range of <code>6320-63621</code>, whose endpoints differ in width and cannot
+        be expanded. Confirmed as <code>63620-63621</code>, matching the same range in the Gamma
+        Ray row it mirrors. The correction lives in a config file with its reason and who
+        confirmed it — the spreadsheet stays the authority, and the loader reports every
+        correction it applies.</p>
+      </div>
+    </section>
+
+    <section id="curation">
+      <h2><span class="sec">04</span>Curation and quarantine</h2>
+      <p class="lede">
+        Nothing raises. A row is either curated or quarantined with a reason code, and every batch
+        is audited whether it succeeds or fails.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Reject reason codes</caption>
+          <thead>
+            <tr><th>Code</th><th>Applied when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>missing_payer</code></td><td>No payer name on the row</td></tr>
+            <tr><td><code>non_payer_row</code></td><td>Self-pay or uninsured column — a standard charge, not a negotiated rate</td></tr>
+            <tr><td><code>missing_code</code></td><td>No billing code</td></tr>
+            <tr><td><code>missing_vintage</code></td><td>File carries no <code>last_updated_on</code>; undated rates cannot be compared</td></tr>
+            <tr><td><code>no_rate_value</code></td><td>No dollar, percentage or algorithm present</td></tr>
+            <tr><td><code>non_numeric_rate</code></td><td>Unparseable amount, including <code>NaN</code> and <code>Infinity</code></td></tr>
+            <tr><td><code>negative_rate</code></td><td>Amount below zero</td></tr>
+            <tr><td><code>implausible_rate</code></td><td>Above $10,000,000 — a unit error, not a price</td></tr>
+            <tr><td><code>percentage_out_of_range</code></td><td>Outside 0–1000%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Rows filtered for being out of scope are counted separately and never quarantined, so the
+        reject rate stays a quality signal rather than a measure of how narrow the code set is.
+      </p>
+
+      <h3>Load guarantees</h3>
+      <ul class="plain">
+        <li><b>Atomic.</b> Rows are staged and promoted only on completion. An interrupted download
+          leaves nothing that looks loaded — verified against a real interruption at 21 of 72 files.</li>
+        <li><b>Idempotent.</b> A batch is identified by source URL plus a SHA-256 checksum of the
+          decoded bytes. Re-running an unchanged file is a no-op.</li>
+        <li><b>Superseding.</b> A republished file replaces its own prior load rather than sitting
+          alongside it and double-counting every rate.</li>
+        <li><b>Audited.</b> Batch id, source, vintage, layout, bytes, checksum, rows in and out,
+          reject reasons, attempts and status — for every file, success or failure.</li>
+      </ul>
+    </section>
+
+    <section id="payment">
+      <h2><span class="sec">05</span>NY Medicaid payment model</h2>
+      <p class="lede">
+        A direct implementation of the calculation NYS DOH publishes in its Medicaid FFS and HMO
+        Claims Payment Calculation workbook. Line numbers below are the worksheet's own.
+      </p>
+
+      <p>
+        Three payment paths. Every result carries its intermediate lines, because a total that
+        cannot be traced back to the published methodology cannot be defended.
+      </p>
+
+      <div class="formula">
+        <header><span>Inlier — the ordinary case</span><span>DOH “Inlier” worksheet</span></header>
+        <ol class="steps">
+          <li><span class="ln">1</span><span class="op">Discharge case payment rate <i>— facility schedule</i></span></li>
+          <li><span class="ln">2</span><span class="op">Service intensity weight <i>— APR-DRG × severity</i></span></li>
+          <li><span class="ln">3</span><span class="op">Case-mix adjusted payment <i>= 1 × 2</i></span></li>
+          <li><span class="ln">4</span><span class="op">Direct medical education <i>— FFS only; MMC pays separately</i></span></li>
+          <li><span class="ln">5</span><span class="op">Capital per discharge</span></li>
+          <li><span class="ln">6</span><span class="op">Inlier DRG payment <i>= 3 + 4 + 5</i></span></li>
+          <li><span class="ln">6b</span><span class="op">Teaching add-ons <i>= 6 × IME% + DME, when included</i></span></li>
+          <li><span class="ln">7c</span><span class="op">Alternate level of care <i>= ALC rate × ALC days</i></span></li>
+          <li class="total"><span class="ln">8</span><span class="op">Total inlier payment <i>= 6 + 6b + 7c</i></span></li>
+        </ol>
+        <footer>Surcharge: 7.04% for indigent care, added only where the provider has not signed
+          the election.</footer>
+      </div>
+
+      <div class="formula">
+        <header><span>Transfer — paid per diem, capped</span><span>DOH “Transfer” worksheet</span></header>
+        <ol class="steps">
+          <li><span class="ln">5</span><span class="op">Case-mix adjusted payment <i>= rate × weight</i></span></li>
+          <li><span class="ln">6</span><span class="op">Statewide average inlier length of stay</span></li>
+          <li><span class="ln">7</span><span class="op">Average inlier cost per day <i>= 5 ÷ 6</i></span></li>
+          <li><span class="ln">8</span><span class="op">Transfer adjustment <i>= 100% where ALOS is 1 day, else 120%</i></span></li>
+          <li><span class="ln">9</span><span class="op">Transfer cost per day <i>= 7 × 8</i></span></li>
+          <li><span class="ln">11</span><span class="op">Total per diem <i>= 9 + capital per diem</i></span></li>
+          <li><span class="ln">12</span><span class="op">Transfer payment <i>= 11 × days excluding ALC</i></span></li>
+          <li><span class="ln">17</span><span class="op">Capped <i>= lesser of 15 or the full inlier DRG</i></span></li>
+          <li class="total"><span class="ln">19</span><span class="op">Total with ALC <i>= 17 + 18</i></span></li>
+        </ol>
+        <footer>A transfer can never pay more than the full DRG would have. The cap is asserted by
+          test, not assumed.</footer>
+      </div>
+
+      <div class="formula">
+        <header><span>High-cost outlier — paid in addition</span><span>DOH “High Cost” worksheet</span></header>
+        <ol class="steps">
+          <li><span class="ln">3</span><span class="op">Net charges <i>= gross − non-covered</i></span></li>
+          <li><span class="ln">5</span><span class="op">Converted to cost <i>= 3 × high-cost charge converter</i></span></li>
+          <li><span class="ln">6c</span><span class="op">Adjusted threshold <i>= APR-DRG threshold × ISAF</i></span></li>
+          <li><span class="ln">7a</span><span class="op">Qualifies <i>only if 5 &gt; 6c</i></span></li>
+          <li><span class="ln">8</span><span class="op">Outlier payment <i>= 5 − 6c</i></span></li>
+          <li class="total"><span class="ln">10</span><span class="op">Total <i>= 8 + full inlier payment</i></span></li>
+        </ol>
+        <footer>Never applies to transfers. Without charges supplied, no outlier can fire and
+          payment is understated on exactly the expensive cases outliers exist to cover.</footer>
+      </div>
+
+      <h3>Why geography dominates</h3>
+      <p>
+        The statewide base price is $7,460, but each facility's discharge rate is that price
+        adjusted by its Institutional Specific Adjustment Factor — a wage equalisation term. The
+        spread is large enough that any comparison ignoring it is wrong.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Same DRG, same severity, different money — April 2025 managed care</caption>
+          <thead>
+            <tr><th>Facility</th><th class="n">ISAF</th><th class="n">Discharge rate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Maimonides</td><td class="n">1.1890</td><td class="n">$8,870</td></tr>
+            <tr><td>NewYork-Presbyterian</td><td class="n">1.1560</td><td class="n">$8,624</td></tr>
+            <tr><td>NYU Langone</td><td class="n">1.0589</td><td class="n">$7,899</td></tr>
+            <tr><td>Upstate (Syracuse)</td><td class="n">0.9373</td><td class="n">$6,992</td></tr>
+            <tr><td>Ellis (Schenectady)</td><td class="n">0.8070</td><td class="n">$6,020</td></tr>
+            <tr><td>Unity (Rochester)</td><td class="n">0.7356</td><td class="n">$5,488</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note ok">
+        <p><b>Teaching add-ons are not optional for revenue work.</b> The managed care schedule
+        states its rate is “excluding IME”, and lists IME% and DME as informational only — managed
+        care pays them through a separate mechanism. IME runs 29.7% at NYU Langone against 5.2% at
+        Ellis, so omitting them does not make a figure conservative, it makes it wrong in a way
+        concentrated on teaching hospitals. The model reproduces the DOH worksheet exactly by
+        default and adds them on request.</p>
+      </div>
+    </section>
+
+    <section id="medicare">
+      <h2><span class="sec">06</span>Percent of Medicare</h2>
+      <p class="lede">
+        The unit contracting teams actually use, and not a lookup. A benchmark must match on fee
+        schedule, code type, setting, geography and year.
+      </p>
+
+      <p>
+        Each code type routes to the schedule that prices it: MS-DRG to IPPS, CPT to the Physician
+        Fee Schedule, HCPCS and APC to OPPS. APR-DRG routes nowhere — it is a state grouper
+        Medicare does not price, and saying so is more useful than forcing a match.
+      </p>
+
+      <div class="formula">
+        <header><span>Inpatient benchmark</span><span>IPPS</span></header>
+        <ol class="steps">
+          <li><span class="ln">a</span><span class="op">DRG relative weight <i>— IPPS final rule</i></span></li>
+          <li><span class="ln">b</span><span class="op">Wage adjustment <i>= labour share × wage index + non-labour share</i></span></li>
+          <li class="total"><span class="ln">c</span><span class="op">Benchmark <i>= a × standardized amount × b</i></span></li>
+        </ol>
+        <footer>IPPS parameters have no defaults in code. A stale standardized amount silently
+          rescales every inpatient comparison, so the caller must supply them from a cited source.</footer>
+      </div>
+
+      <p>
+        Every failure returns a reason rather than a null, because the share of rates that
+        <em>cannot</em> be benchmarked is itself a finding: <code>not_dollar_denominated</code>,
+        <code>unsupported_code_type</code>, <code>no_benchmark_for_code</code>,
+        <code>no_geography_for_hospital</code>, <code>no_wage_index_for_area</code>,
+        <code>vintage_mismatch</code>, <code>zero_benchmark</code>.
+      </p>
+
+      <div class="note">
+        <p><b>Outpatient and professional benchmarks are gated.</b> CMS puts the PFS relative value
+        files behind an AMA CPT licence click-through. MS-DRG weights are CMS-owned and download
+        freely, so inpatient benchmarking is automatable end to end; CPT-keyed schedules require a
+        manual download after accepting the licence.</p>
+      </div>
+    </section>
+
+    <section id="margin">
+      <h2><span class="sec">07</span>Margin</h2>
+      <p class="lede">
+        A rate is not a result. Margin is what turns a price into a decision about whether a
+        service line survives.
+      </p>
+
+      <div class="formula">
+        <header><span>Margin over a book of business</span><span>per APR-DRG severity</span></header>
+        <ol class="steps">
+          <li><span class="ln">1</span><span class="op">Cases <i>= SPARCS discharges × payer share</i></span></li>
+          <li><span class="ln">2</span><span class="op">Payment per case <i>— full payment model, outliers included</i></span></li>
+          <li><span class="ln">3</span><span class="op">Cost per case <i>— SPARCS mean cost</i></span></li>
+          <li class="total"><span class="ln">4</span><span class="op">Margin <i>= (2 − 3) × 1</i></span></li>
+        </ol>
+        <footer>Cases with no weight cannot be paid; cases with no cost cannot be judged. Both are
+          counted separately rather than folded into the totals.</footer>
+      </div>
+
+      <h3>Three corrections that changed the answer</h3>
+      <p>
+        The first margin run was wrong in three separate ways, each of which produced a plausible
+        looking figure. They are recorded here because the corrected numbers only mean something
+        against them.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Effect on Maimonides, Medicaid managed care</caption>
+          <thead>
+            <tr><th>Correction</th><th>Error it removed</th><th class="n">Margin</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>—</td><td>Initial run</td><td class="n">−39.2%</td></tr>
+            <tr><td>Payer share</td><td>All-payer volume priced at Medicaid rates; the facility is 52.3% Medicaid, not 100%</td><td class="n">−36.9%</td></tr>
+            <tr><td>Outlier charges</td><td>No charges passed, so no outlier could ever fire</td><td class="n">—</td></tr>
+            <tr><td>IME and DME</td><td>Rate published “excluding IME”; 25.7% at this facility</td><td class="n">−1.2%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The final figure is credible for Medicaid at a safety-net hospital. It remains a
+        <span class="chip floor">Floor</span> — DSH, directed and supplemental payments are
+        excluded, and those pools are largest at exactly the safety-net and academic hospitals
+        where the floor sits furthest below actual.
+      </p>
+    </section>
+
+    <section id="market">
+      <h2><span class="sec">08</span>Market position</h2>
+      <p class="lede">
+        A dollar figure alone is not a negotiating position. A percentile against a stated peer
+        group is.
+      </p>
+
+      <ul class="plain">
+        <li><b>Percentile</b> is the share of the peer group at or below the observed rate, computed
+          within a single code — ranking a knee replacement against a blood panel is arithmetic
+          dressed as insight.</li>
+        <li><b>Peer groups are always named</b> on the result. Comparing a Manhattan academic centre
+          to an upstate community hospital gives a number that is correct and useless.</li>
+        <li><b>Fewer than five peers</b> marks the position unreliable rather than reporting a
+          percentile that three observations cannot support.</li>
+        <li><b>Spread</b> ranks services by the ratio between the dearest and cheapest rate — the
+          shortlist a negotiator starts from.</li>
+        <li><b>Opportunity</b> = gap to peer median × annual volume. This is the step that makes a
+          percentile actionable: the 20th percentile on a service performed 4,000 times a year is a
+          different conversation from one performed twice.</li>
+      </ul>
+    </section>
+
+    <section id="resolution">
+      <h2><span class="sec">09</span>Payer entity resolution</h2>
+      <p class="lede">
+        1,387 distinct payer and plan strings across ten hospitals, collapsing to roughly forty
+        real contracting parties.
+      </p>
+
+      <p>
+        <code>uhc</code>, <code>united healthcare</code>, <code>united</code> and
+        <code>oxford</code> are one company. Harder than spelling, the granularity differs between
+        hospitals — one publishes <code>Aetna ‖ All Commercial Plans</code>, another
+        <code>ANTHEM ‖ Blue Access Large Group</code> — so there is no one-to-one mapping to
+        discover.
+      </p>
+
+      <h3>How it is built</h3>
+      <ul class="plain">
+        <li><b>A deterministic baseline runs first</b> and is a real matcher, not a strawman. It
+          resolves 835 of 1,387 strings, covering 73.7% of rate volume, at zero cost and zero
+          latency. Any model-assisted matcher has to beat that number to earn its place.</li>
+        <li><b>The agent proposes, code disposes.</b> A JSON schema constrains the shape of a
+          response; deterministic validation constrains the vocabulary. A confident answer with no
+          lexical overlap with the raw string is rejected before it can merge two contracts.</li>
+        <li><b>Abstention costs recall, never precision.</b> A wrong merge is worse than a
+          question, so precision regression disqualifies a matcher regardless of F1, and a gain
+          under two points is treated as noise.</li>
+        <li><b>Low confidence routes to a human</b>, and those decisions become the labelled set.</li>
+        <li><b>Every call is costed and timed</b>, so the choice to use a model carries a number.</li>
+      </ul>
+
+      <p>
+        The queue that remains is the genuinely hard tail — provider-sponsored networks
+        (<code>Northwell Direct</code>), union funds (<code>Local 1199</code>) and third-party
+        administrators (<code>POMCO</code>, <code>RMSCO</code>) — which is exactly where a model
+        may or may not earn its cost.
+      </p>
+    </section>
+
+    <section id="provenance">
+      <h2><span class="sec">10</span>Provenance rules</h2>
+      <p class="lede">
+        Every figure carries what it rests on, because the questions are always the same: how many
+        rows, from when, what was excluded, and does it cover enough to matter.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>Conditions that attach a caveat automatically</caption>
+          <thead>
+            <tr><th>Condition</th><th>Effect</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Sources more than 400 days apart</td><td>Not comparable; differences may be a timing artifact</td></tr>
+            <tr><td>Fewer than 30 rows</td><td>Not a stable estimate</td></tr>
+            <tr><td>Under half of candidate rows survived filtering</td><td>Included share reported alongside the figure</td></tr>
+            <tr><td>Under 25% of the hospital's book</td><td>Coverage stated explicitly</td></tr>
+            <tr><td>Single hospital</td><td>Not a market view</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        A figure is <span class="chip exact">Reportable</span> only when it clears both the row
+        threshold and the vintage span. Everything else is quotable only with its qualifier
+        attached — which the code emits rather than relying on anyone to remember.
+      </p>
+
+      <div class="note">
+        <p><b>The current corpus does not clear it.</b> SPARCS 2021 against 2025 rate schedules is a
+        span of roughly 1,550 days. Any margin figure combining them is
+        <span class="chip sample">Sampled</span> and carries the vintage caveat. The volumes are a
+        case-mix shape, reliable for weighting, and not a claim about current activity.</p>
+      </div>
+    </section>
+
+    <section id="limits">
+      <h2><span class="sec">11</span>Known limits</h2>
+      <p class="lede">
+        Stated here rather than discovered by a reader.
+      </p>
+
+      <ul class="plain">
+        <li><b>Geographic coverage is uneven.</b> Hudson Valley and Western New York have no
+          resolved hospitals; the Capital District has one. Seven systems are behind bot
+          protection and need manual capture.</li>
+        <li><b>Payment is claim-based only.</b> DSH, directed and supplemental payments are
+          excluded. Those pools are largest at safety-net and academic hospitals.</li>
+        <li><b>Cost is a facility-and-DRG average</b>, not per-case actuals. This screens service
+          lines; it does not cost individual cases.</li>
+        <li><b>One vintage per hospital.</b> Trend analysis needs a second snapshot, and hospital
+          files update annually — a time problem, not a fetch problem.</li>
+        <li><b>APR-DRG weights are the July 2018 table</b>, which remains operative for 2025 rates
+          per DOH. That is correct, not stale, but it is worth knowing.</li>
+        <li><b>Payer-side reconciliation is not built.</b> Transparency in Coverage ingest is the
+          next phase; until then this is a hospital-side analysis, and Medicare Advantage and
+          Medicaid rates could never be reconciled regardless.</li>
+        <li><b>This is a personal project.</b> Deployed, scheduled, monitored and tested — but no
+          real users or business decisions depend on it, and no claim otherwise should be made.</li>
+      </ul>
+    </section>
+
+    <footer class="colophon">
+      <p>
+        Sources: CMS Hospital Price Transparency (45 CFR 180) · NYS DOH APR-DRG weights, rate
+        schedules and claims payment methodology · NYS SPARCS de-identified inpatient discharges ·
+        CMS IPPS final rule. All figures reproducible from the pipeline; every calculation carries
+        its intermediate lines.
+      </p>
+    </footer>
+  </main>
+</div>
