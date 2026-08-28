@@ -76,6 +76,8 @@ class MrfParser:
             self._reader.read(3)
         self._is_json = self._reader.peek(4096).lstrip()[:1] == b"{"
         self.meta = FileMeta(layout="json" if self._is_json else "csv")
+        #: Set when the document ended mid-structure, e.g. a capped read.
+        self.truncated = False
 
     def __iter__(self) -> Iterator[RawRate]:
         if self._is_json:
@@ -88,15 +90,23 @@ class MrfParser:
         ordinal = 0
         # ijson.kvitems over the document root lets us read the header fields and
         # the charge array in a single pass, without buffering the document.
-        for key, value in ijson.kvitems(self._reader, ""):
-            if key != "standard_charge_information":
-                self._absorb_meta(key, value)
-                continue
-            for item in value:
-                for charge in item.get("standard_charges") or []:
-                    for payer in charge.get("payers_information") or []:
-                        ordinal += 1
-                        yield self._json_rate(ordinal, item, charge, payer)
+        try:
+            for key, value in ijson.kvitems(self._reader, ""):
+                if key != "standard_charge_information":
+                    self._absorb_meta(key, value)
+                    continue
+                for item in value:
+                    for charge in item.get("standard_charges") or []:
+                        for payer in charge.get("payers_information") or []:
+                            ordinal += 1
+                            yield self._json_rate(ordinal, item, charge, payer)
+        except ijson.IncompleteJSONError:
+            # A capped or interrupted read ends mid-document. Rows already
+            # yielded are still valid; stopping quietly is right for sampling,
+            # and a truncated ingest is caught by the stream's own flag rather
+            # than by an exception here.
+            self.truncated = True
+            return
 
     def _absorb_meta(self, key: str, value: object) -> None:
         text = _first_str(value)

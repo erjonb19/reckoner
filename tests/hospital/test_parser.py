@@ -184,3 +184,20 @@ def test_revenue_code_leading_zeros_are_preserved():
 
     assert isinstance(result, CuratedRate)
     assert result.revenue_code == "0470"
+
+
+def test_truncated_json_yields_what_it_parsed_and_flags_it():
+    """A capped read ends mid-document; rows already parsed are still valid."""
+    data = MULTI_CODE_MRF.encode("utf-8")
+    parser = MrfParser(MrfStream((data[i : i + 128] for i in range(0, len(data), 128)), 400))
+    rows = list(parser)
+
+    assert parser.truncated
+    assert isinstance(rows, list)
+
+
+def test_complete_json_is_not_flagged_truncated():
+    parser = parser_for(MULTI_CODE_MRF)
+    list(parser)
+
+    assert not parser.truncated
