@@ -52,13 +52,13 @@ select = ["E", "F", "I", "UP", "B", "SIM", "ANN", "RUF"]
 "tests/*" = ["ANN001", "ANN201"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agents", "benchmark", "discovery", "hospital", "payer", "reconcile"]
+known-first-party = ["agents", "benchmark", "discovery", "hospital", "model", "payer", "reconcile"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
 mypy_path = "src"
-packages = ["benchmark", "discovery", "hospital"]
+packages = ["benchmark", "discovery", "hospital", "model"]
 
 [[tool.mypy.overrides]]
 module = ["ijson.*", "openpyxl.*", "pyarrow.*"]
