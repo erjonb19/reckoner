@@ -11,6 +11,7 @@ dependencies = [
     "httpx>=0.27",
     "ijson>=3.2",
     "pyarrow>=16.0",
+    "openpyxl>=3.1",
     "PyYAML>=6.0",
 ]
 
@@ -60,5 +61,5 @@ mypy_path = "src"
 packages = ["benchmark", "discovery", "hospital"]
 
 [[tool.mypy.overrides]]
-module = ["ijson.*", "pyarrow.*"]
+module = ["ijson.*", "openpyxl.*", "pyarrow.*"]
 ignore_missing_imports = true
