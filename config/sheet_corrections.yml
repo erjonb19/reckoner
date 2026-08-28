@@ -1,0 +1,19 @@
+# Corrections applied to the source rate sheet at parse time.
+#
+# The spreadsheet stays the authority. Rather than editing it in place -- which
+# would leave the change invisible and unattributable -- each correction is
+# recorded here with its reason and who confirmed it, and applied to the cell
+# text before the rule is built. Every applied correction is reported by the
+# loader.
+
+corrections:
+  - service: Radiation Therapy
+    find: "6320-63621"
+    replace: "63620-63621"
+    reason: >-
+      Range endpoints differ in width (4 digits to 5), so the range could not be
+      expanded. 63620-63621 matches the same range used in the "Particle Beam,
+      Gamma Ray, Stereotactic Radiosurgery" row directly above, which is the
+      range this exclusion is mirroring.
+    confirmed_by: Erjon
+    confirmed_on: 2026-08-27

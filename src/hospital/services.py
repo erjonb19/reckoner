@@ -27,6 +27,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
 
 #: Clause markers, in the order they must be tested. Exclusion first: a string
 #: can contain both "with" and "excluding", and the exclusion wins the tail.
@@ -157,9 +160,43 @@ def parse_rule(category: str, name: str, spec: str) -> ServiceRule:
     )
 
 
+@dataclass(frozen=True)
+class Correction:
+    """A confirmed repair to the source sheet, applied at parse time."""
+
+    service: str
+    find: str
+    replace: str
+    reason: str = ""
+    confirmed_by: str = ""
+
+    def apply(self, service: str, spec: str) -> tuple[str, bool]:
+        if service.strip().casefold() != self.service.strip().casefold():
+            return spec, False
+        if self.find not in spec:
+            return spec, False
+        return spec.replace(self.find, self.replace), True
+
+
+def load_corrections(path: Path) -> list[Correction]:
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return [
+        Correction(
+            service=str(entry["service"]),
+            find=str(entry["find"]),
+            replace=str(entry["replace"]),
+            reason=str(entry.get("reason", "")).strip(),
+            confirmed_by=str(entry.get("confirmed_by", "")),
+        )
+        for entry in payload.get("corrections", [])
+        if entry.get("service") and entry.get("find")
+    ]
+
+
 @dataclass
 class ServiceSheet:
     rules: list[ServiceRule] = field(default_factory=list)
+    applied_corrections: list[str] = field(default_factory=list)
 
     @property
     def warnings(self) -> list[tuple[str, RuleWarning]]:
@@ -170,13 +207,19 @@ class ServiceSheet:
         return [rule for rule in self.rules if rule.matches(row_codes)]
 
     @classmethod
-    def from_xlsx(cls, path: str, sheet: str | None = None) -> ServiceSheet:
+    def from_xlsx(
+        cls,
+        path: str,
+        sheet: str | None = None,
+        corrections: list[Correction] | None = None,
+    ) -> ServiceSheet:
         import openpyxl
 
         book = openpyxl.load_workbook(path, read_only=True, data_only=True)
         worksheet = book[sheet] if sheet else book[book.sheetnames[0]]
 
         rules: list[ServiceRule] = []
+        applied: list[str] = []
         category = ""
         for index, row in enumerate(worksheet.iter_rows(values_only=True)):
             if index == 0:
@@ -189,5 +232,9 @@ class ServiceSheet:
                 # A label with no codes is a section heading in this layout.
                 category = name
                 continue
+            for correction in corrections or []:
+                spec, did = correction.apply(name, spec)
+                if did:
+                    applied.append(f"{name}: {correction.find} -> {correction.replace}")
             rules.append(parse_rule(category, name, spec))
-        return cls(rules)
+        return cls(rules, applied)

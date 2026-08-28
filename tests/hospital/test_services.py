@@ -146,3 +146,45 @@ class TestSheetLoading:
         assert len(sheet.rules) == 1
         assert sheet.rules[0].category == "Therapy Series"
         assert sheet.rules[0].name == "Physical Therapy"
+
+
+class TestCorrections:
+    def test_correction_repairs_a_malformed_range(self, tmp_path):
+        from hospital.services import Correction
+
+        openpyxl = pytest.importorskip("openpyxl")
+        path = tmp_path / "sheet.xlsx"
+        book = openpyxl.Workbook()
+        ws = book.active
+        ws.append(["Category / Level", "CPT / Rev Codes"])
+        ws.append(["Priority 2", None])
+        ws.append(["Radiation Therapy", "0330, 0339, 0333 (excluding CPT codes 6320-63621)"])
+        book.save(path)
+
+        correction = Correction("Radiation Therapy", "6320-63621", "63620-63621")
+        sheet = ServiceSheet.from_xlsx(str(path), corrections=[correction])
+
+        rule = sheet.rules[0]
+        assert rule.excluded_procedure_codes == {"63620", "63621"}
+        assert not rule.warnings
+        assert sheet.applied_corrections == ["Radiation Therapy: 6320-63621 -> 63620-63621"]
+
+    def test_correction_does_not_touch_other_services(self):
+        from hospital.services import Correction
+
+        correction = Correction("Radiation Therapy", "6320-63621", "63620-63621")
+
+        spec, applied = correction.apply("Chemotherapy Administration", "6320-63621")
+
+        assert not applied
+        assert spec == "6320-63621"
+
+    def test_corrections_load_from_yaml(self):
+        from pathlib import Path
+
+        from hospital.services import load_corrections
+
+        corrections = load_corrections(Path("config/sheet_corrections.yml"))
+
+        assert any(c.find == "6320-63621" and c.replace == "63620-63621" for c in corrections)
+        assert all(c.reason for c in corrections), "every correction needs a stated reason"
