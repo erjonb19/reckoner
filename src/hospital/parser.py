@@ -50,6 +50,11 @@ class RawRate:
     setting: str | None = None
     billing_class: str | None = None
     modifiers: str | None = None
+    #: Every (code, type) pair on the row. A single MRF row routinely carries a
+    #: chargemaster id, a revenue code and a HCPCS code at once, and a service
+    #: defined as "revenue code X with CPT Y" can only be matched if all of them
+    #: survive parsing.
+    codes: tuple[tuple[str, str], ...] = ()
     payer_name: str | None = None
     plan_name: str | None = None
     rate_dollar: str | None = None
@@ -115,12 +120,23 @@ class MrfParser:
         charge: dict[str, object],
         payer: dict[str, object],
     ) -> RawRate:
-        codes = item.get("code_information") or []
-        first = codes[0] if isinstance(codes, list) and codes else {}
+        raw_codes = item.get("code_information")
+        entries: list[dict[str, object]] = (
+            [entry for entry in raw_codes if isinstance(entry, dict)]
+            if isinstance(raw_codes, list)
+            else []
+        )
+        pairs = tuple(
+            (_text(entry.get("code")) or "", _text(entry.get("type")) or "")
+            for entry in entries
+            if _text(entry.get("code"))
+        )
+        first: dict[str, object] = entries[0] if entries else {}
         return RawRate(
             ordinal=ordinal,
-            code=_text(first.get("code")) if isinstance(first, dict) else None,
-            code_type=_text(first.get("type")) if isinstance(first, dict) else None,
+            code=_text(first.get("code")),
+            code_type=_text(first.get("type")),
+            codes=pairs,
             description=_text(item.get("description")),
             setting=_text(charge.get("setting")),
             billing_class=_text(charge.get("billing_class")),
@@ -189,6 +205,22 @@ def _iter_tall(rows: Iterator[list[str]], index_of: dict[str, int]) -> Iterator[
             return value or None
         return None
 
+    code_columns = sorted(
+        {
+            int(name.split("|")[1])
+            for name in index_of
+            if name.startswith("code|") and name.split("|")[1].isdigit()
+        }
+    )
+
+    def all_codes(row: list[str]) -> tuple[tuple[str, str], ...]:
+        found = []
+        for n in code_columns:
+            value = cell(row, f"code|{n}")
+            if value:
+                found.append((value, cell(row, f"code|{n}|type") or ""))
+        return tuple(found)
+
     for ordinal, row in enumerate(rows, start=1):
         if not any(c.strip() for c in row):
             continue
@@ -196,6 +228,7 @@ def _iter_tall(rows: Iterator[list[str]], index_of: dict[str, int]) -> Iterator[
             ordinal=ordinal,
             code=cell(row, "code|1"),
             code_type=cell(row, "code|1|type"),
+            codes=all_codes(row),
             description=cell(row, "description"),
             setting=cell(row, "setting"),
             billing_class=cell(row, "billing_class"),
@@ -230,6 +263,22 @@ def _iter_wide(rows: Iterator[list[str]], header: list[str]) -> Iterator[RawRate
             return value or None
         return None
 
+    wide_code_columns = sorted(
+        {
+            int(name.split("|")[1])
+            for name in plain
+            if name.startswith("code|") and name.split("|")[1].isdigit()
+        }
+    )
+
+    def wide_codes(row: list[str]) -> tuple[tuple[str, str], ...]:
+        found = []
+        for n in wide_code_columns:
+            value = cell(row, f"code|{n}")
+            if value:
+                found.append((value, cell(row, f"code|{n}|type") or ""))
+        return tuple(found)
+
     ordinal = 0
     for row in rows:
         if not any(c.strip() for c in row):
@@ -243,6 +292,7 @@ def _iter_wide(rows: Iterator[list[str]], header: list[str]) -> Iterator[RawRate
                 ordinal=ordinal,
                 code=cell(row, "code|1"),
                 code_type=cell(row, "code|1|type"),
+                codes=wide_codes(row),
                 description=cell(row, "description"),
                 setting=cell(row, "setting"),
                 billing_class=cell(row, "billing_class"),

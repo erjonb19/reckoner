@@ -118,3 +118,69 @@ class TestCsv:
         rows = list(parser_for("just,some,csv\n1,2,3\n"))
 
         assert rows == []
+
+
+MULTI_CODE_MRF = json.dumps(
+    {
+        "hospital_name": "Example Hospital",
+        "last_updated_on": "2026-04-01",
+        "standard_charge_information": [
+            {
+                "description": "Pacemaker insertion",
+                "code_information": [
+                    {"code": "0000065", "type": "CDM"},
+                    {"code": "0360", "type": "RC"},
+                    {"code": "33206", "type": "CPT"},
+                ],
+                "standard_charges": [
+                    {
+                        "setting": "outpatient",
+                        "payers_information": [
+                            {
+                                "payer_name": "Aetna",
+                                "plan_name": "Commercial",
+                                "standard_charge_dollar": 5000.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+)
+
+
+def test_every_code_on_the_row_is_captured():
+    """A service defined as "revenue code X with CPT Y" needs both to survive."""
+    rows = list(parser_for(MULTI_CODE_MRF))
+
+    assert len(rows) == 1
+    assert rows[0].codes == (("0000065", "CDM"), ("0360", "RC"), ("33206", "CPT"))
+    assert rows[0].code == "0000065"
+
+
+def test_curate_breaks_codes_out_by_family():
+    from hospital.curate import CurateContext, CuratedRate, curate
+    from hospital.parser import FileMeta
+
+    raw = next(iter(parser_for(MULTI_CODE_MRF)))
+    meta = FileMeta(hospital_name="H", last_updated_on="2026-04-01")
+    result = curate(raw, CurateContext("b", "u", "H", meta))
+
+    assert isinstance(result, CuratedRate)
+    assert result.revenue_code == "0360"
+    assert result.procedure_code == "33206"
+    assert result.drg_code is None
+    assert '["0360","RC"]' in result.all_codes
+
+
+def test_revenue_code_leading_zeros_are_preserved():
+    """Revenue code 0470 and MS-DRG 470 must not collapse into each other."""
+    from hospital.curate import CurateContext, CuratedRate, curate
+    from hospital.parser import FileMeta
+
+    raw = next(iter(parser_for(MULTI_CODE_MRF.replace('"0360"', '"0470"'))))
+    result = curate(raw, CurateContext("b", "u", "H", FileMeta(last_updated_on="2026-04-01")))
+
+    assert isinstance(result, CuratedRate)
+    assert result.revenue_code == "0470"

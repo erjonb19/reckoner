@@ -10,6 +10,7 @@ Nothing here raises. A row is either curated or rejected.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -39,6 +40,21 @@ MAX_PLAUSIBLE_DOLLAR = Decimal("10000000")
 
 _CURRENCY = re.compile(r"[$,\s]")
 
+#: Code-type families. Matching must be type-aware: revenue code 0470 and
+#: MS-DRG 470 are different things, and normalising away the leading zero would
+#: silently conflate them.
+_REVENUE_TYPES = frozenset({"RC", "REV", "REVENUE", "REVCODE"})
+_PROCEDURE_TYPES = frozenset({"CPT", "HCPCS", "APC", "EAPG"})
+_DRG_TYPES = frozenset({"MS-DRG", "MSDRG", "DRG", "APR-DRG", "APRDRG", "TRIS-DRG"})
+
+
+def _pick(codes: tuple[tuple[str, str], ...], types: frozenset[str]) -> str | None:
+    """First code on the row whose type is in the family."""
+    for code, code_type in codes:
+        if code_type.strip().upper().replace("_", "-") in types:
+            return code.strip()
+    return None
+
 
 @dataclass(frozen=True)
 class CuratedRate:
@@ -49,6 +65,12 @@ class CuratedRate:
     file_vintage: str | None
     code: str
     code_type: str | None
+    #: Broken out from every code on the row, because services are defined as
+    #: "revenue code X with CPT Y" and the row carries both.
+    revenue_code: str | None
+    procedure_code: str | None
+    drg_code: str | None
+    all_codes: str
     description: str | None
     setting: str | None
     billing_class: str | None
@@ -110,6 +132,10 @@ def curate(raw: RawRate, context: CurateContext) -> CuratedRate | Reject:
         file_vintage=context.meta.last_updated_on,
         code=raw.code,
         code_type=raw.code_type,
+        revenue_code=_pick(raw.codes, _REVENUE_TYPES),
+        procedure_code=_pick(raw.codes, _PROCEDURE_TYPES),
+        drg_code=_pick(raw.codes, _DRG_TYPES),
+        all_codes=json.dumps([[c, t] for c, t in raw.codes], separators=(",", ":")),
         description=raw.description,
         setting=raw.setting,
         billing_class=raw.billing_class,
