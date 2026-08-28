@@ -58,10 +58,18 @@ class RateSchedule:
     dme_rate: float = 0.0
     ime_pct: float = 0.0
     statewide_price: float = 0.0
-    #: MMC columns 8-13: non-comparable / directed payment add-ons.
+    #: MMC columns 8-13 summed: ambulance, teaching physicians, school of
+    #: nursing, minimum wage, safety net and the H+H average commercial rate.
+    #: Paid per discharge alongside capital. Zero for FFS, which folds them into
+    #: capital already -- adding them twice would inflate exactly the safety-net
+    #: hospitals the add-ons exist to support.
     addons_per_discharge: float = 0.0
-    #: MMC columns 12-13: safety net / financially distressed / NYC H+H.
+    #: MMC columns 12-13 only: safety net / financially distressed / H+H ACR.
+    #: The transfer worksheet pays these but not the other non-comparables.
     transfer_addons: float = 0.0
+    #: Per-hospital indigent care surcharge where published; the statutory
+    #: 7.04% is only a fallback for a blank cell.
+    hcra_surcharge: float = 0.0
     effective_date: str = ""
     basis: str = Basis.MMC
 
@@ -180,6 +188,7 @@ def inlier_payment(
             },
         ),
         claim,
+        rate,
     )
 
 
@@ -235,7 +244,7 @@ def transfer_payment(
         },
         notes=["capped at inlier"] if line15 > line16a else [],
     )
-    return _with_surcharge(payment, claim)
+    return _with_surcharge(payment, claim, rate)
 
 
 def high_cost_outlier_payment(
@@ -285,6 +294,7 @@ def high_cost_outlier_payment(
             },
         ),
         claim,
+        rate,
     )
 
 
@@ -308,9 +318,11 @@ def calculate(
     return inlier_payment(claim, rate, weight, basis, include_teaching_addons)
 
 
-def _with_surcharge(payment: Payment, claim: Claim) -> Payment:
-    amount = payment.total * MEDICAID_SURCHARGE
-    payment.lines["A_surcharge_rate"] = MEDICAID_SURCHARGE
+def _with_surcharge(payment: Payment, claim: Claim, rate: RateSchedule | None = None) -> Payment:
+    published = rate.hcra_surcharge if rate and rate.hcra_surcharge > 0 else 0.0
+    surcharge_rate = published or MEDICAID_SURCHARGE
+    amount = payment.total * surcharge_rate
+    payment.lines["A_surcharge_rate"] = surcharge_rate
     payment.lines["B_surcharge_amount"] = amount
     payment.lines["unsigned"] = 0.0 if claim.provider_signed_surcharge_election else 1.0
     return payment

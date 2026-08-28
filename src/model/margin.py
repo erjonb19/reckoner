@@ -185,9 +185,18 @@ def margin_for_case_mix(
         "cost is a SPARCS facility-and-DRG average, not per-case actuals; "
         "this screens service lines rather than costing individual cases"
     )
+    if rate.addons_per_discharge > 0:
+        result.provenance.extra_caveats.append(
+            f"includes {rate.addons_per_discharge:,.0f} USD per discharge of directed and "
+            "non-comparable add-ons from the published schedule"
+        )
     result.provenance.extra_caveats.append(
-        "claim-based payment only: DSH, directed and supplemental payments are "
-        "excluded, so this is a floor. Those pools are largest at safety-net and "
-        "academic hospitals, which is where the floor sits furthest below actual."
+        "managed care rates applied to all Medicaid volume; SPARCS does not separate "
+        "managed care from fee-for-service, so directed add-ons are applied slightly "
+        "too broadly where a hospital carries FFS Medicaid volume"
+    )
+    result.provenance.extra_caveats.append(
+        "federal DSH and the Indigent Care Pool are distributed outside the rate "
+        "schedule and remain excluded"
     )
     return result

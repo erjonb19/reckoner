@@ -287,3 +287,77 @@ class TestTeachingAddons:
         without = calculate(Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC)
 
         assert with_addons.total > without.total
+
+
+class TestDirectedPayments:
+    """MMC columns 8-13: non-comparable and directed payment add-ons."""
+
+    SAFETY_NET = RateSchedule(
+        opcert="7002054",
+        hospital="SAFETY NET HOSPITAL",
+        discharge_rate=8000.0,
+        isaf=1.10,
+        high_cost_charge_converter=0.25,
+        capital_per_discharge=1000.0,
+        addons_per_discharge=2500.0,
+        transfer_addons=2000.0,
+        capital_per_diem=150.0,
+    )
+    PLAIN = RateSchedule(
+        opcert="4601001",
+        hospital="COMMUNITY HOSPITAL",
+        discharge_rate=8000.0,
+        isaf=1.10,
+        high_cost_charge_converter=0.25,
+        capital_per_discharge=1000.0,
+        capital_per_diem=150.0,
+    )
+
+    def test_directed_addons_are_paid_alongside_capital(self):
+        payment = inlier_payment(Claim("194", 2), self.SAFETY_NET, WEIGHT, Basis.MMC)
+
+        assert payment.lines["5_capital"] == pytest.approx(1000.0 + 2500.0)
+
+    def test_they_are_the_whole_difference_between_two_identical_rates(self):
+        """Same discharge rate and capital; only the directed payments differ."""
+        funded = inlier_payment(Claim("194", 2), self.SAFETY_NET, WEIGHT, Basis.MMC)
+        plain = inlier_payment(Claim("194", 2), self.PLAIN, WEIGHT, Basis.MMC)
+
+        assert funded.total - plain.total == pytest.approx(2500.0)
+
+    def test_ffs_does_not_add_them_again(self):
+        """FFS capital already includes non-comparables; adding twice inflates."""
+        ffs = inlier_payment(Claim("194", 2), self.SAFETY_NET, WEIGHT, Basis.FFS)
+
+        assert ffs.lines["5_capital"] == pytest.approx(1000.0), "no MMC add-ons on the FFS path"
+
+    def test_transfers_pay_only_the_safety_net_subset(self):
+        """Worksheet line 14 pays columns 12-13, not the full add-on set."""
+        payment = transfer_payment(
+            Claim("194", 2, total_days=2, is_transfer=True), self.SAFETY_NET, WEIGHT, Basis.MMC
+        )
+
+        per_diem = payment.lines["11_total_per_diem"] * 2
+        assert payment.lines["15_transfer_before_cap"] == pytest.approx(per_diem + 2000.0)
+
+
+class TestPerHospitalSurcharge:
+    def test_published_rate_overrides_the_statutory_default(self):
+        published = RateSchedule(
+            opcert="1",
+            hospital="X",
+            discharge_rate=8000.0,
+            isaf=1.0,
+            high_cost_charge_converter=0.25,
+            hcra_surcharge=0.0925,
+        )
+
+        payment = inlier_payment(Claim("194", 2), published, WEIGHT, Basis.MMC)
+
+        assert payment.lines["A_surcharge_rate"] == pytest.approx(0.0925)
+        assert payment.surcharge == pytest.approx(payment.total * 0.0925)
+
+    def test_blank_falls_back_to_the_statutory_rate(self):
+        payment = inlier_payment(Claim("194", 2), MAIMONIDES, WEIGHT, Basis.MMC)
+
+        assert payment.lines["A_surcharge_rate"] == pytest.approx(MEDICAID_SURCHARGE)

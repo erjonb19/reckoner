@@ -25,6 +25,18 @@ _MMC_COLUMNS = {
     "ime_pct": 4,
     "dme_rate": 5,
     "capital_per_discharge": 6,
+    # Columns 8-13: the non-comparable and directed payment add-ons. The DOH
+    # inlier worksheet adds these alongside capital, and omitting them
+    # understates safety-net and public hospitals specifically.
+    "ambulance_addon": 7,
+    "teaching_physicians_addon": 8,
+    "nursing_school_addon": 9,
+    "minimum_wage_addon": 10,
+    "safety_net_addon": 11,
+    "acr_addon": 12,
+    "capital_per_diem": 13,
+    "alc_rate": 14,
+    "hcra_surcharge": 15,
 }
 _FFS_COLUMNS = {
     "admission_rate": 0,
@@ -34,8 +46,24 @@ _FFS_COLUMNS = {
     "high_cost_charge_converter": 4,
     "ime_pct": 5,
     "dme_rate": 6,
+    # FFS column 8 is captioned "capital per discharge PLUS non-comparables",
+    # so the add-ons are already inside it. Adding them again would double-count
+    # exactly the hospitals the add-ons exist to support.
     "capital_per_discharge": 7,
+    "capital_per_diem": 8,
+    "alc_rate": 9,
+    "hcra_surcharge": 10,
 }
+
+#: MMC add-on columns that are paid per discharge on top of capital.
+_MMC_ADDON_FIELDS = (
+    "ambulance_addon",
+    "teaching_physicians_addon",
+    "nursing_school_addon",
+    "minimum_wage_addon",
+    "safety_net_addon",
+    "acr_addon",
+)
 
 
 def _number(value: object) -> float:
@@ -78,6 +106,12 @@ def load_rate_schedules(path: Path, basis: Basis, effective_date: str = "") -> l
                 return 0.0
             return _number(values[index])
 
+        # FFS already folds the non-comparables into capital; only MMC lists
+        # them separately, so only MMC sums them.
+        directed = sum(band(field) for field in _MMC_ADDON_FIELDS) if basis is Basis.MMC else 0.0
+        safety_net = band("safety_net_addon") + band("acr_addon")
+        surcharge = band("hcra_surcharge")
+
         schedules.append(
             RateSchedule(
                 opcert=opcert,
@@ -86,9 +120,16 @@ def load_rate_schedules(path: Path, basis: Basis, effective_date: str = "") -> l
                 isaf=band("isaf"),
                 high_cost_charge_converter=band("high_cost_charge_converter"),
                 capital_per_discharge=band("capital_per_discharge"),
+                capital_per_diem=band("capital_per_diem"),
+                alc_rate=band("alc_rate"),
                 dme_rate=band("dme_rate"),
                 ime_pct=band("ime_pct"),
                 statewide_price=band("statewide_price"),
+                addons_per_discharge=directed,
+                transfer_addons=safety_net,
+                # The published per-hospital surcharge beats the statutory
+                # default, which is only a fallback for a blank cell.
+                hcra_surcharge=surcharge if surcharge > 0 else 0.0,
                 effective_date=effective_date,
                 basis=str(basis),
             )
