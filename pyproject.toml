@@ -58,7 +58,7 @@ known-first-party = ["agents", "benchmark", "discovery", "hospital", "model", "p
 python_version = "3.11"
 strict = true
 mypy_path = "src"
-packages = ["agents", "benchmark", "discovery", "hospital", "model"]
+packages = ["agents", "benchmark", "discovery", "hospital", "model", "reconcile"]
 
 [[tool.mypy.overrides]]
 module = ["ijson.*", "openpyxl.*", "pyarrow.*"]

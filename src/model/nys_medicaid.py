@@ -122,17 +122,45 @@ class Payment:
         return self.total + self.surcharge if self.lines.get("unsigned") else self.total
 
 
-def inlier_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: Basis) -> Payment:
-    """DOH 'Inlier' worksheet."""
+def teaching_addons(rate: RateSchedule, inlier_drg: float, basis: Basis) -> float:
+    """IME and DME payable outside the published discharge rate.
+
+    The MMC schedule states its rate is "EXCLUDING IME", and lists IME% and DME
+    as informational only -- managed care pays them through a separate
+    mechanism. Omitting them does not make a margin conservative, it makes it
+    wrong, and wrong in a way concentrated on teaching hospitals: they are the
+    only ones with a material IME percentage.
+    """
+    if basis is Basis.FFS:
+        # FFS already pays DME inside the inlier calculation (worksheet line 4).
+        return inlier_drg * rate.ime_pct
+    return inlier_drg * rate.ime_pct + rate.dme_rate
+
+
+def inlier_payment(
+    claim: Claim,
+    rate: RateSchedule,
+    weight: DrgWeight,
+    basis: Basis,
+    include_teaching_addons: bool = False,
+) -> Payment:
+    """DOH 'Inlier' worksheet.
+
+    ``include_teaching_addons`` adds IME and DME, which the published MMC rate
+    excludes. Off by default so the result reproduces the DOH worksheet exactly;
+    turn it on for revenue or margin work, where leaving them out understates
+    what a teaching hospital is actually paid.
+    """
     line1 = rate.discharge_rate
     line2 = weight.siw
     line3 = line1 * line2
-    # DME is an FFS-only add-on; the MMC discharge rate already excludes IME.
+    # DME is an FFS-only add-on inside the worksheet; MMC pays it separately.
     line4 = rate.dme_rate if basis is Basis.FFS else 0.0
     line5 = rate.capital_per_discharge + (rate.addons_per_discharge if basis is Basis.MMC else 0.0)
     line6 = line3 + line4 + line5
+    addons = teaching_addons(rate, line6, basis) if include_teaching_addons else 0.0
     line7c = rate.alc_rate * claim.alc_days
-    line8 = line6 + line7c
+    line8 = line6 + addons + line7c
 
     return _with_surcharge(
         Payment(
@@ -146,6 +174,7 @@ def inlier_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: B
                 "4_dme": line4,
                 "5_capital": line5,
                 "6_inlier_drg": line6,
+                "6b_teaching_addons": addons,
                 "7c_alc": line7c,
                 "8_total_with_alc": line8,
             },
@@ -154,7 +183,13 @@ def inlier_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: B
     )
 
 
-def transfer_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: Basis) -> Payment:
+def transfer_payment(
+    claim: Claim,
+    rate: RateSchedule,
+    weight: DrgWeight,
+    basis: Basis,
+    include_teaching_addons: bool = False,
+) -> Payment:
     """DOH 'Transfer' worksheet, capped at the inlier amount."""
     if weight.alos <= 0:
         raise ValueError(f"{weight.key}: transfer payment needs a positive ALOS")
@@ -171,7 +206,7 @@ def transfer_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis:
     line14 = rate.transfer_addons if basis is Basis.MMC else 0.0
     line15 = line12 + line13 + line14
 
-    inlier = inlier_payment(claim, rate, weight, basis)
+    inlier = inlier_payment(claim, rate, weight, basis, include_teaching_addons)
     line16a = inlier.lines["6_inlier_drg"]
     # A transfer must never pay more than the full DRG would have.
     line17 = min(line15, line16a)
@@ -204,7 +239,11 @@ def transfer_payment(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis:
 
 
 def high_cost_outlier_payment(
-    claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: Basis
+    claim: Claim,
+    rate: RateSchedule,
+    weight: DrgWeight,
+    basis: Basis,
+    include_teaching_addons: bool = False,
 ) -> Payment | None:
     """DOH 'High Cost' worksheet. Returns None when the case does not qualify.
 
@@ -224,7 +263,7 @@ def high_cost_outlier_payment(
         return None
 
     line8 = line5 - line6c
-    inlier = inlier_payment(claim, rate, weight, basis)
+    inlier = inlier_payment(claim, rate, weight, basis, include_teaching_addons)
     line9 = inlier.lines["8_total_with_alc"]
     line10 = line8 + line9
 
@@ -249,16 +288,24 @@ def high_cost_outlier_payment(
     )
 
 
-def calculate(claim: Claim, rate: RateSchedule, weight: DrgWeight, basis: Basis) -> Payment:
+def calculate(
+    claim: Claim,
+    rate: RateSchedule,
+    weight: DrgWeight,
+    basis: Basis,
+    include_teaching_addons: bool = False,
+) -> Payment:
     """The payment a claim actually receives, choosing the right path.
 
     Transfers pay per diem (capped). Otherwise the inlier applies, topped up by
     a high-cost outlier where costs clear the adjusted threshold.
     """
     if claim.is_transfer:
-        return transfer_payment(claim, rate, weight, basis)
-    outlier = high_cost_outlier_payment(claim, rate, weight, basis)
-    return outlier if outlier is not None else inlier_payment(claim, rate, weight, basis)
+        return transfer_payment(claim, rate, weight, basis, include_teaching_addons)
+    outlier = high_cost_outlier_payment(claim, rate, weight, basis, include_teaching_addons)
+    if outlier is not None:
+        return outlier
+    return inlier_payment(claim, rate, weight, basis, include_teaching_addons)
 
 
 def _with_surcharge(payment: Payment, claim: Claim) -> Payment:

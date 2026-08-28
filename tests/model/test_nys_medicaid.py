@@ -215,3 +215,75 @@ class TestGeography:
 
         assert rich.total > cheap.total
         assert rich.total / cheap.total > 1.5
+
+
+class TestTeachingAddons:
+    """The MMC published rate says "EXCLUDING IME"; margin work must add it back."""
+
+    TEACHING = RateSchedule(
+        opcert="7002053",
+        hospital="NYU LANGONE HOSPITALS",
+        discharge_rate=7899.0,
+        isaf=1.0589,
+        high_cost_charge_converter=0.25,
+        capital_per_discharge=1742.0,
+        ime_pct=0.297,
+        dme_rate=500.0,
+    )
+    COMMUNITY = RateSchedule(
+        opcert="4601001",
+        hospital="ELLIS HOSPITAL",
+        discharge_rate=6020.0,
+        isaf=0.8070,
+        high_cost_charge_converter=0.25,
+        capital_per_discharge=511.0,
+        ime_pct=0.052,
+        dme_rate=100.0,
+    )
+
+    def test_off_by_default_so_the_doh_worksheet_reproduces(self):
+        payment = inlier_payment(Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC)
+
+        assert payment.lines["6b_teaching_addons"] == 0.0
+        assert payment.total == pytest.approx(payment.lines["6_inlier_drg"])
+
+    def test_adding_them_raises_payment_by_ime_and_dme(self):
+        payment = inlier_payment(
+            Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC, include_teaching_addons=True
+        )
+        base = payment.lines["6_inlier_drg"]
+
+        assert payment.lines["6b_teaching_addons"] == pytest.approx(base * 0.297 + 500.0)
+        assert payment.total > base
+
+    def test_the_effect_is_concentrated_on_teaching_hospitals(self):
+        """5.2% IME at a community hospital against 29.7% at an academic centre."""
+        academic = inlier_payment(
+            Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC, include_teaching_addons=True
+        )
+        community = inlier_payment(
+            Claim("194", 2), self.COMMUNITY, WEIGHT, Basis.MMC, include_teaching_addons=True
+        )
+
+        academic_lift = academic.lines["6b_teaching_addons"] / academic.lines["6_inlier_drg"]
+        community_lift = community.lines["6b_teaching_addons"] / community.lines["6_inlier_drg"]
+        assert academic_lift > community_lift * 3
+
+    def test_ffs_does_not_double_count_dme(self):
+        """FFS already pays DME on worksheet line 4."""
+        payment = inlier_payment(
+            Claim("194", 2), self.TEACHING, WEIGHT, Basis.FFS, include_teaching_addons=True
+        )
+
+        assert payment.lines["4_dme"] == pytest.approx(500.0)
+        assert payment.lines["6b_teaching_addons"] == pytest.approx(
+            payment.lines["6_inlier_drg"] * 0.297
+        ), "IME only; DME must not be added twice"
+
+    def test_the_flag_reaches_the_router(self):
+        with_addons = calculate(
+            Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC, include_teaching_addons=True
+        )
+        without = calculate(Claim("194", 2), self.TEACHING, WEIGHT, Basis.MMC)
+
+        assert with_addons.total > without.total

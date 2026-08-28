@@ -1,1 +1,1 @@
-"""Placeholder package -- see docs/SPEC.md for the phase that fills it in."""
+"""Join logic, comparability rules, market position and the variance mart."""
