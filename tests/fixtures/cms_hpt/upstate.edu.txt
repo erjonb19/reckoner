@@ -1,11 +1,21 @@
 location-name: Upstate University Hospital
+
 source-page-url: https://www.upstate.edu/hospital/patients-families/billing/
+
 mrf-url: https://www.upstate.edu/hospital/files/161469571_upstate-university-hospital_standardcharges.csv
+
 contact-name: REDACTED
+
 contact-email: redacted@example.invalid
 
+
+
 location-name: Upstate Community Hospital
+
 source-page-url: https://www.upstate.edu/hospital/patients-families/billing/
+
 mrf-url: https://www.upstate.edu/hospital/files/161469571_upstate-university-hospital_standardcharges.csv
+
 contact-name: REDACTED
+
 contact-email: redacted@example.invalid
