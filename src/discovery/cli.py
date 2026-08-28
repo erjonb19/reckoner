@@ -22,7 +22,7 @@ import yaml
 from discovery.crawler import DiscoveryResult, discover_many
 from discovery.probe import ProbeResult, probe_many
 
-USER_AGENT = "ny-price-transparency/0.1 (price transparency research crawler)"
+USER_AGENT = "reckoner/0.1 (price transparency research crawler)"
 DEFAULT_TIMEOUT = 30.0
 
 

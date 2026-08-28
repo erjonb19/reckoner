@@ -35,7 +35,7 @@ from hospital.landing import (
 from hospital.parser import MrfParser
 from hospital.streaming import MrfStream
 
-USER_AGENT = "ny-price-transparency/0.1 (price transparency research ingest)"
+USER_AGENT = "reckoner/0.1 (price transparency research ingest)"
 
 #: Alert threshold. Above this share of rejected rows the load is suspect even
 #: though it completed -- rule 4 says quarantine, but also says alert.

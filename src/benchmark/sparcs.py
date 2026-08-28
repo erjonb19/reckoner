@@ -27,7 +27,7 @@ from reconcile.provenance import Provenance
 
 SPARCS_DATASET = "7dtz-qxmr"
 SPARCS_URL = f"https://health.data.ny.gov/resource/{SPARCS_DATASET}.json"
-USER_AGENT = "ny-price-transparency/0.1 (price transparency research)"
+USER_AGENT = "reckoner/0.1 (price transparency research)"
 
 #: Socrata caps a page at 50k rows.
 PAGE_SIZE = 50_000

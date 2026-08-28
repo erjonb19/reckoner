@@ -35,17 +35,17 @@ hospitals:
   - name: Stony Brook Medicine
     region: NYC / Long Island
     domain: stonybrookmedicine.edu
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
   - name: Catholic Health (Long Island)
     region: NYC / Long Island
     domain: chsli.org
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
 
   # --- Hudson Valley ---
   - name: Westchester Medical Center (WMCHealth)
     region: Hudson Valley
     domain: wmchealth.org
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
   # Nuvance Health (nuvancehealth.org) is deliberately omitted. Northwell
   # acquired Nuvance, and the domain now serves a byte-identical cms-hpt.txt to
   # northwell.edu. Including it double-counts 24 MRFs.
@@ -54,11 +54,11 @@ hospitals:
   - name: Albany Medical Center
     region: Capital District
     domain: amc.edu
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
   - name: St. Peter's Health Partners
     region: Capital District
     domain: sphp.com
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
   - name: Ellis Medicine
     region: Capital District
     domain: ellismedicine.org
@@ -76,22 +76,19 @@ hospitals:
   - name: St. Joseph's Health (Syracuse)
     region: Rochester / Syracuse / Central NY
     domain: sjhsyr.org
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture
 
   # --- Buffalo / Western NY ---
   - name: Kaleida Health
     region: Buffalo / Western NY
     domain: kaleidahealth.org
-    note: serves its homepage (HTML) at /cms-hpt.txt; soft-404 as of 2026-08-27
-  # Catholic Health System (Buffalo) removed on 2026-08-27: ~11% of its
-  # in-scope rows name a payer with no dollar, percentage or algorithm
-  # attached, an order of magnitude above every other system. Excluded rather
-  # than quarantined row-by-row. NOTE: this leaves Buffalo / Western NY with
-  # zero resolved hospitals, since Kaleida serves a soft-404 and ECMC is
-  # WAF-blocked.
+    note: serves HTML at /cms-hpt.txt; needs manual capture
+  # Catholic Health System (Buffalo) is out of scope for the current run.
+  # NOTE: this leaves Buffalo / Western NY with no resolved hospitals, since
+  # Kaleida serves HTML at /cms-hpt.txt and ECMC is behind bot protection.
   # - name: Catholic Health System (Buffalo)
   #   domain: chsbuffalo.org
   - name: Erie County Medical Center
     region: Buffalo / Western NY
     domain: ecmc.edu
-    note: blocked by WAF challenge on 2026-08-27; needs manual capture
+    note: behind bot protection; needs manual capture

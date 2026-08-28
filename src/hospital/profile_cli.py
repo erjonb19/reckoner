@@ -22,7 +22,7 @@ import httpx
 from hospital.profile import PAIR_SEPARATOR, MrfProfile, profile_stream
 from hospital.streaming import MrfStream
 
-USER_AGENT = "ny-price-transparency/0.1 (price transparency research profiler)"
+USER_AGENT = "reckoner/0.1 (price transparency research profiler)"
 
 
 def profile_url(client: httpx.Client, url: str, max_bytes: int) -> MrfProfile:

@@ -33,7 +33,7 @@ from hospital.profile import MrfProfile, profile_stream
 from hospital.sampling import DEFAULT_WINDOW_BYTES, DEFAULT_WINDOWS, sample_csv
 from hospital.streaming import MrfStream
 
-USER_AGENT = "ny-price-transparency/0.1 (price transparency research profiler)"
+USER_AGENT = "reckoner/0.1 (price transparency research profiler)"
 
 #: Below this, a full read is cheap enough that sampling adds no value.
 FULL_READ_UNDER_BYTES = 64 * 1024 * 1024
