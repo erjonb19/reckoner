@@ -91,6 +91,11 @@ class LoadAudit:
     layout: str | None = None
     bytes_read: int = 0
     checksum: str | None = None
+    #: Cheap identity from a HEAD, so a re-run can skip an unchanged file
+    #: without downloading it. The checksum only exists after a full read.
+    etag: str | None = None
+    last_modified: str | None = None
+    content_length: int | None = None
     rows_seen: int = 0
     rows_filtered: int = 0
     rows_in: int = 0
@@ -144,6 +149,14 @@ class Landing:
         self.audit_path.parent.mkdir(parents=True, exist_ok=True)
         with self.audit_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(asdict(audit), ensure_ascii=False) + "\n")
+
+    def loaded_signature(self, source_url: str) -> dict[str, Any] | None:
+        """The most recent successful load of this URL, if any."""
+        best: dict[str, Any] | None = None
+        for row in self.read_audit():
+            if row.get("source_url") == source_url and row.get("status") == "ok":
+                best = row
+        return best
 
     def already_loaded(self, source_url: str, checksum: str) -> str | None:
         """Return the prior batch id if this exact file has been loaded."""

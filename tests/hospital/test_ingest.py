@@ -121,8 +121,8 @@ def test_reloading_an_unchanged_file_is_idempotent(landing):
     respx.get(URL).mock(return_value=httpx.Response(200, text=JSON_MRF))
 
     with _client() as client:
-        first = ingest_one(client, landing, "Example Hospital", URL)
-        second = ingest_one(client, landing, "Example Hospital", URL)
+        first = ingest_one(client, landing, "Example Hospital", URL, resume=False)
+        second = ingest_one(client, landing, "Example Hospital", URL, resume=False)
 
     assert first.status == "ok"
     assert second.status == "duplicate"
@@ -135,12 +135,12 @@ def test_reloading_an_unchanged_file_is_idempotent(landing):
 def test_a_changed_file_supersedes_the_previous_load(landing):
     respx.get(URL).mock(return_value=httpx.Response(200, text=JSON_MRF))
     with _client() as client:
-        ingest_one(client, landing, "Example Hospital", URL)
+        ingest_one(client, landing, "Example Hospital", URL, resume=False)
 
     changed = JSON_MRF.replace("412.55", "999.99")
     respx.get(URL).mock(return_value=httpx.Response(200, text=changed))
     with _client() as client:
-        second = ingest_one(client, landing, "Example Hospital", URL)
+        second = ingest_one(client, landing, "Example Hospital", URL, resume=False)
 
     assert second.status == "ok"
     rate_files = [f for f in landing.curated.rglob("*.parquet") if "rates" in str(f)]
@@ -432,3 +432,104 @@ class TestTypeAwareFiltering:
 
         assert codes.by_family["revenue"] == {"0360", "0361"}
         assert codes.by_family["procedure"] == {"33206"}
+
+
+class TestResume:
+    @respx.mock
+    def test_unchanged_file_is_not_redownloaded(self, landing):
+        """An interrupted run must resume without re-reading 21 GB."""
+        headers = {"ETag": '"abc123"', "Content-Length": str(len(JSON_MRF))}
+        get_route = respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers=headers)
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers=headers))
+
+        with _client() as client:
+            first = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+            second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        assert first.status == "ok"
+        assert second.status == "unchanged"
+        assert second.batch_id == first.batch_id
+        assert get_route.call_count == 1, "the body must be fetched only once"
+
+    @respx.mock
+    def test_changed_etag_and_content_triggers_a_reload(self, landing):
+        respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers={"ETag": '"v1"'})
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers={"ETag": '"v1"'}))
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        changed = JSON_MRF.replace("412.55", "999.99")
+        respx.get(URL).mock(
+            return_value=httpx.Response(200, text=changed, headers={"ETag": '"v2"'})
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers={"ETag": '"v2"'}))
+        with _client() as client:
+            second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        assert second.status == "ok"
+
+    @respx.mock
+    def test_changed_etag_with_identical_content_still_deduplicates(self, landing):
+        """The checksum is the backstop: a churned ETag must not double-land."""
+        respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers={"ETag": '"v1"'})
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers={"ETag": '"v1"'}))
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers={"ETag": '"v2"'})
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers={"ETag": '"v2"'}))
+        with _client() as client:
+            second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        assert second.status == "duplicate"
+        rate_files = [f for f in landing.curated.rglob("*.parquet") if "rates" in str(f)]
+        assert len(rate_files) == 1
+
+    @respx.mock
+    def test_last_modified_and_length_are_the_fallback_when_no_etag(self, landing):
+        headers = {"Last-Modified": "Wed, 01 Apr 2026 00:00:00 GMT", "Content-Length": "123"}
+        respx.get(URL).mock(return_value=httpx.Response(200, text=JSON_MRF, headers=headers))
+        respx.head(URL).mock(return_value=httpx.Response(200, headers=headers))
+
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+            second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        assert second.status == "unchanged"
+
+    @respx.mock
+    def test_no_resume_forces_a_reload(self, landing):
+        headers = {"ETag": '"abc123"'}
+        get_route = respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers=headers)
+        )
+        respx.head(URL).mock(return_value=httpx.Response(200, headers=headers))
+
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0, resume=False)
+
+        assert get_route.call_count == 2
+
+    @respx.mock
+    def test_a_failed_prior_load_is_not_treated_as_resumable(self, landing):
+        respx.head(URL).mock(return_value=httpx.Response(200, headers={"ETag": '"x"'}))
+        respx.get(URL).mock(return_value=httpx.Response(404))
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        respx.get(URL).mock(
+            return_value=httpx.Response(200, text=JSON_MRF, headers={"ETag": '"x"'})
+        )
+        with _client() as client:
+            second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
+
+        assert second.status == "ok"

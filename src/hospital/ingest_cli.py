@@ -69,6 +69,36 @@ def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "unknown"
 
 
+def unchanged_since_last_load(client: httpx.Client, landing: Landing, url: str) -> str | None:
+    """Prior batch id if a HEAD says this file has not changed since it loaded.
+
+    Without this a re-run re-downloads everything, because the checksum that
+    proves sameness only exists after a full read. Over this corpus that is
+    21 GB to discover there was nothing to do.
+    """
+    prior = landing.loaded_signature(url)
+    if not prior:
+        return None
+    try:
+        response = client.head(url, follow_redirects=True)
+    except Exception:
+        # The pre-check is an optimisation. If it cannot answer -- the host
+        # refuses HEAD, the network blips -- fall through and download.
+        return None
+    if not response.is_success:
+        return None
+
+    etag = response.headers.get("etag")
+    if etag and prior.get("etag"):
+        return str(prior["batch_id"]) if etag == prior["etag"] else None
+
+    modified = response.headers.get("last-modified")
+    length = response.headers.get("content-length")
+    same_modified = modified and modified == prior.get("last_modified")
+    same_length = length and str(prior.get("content_length")) == length
+    return str(prior["batch_id"]) if same_modified and same_length else None
+
+
 def ingest_one(
     client: httpx.Client,
     landing: Landing,
@@ -78,11 +108,25 @@ def ingest_one(
     codes: CodeSet | None = None,
     max_attempts: int = MAX_ATTEMPTS,
     backoff: float = BACKOFF_SECONDS,
+    resume: bool = True,
 ) -> LoadAudit:
     """Ingest one MRF, retrying transient transport faults.
 
     The audit is appended once, for the final outcome, with the attempt count.
     """
+    if resume:
+        prior_batch = unchanged_since_last_load(client, landing, url)
+        if prior_batch:
+            skipped = LoadAudit(
+                batch_id=prior_batch,
+                source_url=url,
+                hospital=hospital,
+                started_at=utc_now(),
+                finished_at=utc_now(),
+                status="unchanged",
+                error=f"unchanged since {prior_batch}; not re-downloaded",
+            )
+            return skipped
     audit = LoadAudit(batch_id="", source_url=url, hospital=hospital, started_at=utc_now())
     for attempt in range(1, max_attempts + 1):
         audit = _ingest_attempt(client, landing, hospital, url, max_rows, codes)
@@ -142,6 +186,10 @@ def _ingest_attempt(
 
             audit.bytes_read = hashed.bytes_read
             audit.checksum = hashed.checksum
+            audit.etag = response.headers.get("etag")
+            audit.last_modified = response.headers.get("last-modified")
+            raw_length = response.headers.get("content-length")
+            audit.content_length = int(raw_length) if raw_length and raw_length.isdigit() else None
             audit.layout = parser.meta.layout
             audit.file_vintage = parser.meta.last_updated_on
 
@@ -188,6 +236,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--all-codes", action="store_true")
     parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="re-download every file even if unchanged since its last load",
+    )
+    parser.add_argument(
         "--service-sheet",
         type=Path,
         help="derive the code filter from a contracting rate sheet (.xlsx)",
@@ -230,7 +283,18 @@ def main(argv: list[str] | None = None) -> int:
         ThreadPoolExecutor(max_workers=args.workers) as pool,
     ):
         futures = [
-            pool.submit(ingest_one, client, landing, hospital, url, args.max_rows, codes)
+            pool.submit(
+                ingest_one,
+                client,
+                landing,
+                hospital,
+                url,
+                args.max_rows,
+                codes,
+                MAX_ATTEMPTS,
+                BACKOFF_SECONDS,
+                not args.no_resume,
+            )
             for hospital, url in targets
         ]
         for done, future in enumerate(futures, start=1):
