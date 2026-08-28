@@ -193,6 +193,34 @@ def load_corrections(path: Path) -> list[Correction]:
     ]
 
 
+def row_codes(all_codes: str) -> dict[str, set[str]]:
+    """Build the match input for one curated row from its stored code list.
+
+    Normalisation happens here, not at ingest: the curated row keeps codes
+    exactly as the hospital published them, and hospitals publish revenue codes
+    three digits wide ("490") as often as four ("0490").
+    """
+    import json as _json
+
+    try:
+        pairs = _json.loads(all_codes or "[]")
+    except ValueError:
+        return {"revenue": set(), "procedure": set()}
+
+    revenue: set[str] = set()
+    procedure: set[str] = set()
+    for entry in pairs:
+        if not isinstance(entry, list) or len(entry) != 2:
+            continue
+        code, code_type = str(entry[0]).strip().upper(), str(entry[1]).strip().upper()
+        family = code_type.replace("_", "-")
+        if family in {"RC", "REV", "REVENUE", "REVCODE"}:
+            revenue.add(normalise_revenue(code))
+        elif family in {"CPT", "HCPCS", "APC", "EAPG"}:
+            procedure.add(code)
+    return {"revenue": revenue, "procedure": procedure}
+
+
 @dataclass
 class ServiceSheet:
     rules: list[ServiceRule] = field(default_factory=list)
@@ -201,6 +229,21 @@ class ServiceSheet:
     @property
     def warnings(self) -> list[tuple[str, RuleWarning]]:
         return [(rule.name, w) for rule in self.rules for w in rule.warnings]
+
+    def all_codes(self) -> set[str]:
+        """Every code the sheet references, for use as an ingest filter.
+
+        Revenue codes are emitted in both the padded and unpadded form, because
+        the filter runs against codes exactly as published.
+        """
+        codes: set[str] = set()
+        for rule in self.rules:
+            for code in rule.revenue_codes:
+                codes.add(code)
+                codes.add(code.lstrip("0") or "0")
+            codes |= rule.procedure_codes
+            codes |= rule.excluded_procedure_codes
+        return codes
 
     def classify(self, row_codes: dict[str, set[str]]) -> list[ServiceRule]:
         """Every service a row satisfies. More than one is possible and real."""

@@ -120,7 +120,7 @@ def _ingest_attempt(
 
             for raw in parser:
                 audit.rows_seen += 1
-                if raw.code not in codes:
+                if not codes.matches_any(raw.codes or ((raw.code or "", raw.code_type or ""),)):
                     # Out of scope, not invalid: filtered rows are counted but
                     # never quarantined, so the reject rate stays meaningful.
                     audit.rows_filtered += 1
@@ -187,6 +187,16 @@ def main(argv: list[str] | None = None) -> int:
         help="target code set; pass --all-codes to disable filtering",
     )
     parser.add_argument("--all-codes", action="store_true")
+    parser.add_argument(
+        "--service-sheet",
+        type=Path,
+        help="derive the code filter from a contracting rate sheet (.xlsx)",
+    )
+    parser.add_argument(
+        "--sheet-corrections",
+        type=Path,
+        default=Path("config/sheet_corrections.yml"),
+    )
     args = parser.parse_args(argv)
 
     targets: list[tuple[str, str]] = []
@@ -203,8 +213,15 @@ def main(argv: list[str] | None = None) -> int:
     orphans = landing.sweep_staging()
     if orphans:
         print(f"swept {len(orphans)} staged batches orphaned by an earlier run")
-    codes = CodeSet.everything() if args.all_codes else CodeSet.from_yaml(args.codes)
-    scope = "all codes" if args.all_codes else f"{len(codes)} target codes"
+    if args.all_codes:
+        codes, scope = CodeSet.everything(), "all codes"
+    elif args.service_sheet:
+        corrections = args.sheet_corrections if args.sheet_corrections.exists() else None
+        codes = CodeSet.from_service_sheet(args.service_sheet, corrections)
+        scope = f"{len(codes)} codes from {args.service_sheet.name}"
+    else:
+        codes = CodeSet.from_yaml(args.codes)
+        scope = f"{len(codes)} target codes"
     print(f"ingesting {len(targets)} MRFs into {args.root} ({scope})\n")
 
     audits: list[LoadAudit] = []

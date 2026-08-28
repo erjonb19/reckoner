@@ -42,6 +42,14 @@ class CodeSet:
     def __len__(self) -> int:
         return len(self.codes)
 
+    def matches_any(self, codes: tuple[tuple[str, str], ...]) -> bool:
+        """True if any code on the row is in scope.
+
+        Filtering on the first code alone would drop a row whose revenue code is
+        in scope but whose chargemaster id happens to be listed first.
+        """
+        return any(code in self for code, _ in codes)
+
     def label_for(self, code: str | None) -> str | None:
         return self.labels.get(normalise_code(code))
 
@@ -65,6 +73,21 @@ class CodeSet:
         return cls(frozenset(codes), labels)
 
     @classmethod
+    def from_service_sheet(cls, path: Path, corrections_path: Path | None = None) -> CodeSet:
+        """Build the ingest filter from a contracting rate sheet.
+
+        Scope comes from the sheet itself, so adding a service to the sheet is
+        all it takes to widen the ingest -- no second list to keep in step.
+        """
+        from hospital.services import ServiceSheet, load_corrections
+
+        corrections = load_corrections(corrections_path) if corrections_path else []
+        sheet = ServiceSheet.from_xlsx(str(path), corrections=corrections)
+        codes = sheet.all_codes()
+        labels = {normalise_code(c): r.name for r in sheet.rules for c in r.revenue_codes}
+        return cls(frozenset(normalise_code(c) for c in codes), labels)
+
+    @classmethod
     def everything(cls) -> CodeSet:
         """A set that matches every code, for an unfiltered run."""
         return _EverythingCodeSet(frozenset(), {})
@@ -72,6 +95,9 @@ class CodeSet:
 
 class _EverythingCodeSet(CodeSet):
     def __contains__(self, code: object) -> bool:
+        return True
+
+    def matches_any(self, codes: tuple[tuple[str, str], ...]) -> bool:
         return True
 
     def __len__(self) -> int:
