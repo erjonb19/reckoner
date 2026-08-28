@@ -12,7 +12,7 @@ labelled "HCPCS" -- so requiring a type match would silently drop real rows.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -31,10 +31,44 @@ def normalise_code(code: str | None) -> str:
     return stripped
 
 
+#: Which code-type strings belong to which family. A revenue code and an MS-DRG
+#: can be the same digits, so a filter that ignores type over-matches wildly:
+#: revenue 0450 (Emergency) would also admit every DRG 450 row.
+FAMILY_OF_TYPE = {
+    "RC": "revenue",
+    "REV": "revenue",
+    "REVENUE": "revenue",
+    "REVCODE": "revenue",
+    "CPT": "procedure",
+    "HCPCS": "procedure",
+    "APC": "procedure",
+    "EAPG": "procedure",
+    "MS-DRG": "drg",
+    "MSDRG": "drg",
+    "DRG": "drg",
+    "APR-DRG": "drg",
+    "APRDRG": "drg",
+    "TRIS-DRG": "drg",
+}
+
+
+def family_of(code_type: str | None) -> str | None:
+    return FAMILY_OF_TYPE.get((code_type or "").strip().upper().replace("_", "-"))
+
+
+def normalise_revenue(code: str) -> str:
+    """Revenue codes are four digits wide; pad rather than strip."""
+    digits = code.strip().upper()
+    return digits.zfill(4) if digits.isdigit() else digits
+
+
 @dataclass(frozen=True)
 class CodeSet:
     codes: frozenset[str]
     labels: dict[str, str]
+    #: Family -> codes. When present, matching is type-aware and `codes` is
+    #: used only as the untyped fallback for hand-written lists.
+    by_family: dict[str, frozenset[str]] = field(default_factory=dict)
 
     def __contains__(self, code: object) -> bool:
         return isinstance(code, str) and normalise_code(code) in self.codes
@@ -46,9 +80,22 @@ class CodeSet:
         """True if any code on the row is in scope.
 
         Filtering on the first code alone would drop a row whose revenue code is
-        in scope but whose chargemaster id happens to be listed first.
+        in scope but whose chargemaster id happens to be listed first. When the
+        set carries families, a code only counts against its own family.
         """
-        return any(code in self for code, _ in codes)
+        if not self.by_family:
+            return any(code in self for code, _ in codes)
+        for code, code_type in codes:
+            family = family_of(code_type)
+            if family is None:
+                continue
+            candidates = self.by_family.get(family)
+            if not candidates:
+                continue
+            key = normalise_revenue(code) if family == "revenue" else code.strip().upper()
+            if key in candidates:
+                return True
+        return False
 
     def label_for(self, code: str | None) -> str | None:
         return self.labels.get(normalise_code(code))
@@ -83,9 +130,18 @@ class CodeSet:
 
         corrections = load_corrections(corrections_path) if corrections_path else []
         sheet = ServiceSheet.from_xlsx(str(path), corrections=corrections)
-        codes = sheet.all_codes()
-        labels = {normalise_code(c): r.name for r in sheet.rules for c in r.revenue_codes}
-        return cls(frozenset(normalise_code(c) for c in codes), labels)
+        revenue: set[str] = set()
+        procedure: set[str] = set()
+        for rule in sheet.rules:
+            revenue |= {normalise_revenue(c) for c in rule.revenue_codes}
+            procedure |= {c.strip().upper() for c in rule.procedure_codes}
+            procedure |= {c.strip().upper() for c in rule.excluded_procedure_codes}
+        labels = {normalise_revenue(c): r.name for r in sheet.rules for c in r.revenue_codes}
+        return cls(
+            frozenset(revenue | procedure),
+            labels,
+            {"revenue": frozenset(revenue), "procedure": frozenset(procedure)},
+        )
 
     @classmethod
     def everything(cls) -> CodeSet:

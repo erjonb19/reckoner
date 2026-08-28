@@ -382,3 +382,53 @@ def test_one_audit_row_per_file_regardless_of_retries(landing):
         ingest_one(client, landing, "Example Hospital", URL, backoff=0)
 
     assert len(landing.read_audit()) == 1
+
+
+class TestTypeAwareFiltering:
+    def test_revenue_code_does_not_match_a_drg_of_the_same_digits(self):
+        """Revenue 0450 must not admit MS-DRG 450 -- this over-matched 70% of rows."""
+        from hospital.codeset import CodeSet
+
+        codes = CodeSet(
+            frozenset({"0450"}), {}, {"revenue": frozenset({"0450"}), "procedure": frozenset()}
+        )
+
+        assert codes.matches_any((("0450", "RC"),))
+        assert codes.matches_any((("450", "RC"),)), "three-digit revenue codes still match"
+        assert not codes.matches_any((("450", "MS-DRG"),))
+        assert not codes.matches_any((("450", "CDM"),))
+
+    def test_procedure_code_only_matches_procedure_types(self):
+        from hospital.codeset import CodeSet
+
+        codes = CodeSet(
+            frozenset({"33206"}), {}, {"revenue": frozenset(), "procedure": frozenset({"33206"})}
+        )
+
+        assert codes.matches_any((("33206", "CPT"),))
+        assert codes.matches_any((("33206", "HCPCS"),))
+        assert not codes.matches_any((("33206", "CDM"),))
+
+    def test_untyped_sets_keep_the_old_permissive_behaviour(self):
+        from hospital.codeset import CodeSet
+
+        codes = CodeSet(frozenset({"470"}), {})
+
+        assert codes.matches_any((("0470", "anything"),))
+
+    def test_sheet_derived_set_carries_families(self, tmp_path):
+        from hospital.codeset import CodeSet
+
+        openpyxl = pytest.importorskip("openpyxl")
+        path = tmp_path / "sheet.xlsx"
+        book = openpyxl.Workbook()
+        ws = book.active
+        ws.append(["Category", "Codes"])
+        ws.append(["Cardiac", None])
+        ws.append(["Pacemaker", "0360-0361; CPT Codes: 33206"])
+        book.save(path)
+
+        codes = CodeSet.from_service_sheet(path)
+
+        assert codes.by_family["revenue"] == {"0360", "0361"}
+        assert codes.by_family["procedure"] == {"33206"}
