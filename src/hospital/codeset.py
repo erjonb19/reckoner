@@ -12,6 +12,7 @@ labelled "HCPCS" -- so requiring a type match would silently drop real rows.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -148,6 +149,23 @@ class CodeSet:
         """A set that matches every code, for an unfiltered run."""
         return _EverythingCodeSet(frozenset(), {})
 
+    def fingerprint(self) -> str:
+        """Stable identity of what this set admits.
+
+        Recorded on every load so a re-run can tell "the same file, already
+        loaded" from "the same file, but the last load only kept 45 codes of
+        it". Without it a widened ingest re-downloads, re-parses and then
+        discards its own output as a duplicate, reporting success -- which is
+        how a 332,055 row file stayed in the lake as 1,119 rows.
+        """
+        payload = ",".join(sorted(self.codes))
+        if self.by_family:
+            payload += "|" + ";".join(
+                f"{family}={','.join(sorted(codes))}"
+                for family, codes in sorted(self.by_family.items())
+            )
+        return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
 
 class _EverythingCodeSet(CodeSet):
     def __contains__(self, code: object) -> bool:
@@ -158,3 +176,6 @@ class _EverythingCodeSet(CodeSet):
 
     def __len__(self) -> int:
         return 0
+
+    def fingerprint(self) -> str:
+        return "all"
