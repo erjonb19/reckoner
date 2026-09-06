@@ -35,12 +35,17 @@ from reconcile.provenance import Provenance, parse_vintage
 class Explanation(StrEnum):
     """Candidate explanations for a variance, in the order they must be ruled out."""
 
-    #: The two files describe different points in time.
+    #: The two files describe different points in time, *and* the size of the
+    #: difference is one that drift over that gap could actually produce.
     VINTAGE_ARTIFACT = "vintage_artifact"
     #: The payer or plan strings were merged when they are different contracts.
     ENTITY_RESOLUTION_SUSPECT = "entity_resolution_suspect"
     #: One side aggregates several plans behind one name.
     GRANULARITY_MISMATCH = "granularity_mismatch"
+    #: The two sides name plans, but from vocabularies that have not been matched
+    #: to each other. Not a claim that the contracts differ -- a claim that we do
+    #: not yet know whether they do.
+    PLAN_UNRESOLVED = "plan_unresolved"
     #: Survived the deterministic checks. A real disagreement, or close to it.
     UNEXPLAINED = "unexplained"
 
@@ -50,6 +55,21 @@ class Explanation(StrEnum):
 #: do not happen in a real contract; they happen when a per diem meets a case
 #: rate, or when a decimal moved.
 IMPLAUSIBLE_RATIO = 10.0
+
+#: The most a negotiated rate could plausibly move in a year, as a share of
+#: itself. Deliberately generous: this is not a claim about typical escalators,
+#: which run at a few percent. It is the bound above which *timing cannot be the
+#: explanation* -- a service whose price doubled in seven months did not do so by
+#: drifting, it was rebased, recoded, or matched to the wrong contract.
+#:
+#: A bound is needed because a vintage gap on its own cannot discriminate.
+#: Hospital files update at least annually and payer files monthly, so in
+#: cross-source mode *every* pair has a large gap. Explaining a row by the gap
+#: alone therefore sorts rows by which file they came from rather than by
+#: anything about the rates: it labelled 72% of one Aetna run ``vintage_artifact``
+#: purely because ``AetnaALIC`` sits 216 days from the hospital vintage while
+#: ``Aetna_NY`` sits 155, and left ``unexplained`` empty.
+PLAUSIBLE_ANNUAL_DRIFT = 0.40
 
 #: A plan name that aggregates rather than identifies. One side publishing
 #: "All Commercial Plans" against another's named plan is a granularity
@@ -162,12 +182,15 @@ def explain(left: ComparableRate, right: ComparableRate) -> tuple[str, tuple[str
     """
     notes: list[str] = []
 
-    left_date, right_date = parse_vintage(left.vintage), parse_vintage(right.vintage)
-    if left_date and right_date:
-        span = abs((left_date - right_date).days)
-        if span > 180:
-            notes.append(f"vintages {span} days apart")
-            return str(Explanation.VINTAGE_ARTIFACT), tuple(notes)
+    # Ordered by what each check can rule *out*, cheapest disqualifier first.
+    # The magnitude checks come before the timing one because a difference too
+    # large for drift is not explained by drift, however far apart the vintages
+    # are -- the previous order let any sufficiently stale pair claim
+    # ``vintage_artifact`` no matter how implausible the gap in price.
+    ratio_pair = sorted((left.rate_dollar or 0.0, right.rate_dollar or 0.0))
+    if ratio_pair[0] and ratio_pair[1] / ratio_pair[0] >= IMPLAUSIBLE_RATIO:
+        notes.append(f"{ratio_pair[1] / ratio_pair[0]:.0f}x apart for one service and payer")
+        return str(Explanation.ENTITY_RESOLUTION_SUSPECT), tuple(notes)
 
     if {left.product_class, right.product_class} & _AGGREGATE_PLAN_CLASSES and (
         left.product_class != right.product_class
@@ -175,16 +198,56 @@ def explain(left: ComparableRate, right: ComparableRate) -> tuple[str, tuple[str
         notes.append(f"{left.product_class} vs {right.product_class}")
         return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
 
+    drift = _drift_could_explain(left, right)
+    if drift is not None:
+        span, implied = drift
+        notes.append(
+            f"vintages {span} days apart; the {_relative(left, right):.1%} difference "
+            f"implies {implied:.1%} a year, within the {PLAUSIBLE_ANNUAL_DRIFT:.0%} bound"
+        )
+        return str(Explanation.VINTAGE_ARTIFACT), tuple(notes)
+
     if _plans_differ(left, right):
+        if _across_sources(left, right):
+            # A hospital publishes plan names and a payer file is one network
+            # label; the two vocabularies have not been matched to each other,
+            # so a string difference is not evidence that the contracts differ.
+            # Calling it a granularity mismatch would assert a finding that the
+            # A2 plan matcher has not yet earned.
+            notes.append(f"plans not matched across sources: {left.plan!r} vs {right.plan!r}")
+            return str(Explanation.PLAN_UNRESOLVED), tuple(notes)
         notes.append(f"plans differ: {left.plan!r} vs {right.plan!r}")
         return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
 
-    ratio_pair = sorted((left.rate_dollar or 0.0, right.rate_dollar or 0.0))
-    if ratio_pair[0] and ratio_pair[1] / ratio_pair[0] >= IMPLAUSIBLE_RATIO:
-        notes.append(f"{ratio_pair[1] / ratio_pair[0]:.0f}x apart for one service and payer")
-        return str(Explanation.ENTITY_RESOLUTION_SUSPECT), tuple(notes)
-
     return str(Explanation.UNEXPLAINED), tuple(notes)
+
+
+def _relative(left: ComparableRate, right: ComparableRate) -> float:
+    """Difference as a share of the lower rate, so it is symmetric in sign."""
+    low, high = sorted((left.rate_dollar or 0.0, right.rate_dollar or 0.0))
+    return (high - low) / low if low else 0.0
+
+
+def _drift_could_explain(left: ComparableRate, right: ComparableRate) -> tuple[int, float] | None:
+    """The gap and the implied annual drift, when timing is a live explanation.
+
+    Returns ``None`` when the vintages are unknown, when there is no gap at all,
+    or when the difference is too large for drift over that gap to produce --
+    in which case timing has been ruled out rather than confirmed.
+    """
+    left_date, right_date = parse_vintage(left.vintage), parse_vintage(right.vintage)
+    if left_date is None or right_date is None:
+        return None
+    span = abs((left_date - right_date).days)
+    if span == 0:
+        return None
+    implied = _relative(left, right) / (span / 365.0)
+    return (span, implied) if implied <= PLAUSIBLE_ANNUAL_DRIFT else None
+
+
+def _across_sources(left: ComparableRate, right: ComparableRate) -> bool:
+    """True when the pair spans the hospital and payer disclosures."""
+    return bool(left.source and right.source and left.source != right.source)
 
 
 def _plans_differ(left: ComparableRate, right: ComparableRate) -> bool:
