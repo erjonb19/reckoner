@@ -28,10 +28,14 @@ rules disclosing different things:
    counterpart to disagree with. Reporting them as an unexplained variance would
    be a bug, not a finding.
 5. **Unstated billing class.** A payer file always says whether a rate is
-   professional or institutional; a hospital file often does not. A missing
-   value is compatible with everything, so across sources it silently pairs one
-   hospital rate with both of the payer's -- the facility charge for a scan
-   against the fee for reading it. That is refused rather than assumed away.
+   professional or institutional, because Transparency in Coverage requires it.
+   The CMS hospital template makes the same field *optional*, and hospitals
+   differ on whether they supply it. A missing value is compatible with
+   everything, so across sources it silently pairs one hospital rate with both
+   of the payer's -- the facility charge for a scan against the fee for reading
+   it. That is refused rather than assumed away: a hospital omitting an optional
+   field is compliant and still unreconcilable, and the size of that gap is a
+   finding rather than a defect.
 """
 
 from __future__ import annotations
@@ -274,11 +278,20 @@ def _billing_class_unstated(left: ComparableRate, right: ComparableRate) -> str:
     two different things.
 
     Refusing is deliberately expensive: it removes most of the comparable volume
-    for any hospital that omits the field. That is the correct trade. The share
-    of a disclosure that cannot be compared *because the hospital did not say
-    what kind of charge it published* is a result this project exists to report,
-    and it only counts as one if it is counted rather than papered over with an
-    assumption about what the hospital probably meant.
+    for any hospital that omits the field. That is the correct trade, and the
+    refusal is not a complaint about the hospital. ``billing_class`` is an
+    **optional** element of the CMS hospital template and a **required** one on
+    the payer side, so a hospital that leaves it blank is fully compliant and
+    still unreconcilable. That asymmetry -- the one field that would let a
+    facility charge be matched to an institutional rate is mandatory in one rule
+    and optional in the other -- is a concrete instance of the misalignment CMS
+    has named as a barrier to price transparency, and it is a result worth
+    reporting rather than papering over with an assumption about what the
+    hospital probably meant.
+
+    Adoption is split rather than universal, which is what makes it measurable:
+    of four NY systems in the lake, Mount Sinai states the field on every row and
+    NYU Langone on none of its 13.5 million.
 
     Same-source comparisons are unaffected: two hospitals that both omit the
     field are omitting it the same way.
