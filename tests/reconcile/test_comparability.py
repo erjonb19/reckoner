@@ -23,6 +23,8 @@ def rate(**overrides: object) -> ComparableRate:
         "code": "470",
         "code_type": "MS-DRG",
         "setting": "inpatient",
+        # Stated, because a cross-source pair is refused without it.
+        "billing_class": "facility",
         "payer": "Aetna",
         "plan": "Commercial PPO",
         "product_class": "commercial",
@@ -180,6 +182,70 @@ class TestCrossSourceExemptions:
             rate(source="payer", product_class="commercial"),
             cross_source=True,
         )
+
+
+class TestUnstatedBillingClass:
+    """A payer always states professional or institutional; a hospital often does not.
+
+    Treating the omission as compatible-with-anything is a silent cross-join
+    across sources: one unstated hospital rate meets both of the payer's rates
+    for the same code. On one NYU facility that put 96.4% of pairs against the
+    payer's *professional* rate -- the hospital's charge for a scan against the
+    radiologist's fee for reading it -- and those were six times likelier to land
+    ten-fold apart than the facility-to-facility pairs.
+    """
+
+    def test_an_unstated_hospital_billing_class_refuses_the_pair(self):
+        verdict = can_compare(
+            rate(billing_class=None),
+            rate(source="payer", billing_class="professional"),
+            cross_source=True,
+        )
+
+        assert not verdict
+        assert verdict.reason == NotComparable.BILLING_CLASS_UNSTATED
+
+    def test_both_sides_unstated_still_refuses(self):
+        verdict = can_compare(
+            rate(billing_class=None),
+            rate(source="payer", billing_class=None),
+            cross_source=True,
+        )
+
+        assert not verdict
+        assert verdict.reason == NotComparable.BILLING_CLASS_UNSTATED
+
+    def test_both_sides_stated_and_matching_is_comparable(self):
+        assert can_compare(
+            rate(billing_class="facility"),
+            rate(source="payer", billing_class="facility"),
+            cross_source=True,
+        )
+
+    def test_a_stated_disagreement_keeps_its_own_reason(self):
+        """Stated-and-different is a different fact from not-stated-at-all."""
+        verdict = can_compare(
+            rate(billing_class="facility"),
+            rate(source="payer", billing_class="professional"),
+            cross_source=True,
+        )
+
+        assert not verdict
+        assert verdict.reason == NotComparable.DIFFERENT_BILLING_CLASS
+
+    def test_same_source_comparisons_are_unaffected(self):
+        """Two hospitals that both omit the field omit it the same way."""
+        assert can_compare(rate(billing_class=None), rate(billing_class=None))
+
+    def test_scope_exemption_still_outranks_it(self):
+        """A Medicare Advantage rate can never be reconciled at all."""
+        verdict = can_compare(
+            rate(billing_class=None, product_class="medicare_advantage"),
+            rate(source="payer", billing_class=None),
+            cross_source=True,
+        )
+
+        assert verdict.reason == NotComparable.TIC_EXEMPT_PRODUCT
 
     def test_exemption_only_applies_across_sources(self):
         # Two hospital files may be compared on a Medicare Advantage rate; it is

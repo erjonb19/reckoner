@@ -23,6 +23,8 @@ def rate(**overrides: object) -> ComparableRate:
         "code": "470",
         "code_type": "MS-DRG",
         "setting": "inpatient",
+        # Stated, because a cross-source pair is refused without it.
+        "billing_class": "facility",
         "payer": "Aetna",
         "plan": "Commercial PPO",
         "product_class": "commercial",

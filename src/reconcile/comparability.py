@@ -20,10 +20,18 @@ Three classes of obstacle, in the order they are cheapest to test:
 3. **Temporal.** Vintages far enough apart that a difference is at least partly
    a timing artifact. This one can never be engineered away, only surfaced.
 
-A fourth obstacle applies only across sources: Medicare Advantage and Medicaid
-rates appear on the hospital side and are exempt from Transparency in Coverage,
-so they have no payer-side counterpart to disagree with. Reporting them as an
-unexplained variance would be a bug, not a finding.
+Two further obstacles apply only across sources, because they come from the two
+rules disclosing different things:
+
+4. **Scope.** Medicare Advantage and Medicaid rates appear on the hospital side
+   and are exempt from Transparency in Coverage, so they have no payer-side
+   counterpart to disagree with. Reporting them as an unexplained variance would
+   be a bug, not a finding.
+5. **Unstated billing class.** A payer file always says whether a rate is
+   professional or institutional; a hospital file often does not. A missing
+   value is compatible with everything, so across sources it silently pairs one
+   hospital rate with both of the payer's -- the facility charge for a scan
+   against the fee for reading it. That is refused rather than assumed away.
 """
 
 from __future__ import annotations
@@ -43,6 +51,7 @@ class NotComparable(StrEnum):
     DIFFERENT_CODE_TYPE = "different_code_type"
     DIFFERENT_SETTING = "different_setting"
     DIFFERENT_BILLING_CLASS = "different_billing_class"
+    BILLING_CLASS_UNSTATED = "billing_class_unstated"
     NOT_DOLLAR_DENOMINATED = "not_dollar_denominated"
     MIXED_RATE_KIND = "mixed_rate_kind"
     INCOMPATIBLE_METHODOLOGY = "incompatible_methodology"
@@ -169,6 +178,10 @@ def can_compare(
                 "it exists only in hospital-side files",
             )
 
+        unstated = _billing_class_unstated(left, right)
+        if unstated:
+            return _no(NotComparable.BILLING_CLASS_UNSTATED, unstated)
+
     methodological = _methodological(left, right)
     if not methodological:
         return methodological
@@ -240,6 +253,43 @@ def _temporal(
 
 def _tic_exempt(rate: ComparableRate) -> str:
     return rate.product_class if rate.product_class in HOSPITAL_ONLY_CLASSES else ""
+
+
+def _billing_class_unstated(left: ComparableRate, right: ComparableRate) -> str:
+    """Refuse a cross-source pair where either side omits its billing class.
+
+    A payer file always says ``professional`` or ``institutional``. A hospital
+    file often says nothing -- NYU Langone states it on none of its rows -- and
+    :func:`_differs` treats a missing value as compatible with anything. Across
+    sources that is not a harmless default, it is a silent cross-join: one
+    unstated hospital rate meets both the payer's professional and its
+    institutional rate for the same code.
+
+    Measured on one NYU facility, 96.4% of pairs formed that way put an unstated
+    hospital rate against a payer *professional* rate -- the hospital's charge
+    for a scan against the radiologist's fee for reading it -- and those were six
+    times more likely to land ten-fold apart than the facility-to-facility pairs
+    (22.7% against 3.8%). They were reaching the mart as
+    ``entity_resolution_suspect``, which reads as a finding and is arithmetic on
+    two different things.
+
+    Refusing is deliberately expensive: it removes most of the comparable volume
+    for any hospital that omits the field. That is the correct trade. The share
+    of a disclosure that cannot be compared *because the hospital did not say
+    what kind of charge it published* is a result this project exists to report,
+    and it only counts as one if it is counted rather than papered over with an
+    assumption about what the hospital probably meant.
+
+    Same-source comparisons are unaffected: two hospitals that both omit the
+    field are omitting it the same way.
+    """
+    missing = [rate.source or "a side" for rate in (left, right) if not rate.billing_class]
+    if not missing:
+        return ""
+    return (
+        f"{' and '.join(missing)} did not state a billing class; "
+        "professional and facility rates for one code are different services"
+    )
 
 
 def _differs(left: str | None, right: str | None) -> bool:
