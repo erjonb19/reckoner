@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe -m mypy)",
+      "Bash(.venv/Scripts/python.exe -m mypy *)",
+      "Bash(./.venv/Scripts/python.exe -m mypy)",
+      "Bash(./.venv/Scripts/python.exe -m mypy *)",
+      "Bash(.venv/Scripts/python.exe -m ruff check .)",
+      "Bash(./.venv/Scripts/python.exe -m ruff check .)",
+      "Bash(.venv/Scripts/python.exe -m ruff format --check *)",
+      "Bash(./.venv/Scripts/python.exe -m ruff format --check *)"
+    ]
+  }
+}
