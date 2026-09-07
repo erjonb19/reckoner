@@ -186,6 +186,43 @@ class TestPlansAcrossSources:
         assert explanation == Explanation.GRANULARITY_MISMATCH
 
 
+class TestSettingWildcardJoin:
+    """A payer rate that applies in either setting must reach both hospital rates."""
+
+    def test_a_both_payer_rate_joins_an_inpatient_hospital_rate(self):
+        mart = cross_source_variance(
+            [rate(setting="inpatient")],
+            [rate(source="payer", setting="both", rate_dollar=27000.0)],
+        )
+
+        assert len(mart.rows) == 1, "a wildcard payer rate must be reachable"
+
+    def test_a_both_payer_rate_joins_an_outpatient_hospital_rate(self):
+        mart = cross_source_variance(
+            [rate(setting="outpatient")],
+            [rate(source="payer", setting="both", rate_dollar=27000.0)],
+        )
+
+        assert len(mart.rows) == 1
+
+    def test_specific_settings_that_disagree_still_do_not_pair(self):
+        mart = cross_source_variance(
+            [rate(setting="inpatient")],
+            [rate(source="payer", setting="outpatient", rate_dollar=27000.0)],
+        )
+
+        assert mart.rows == []
+        assert "no payer-side counterpart" in mart.excluded
+
+    def test_a_wildcard_hospital_rate_reaches_a_wildcard_payer_rate(self):
+        mart = cross_source_variance(
+            [rate(setting="both")],
+            [rate(source="payer", setting="both", rate_dollar=27000.0)],
+        )
+
+        assert len(mart.rows) == 1
+
+
 class TestCrossSource:
     def test_matching_pair_produces_a_variance(self):
         mart = cross_source_variance([rate()], [rate(source="payer", rate_dollar=27000.0)])

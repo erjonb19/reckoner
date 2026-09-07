@@ -28,6 +28,7 @@ from reconcile.comparability import (
     ComparableRate,
     NotComparable,
     can_compare,
+    setting_key,
 )
 from reconcile.provenance import Provenance, parse_vintage
 
@@ -257,12 +258,28 @@ def _plans_differ(left: ComparableRate, right: ComparableRate) -> bool:
 
 
 def _key(rate: ComparableRate) -> tuple[str, str, str]:
-    """Join key: the service, the contracting party, and the setting."""
+    """Join key: the service, the contracting party, and the setting.
+
+    The setting is bucketed rather than taken literally, so a rate that applies
+    in either setting lands in the wildcard bucket instead of a third one of its
+    own. :func:`_setting_buckets` says which buckets a rate must be looked up in.
+    """
     return (
         (rate.code or "").strip().upper(),
         (rate.payer or "").strip().casefold(),
-        (rate.setting or "").strip().casefold(),
+        setting_key(rate.setting),
     )
+
+
+def _setting_buckets(rate: ComparableRate) -> tuple[str, ...]:
+    """The setting buckets a rate may match, widest last.
+
+    A rate naming a specific setting can meet its own kind *or* one that is not
+    setting-specific, so it has to be looked up in both. A wildcard rate is only
+    ever indexed under the wildcard, and every specific rate reaches it.
+    """
+    bucket = setting_key(rate.setting)
+    return ("",) if bucket == "" else (bucket, "")
 
 
 def cross_source_variance(
@@ -287,8 +304,12 @@ def cross_source_variance(
         payer_index.setdefault((rate.hospital.casefold(), code, payer, setting), []).append(rate)
 
     for left in hospital_side:
-        code, payer, setting = _key(left)
-        candidates = payer_index.get((left.hospital.casefold(), code, payer, setting), [])
+        code, payer, _ = _key(left)
+        candidates = [
+            candidate
+            for bucket in _setting_buckets(left)
+            for candidate in payer_index.get((left.hospital.casefold(), code, payer, bucket), ())
+        ]
         if not candidates:
             mart.exclude("no payer-side counterpart")
             continue

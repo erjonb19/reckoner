@@ -205,7 +205,7 @@ def _structural(
         # things; without this the join would silently merge them.
         return _no(NotComparable.DIFFERENT_CODE_TYPE, f"{left.code_type} vs {right.code_type}")
 
-    if require_same_setting and _differs(left.setting, right.setting):
+    if require_same_setting and _settings_differ(left.setting, right.setting):
         return _no(NotComparable.DIFFERENT_SETTING, f"{left.setting} vs {right.setting}")
 
     if _differs(left.billing_class, right.billing_class):
@@ -310,6 +310,35 @@ def _differs(left: str | None, right: str | None) -> bool:
     if not left or not right:
         return False
     return left.strip().casefold() != right.strip().casefold()
+
+
+#: Settings that place no restriction on where the rate applies. ``both`` is the
+#: hospital template's word for a rate that is not setting-specific, and an
+#: absent place of service is the payer files' way of saying the same thing.
+UNRESTRICTED_SETTINGS = frozenset({"", "both"})
+
+
+def setting_key(setting: str | None) -> str:
+    """Bucket a setting for joining: a wildcard collapses to the empty string.
+
+    ``both`` is not a third setting alongside inpatient and outpatient. It says
+    the rate applies in either, so it has to join against either -- which a
+    literal string key cannot do.
+    """
+    text = (setting or "").strip().casefold()
+    return "" if text in UNRESTRICTED_SETTINGS else text
+
+
+def _settings_differ(left: str | None, right: str | None) -> bool:
+    """True only when both sides name a *specific* and different setting.
+
+    Treating ``both`` as an ordinary value made it disagree with everything.
+    Measured on Mount Sinai, 97% of payer rates carry ``both`` or no place of
+    service while the hospital always names inpatient or outpatient, so the
+    literal comparison refused nearly every pair -- including all 507,839
+    UnitedHealthcare rates, which never met a hospital rate at all.
+    """
+    return _differs(setting_key(left) or None, setting_key(right) or None)
 
 
 _REVENUE_TYPES = frozenset({"RC", "REV", "REVENUE", "REVCODE"})
