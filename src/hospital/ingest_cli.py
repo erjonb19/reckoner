@@ -153,6 +153,7 @@ def _ingest_attempt(
     rejects = landing.stage_writer(batch_id, "rejects", REJECT_SCHEMA)
     reasons: Counter[str] = Counter()
     codes = codes if codes is not None else CodeSet.everything()
+    audit.code_scope = codes.fingerprint()
 
     try:
         with client.stream("GET", url, follow_redirects=True) as response:
@@ -197,7 +198,7 @@ def _ingest_attempt(
         rejects.close()
         audit.reject_reasons = dict(reasons)
 
-        prior = landing.already_loaded(url, audit.checksum or "")
+        prior = landing.already_loaded(url, audit.checksum or "", audit.code_scope)
         if prior:
             landing.discard(batch_id)
             audit.status = "duplicate"

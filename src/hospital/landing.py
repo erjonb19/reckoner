@@ -103,6 +103,9 @@ class LoadAudit:
     rows_rejected: int = 0
     reject_reasons: dict[str, int] | None = None
     attempts: int = 1
+    #: Which codes this load kept. Part of the load's identity: the same file
+    #: loaded under a narrower filter is not the same load.
+    code_scope: str | None = None
     status: str = "running"
     error: str | None = None
 
@@ -158,15 +161,29 @@ class Landing:
                 best = row
         return best
 
-    def already_loaded(self, source_url: str, checksum: str) -> str | None:
-        """Return the prior batch id if this exact file has been loaded."""
+    def already_loaded(
+        self, source_url: str, checksum: str, code_scope: str | None = None
+    ) -> str | None:
+        """Return the prior batch id if this exact file has been loaded.
+
+        Identity is the file *and* the code scope it was loaded under. Matching
+        on the file alone made a widened re-ingest a silent no-op: it would
+        re-download, re-parse every row, then discard the result as a duplicate
+        of a load that had kept a fraction of it.
+
+        A prior row with no recorded scope predates this field. It is only
+        treated as a match for the scope it was almost certainly run under -- a
+        filtered one -- so an unfiltered re-run is never skipped on its evidence.
+        """
         for row in self.read_audit():
             if (
                 row.get("source_url") == source_url
                 and row.get("checksum") == checksum
                 and row.get("status") == "ok"
             ):
-                return str(row.get("batch_id"))
+                prior_scope = row.get("code_scope")
+                if prior_scope == code_scope or (prior_scope is None and code_scope != "all"):
+                    return str(row.get("batch_id"))
         return None
 
     # -- data ------------------------------------------------------------

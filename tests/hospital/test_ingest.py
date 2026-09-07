@@ -5,6 +5,7 @@ import pyarrow.parquet as pq
 import pytest
 import respx
 
+from hospital.codeset import CodeSet
 from hospital.ingest_cli import ingest_one, slugify
 from hospital.landing import Landing
 
@@ -44,6 +45,49 @@ DIRTY_MRF = json.dumps(
                     }
                 ],
             }
+        ],
+    }
+)
+
+TWO_CODE_MRF = json.dumps(
+    {
+        "hospital_name": "Example Hospital",
+        "last_updated_on": "2026-04-01",
+        "standard_charge_information": [
+            {
+                "description": "CT Scan",
+                "code_information": [{"code": "70450", "type": "CPT"}],
+                "standard_charges": [
+                    {
+                        "setting": "outpatient",
+                        "billing_class": "facility",
+                        "payers_information": [
+                            {
+                                "payer_name": "Aetna",
+                                "plan_name": "Commercial",
+                                "standard_charge_dollar": 412.55,
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "description": "Joint replacement",
+                "code_information": [{"code": "470", "type": "MS-DRG"}],
+                "standard_charges": [
+                    {
+                        "setting": "inpatient",
+                        "billing_class": "facility",
+                        "payers_information": [
+                            {
+                                "payer_name": "Aetna",
+                                "plan_name": "Commercial",
+                                "standard_charge_dollar": 25000.0,
+                            }
+                        ],
+                    }
+                ],
+            },
         ],
     }
 )
@@ -492,6 +536,71 @@ class TestResume:
         assert second.status == "duplicate"
         rate_files = [f for f in landing.curated.rglob("*.parquet") if "rates" in str(f)]
         assert len(rate_files) == 1
+
+    @respx.mock
+    def test_widening_the_code_filter_is_not_a_duplicate(self, landing):
+        """The same file loaded under a narrower filter is not the same load.
+
+        Regression: identity was the file alone, so re-running an ingest with a
+        wider code set re-downloaded it, re-parsed every row, then discarded the
+        result as a duplicate of a load that had kept a fraction of it -- and
+        reported success. Four Mount Sinai files sat in the lake as 4,583 rows
+        that way while 1,222,684 parsed rows were thrown away on each re-run.
+        """
+        respx.get(URL).mock(return_value=httpx.Response(200, text=TWO_CODE_MRF))
+        respx.head(URL).mock(return_value=httpx.Response(200))
+
+        # In scope for one of the file's two codes, exactly as config/codes.yml
+        # admits 45 of the thousands a real MRF carries.
+        narrow = CodeSet(frozenset({"70450"}), {})
+        with _client() as client:
+            first = ingest_one(client, landing, "Example Hospital", URL, codes=narrow, backoff=0)
+            second = ingest_one(
+                client,
+                landing,
+                "Example Hospital",
+                URL,
+                codes=CodeSet.everything(),
+                backoff=0,
+            )
+
+        assert first.status == "ok"
+        assert second.status != "duplicate", "a widened re-ingest must actually land"
+        assert second.rows_out > first.rows_out
+
+    @respx.mock
+    def test_rerunning_the_same_code_filter_still_deduplicates(self, landing):
+        """Widening is not a duplicate; repeating the identical scope still is."""
+        respx.get(URL).mock(return_value=httpx.Response(200, text=JSON_MRF))
+        respx.head(URL).mock(return_value=httpx.Response(200))
+
+        with _client() as client:
+            ingest_one(
+                client,
+                landing,
+                "Example Hospital",
+                URL,
+                codes=CodeSet.everything(),
+                backoff=0,
+            )
+            second = ingest_one(
+                client,
+                landing,
+                "Example Hospital",
+                URL,
+                codes=CodeSet.everything(),
+                backoff=0,
+            )
+
+        assert second.status == "duplicate"
+
+    def test_the_scope_fingerprint_distinguishes_sets(self):
+        assert CodeSet.everything().fingerprint() == "all"
+        assert CodeSet(frozenset({"1"}), {}).fingerprint() != CodeSet.everything().fingerprint()
+        assert (
+            CodeSet(frozenset({"1", "2"}), {}).fingerprint()
+            == CodeSet(frozenset({"2", "1"}), {}).fingerprint()
+        ), "order must not change the identity"
 
     @respx.mock
     def test_last_modified_and_length_are_the_fallback_when_no_etag(self, landing):
