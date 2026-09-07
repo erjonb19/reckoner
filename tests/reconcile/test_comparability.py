@@ -13,6 +13,7 @@ from reconcile.comparability import (
     NotComparable,
     can_compare,
     classify_methodology,
+    setting_key,
 )
 
 
@@ -182,6 +183,40 @@ class TestCrossSourceExemptions:
             rate(source="payer", product_class="commercial"),
             cross_source=True,
         )
+
+
+class TestUnrestrictedSetting:
+    """``both`` is not a third setting; it is a rate that applies in either.
+
+    Comparing it as an ordinary string made it disagree with everything. On
+    Mount Sinai 97% of payer rates carry ``both`` or no place of service while
+    the hospital always names inpatient or outpatient, so the literal comparison
+    refused nearly every pair -- including all 507,839 UnitedHealthcare rates,
+    which never met a hospital rate at all.
+    """
+
+    def test_both_is_comparable_with_a_specific_setting(self):
+        assert can_compare(rate(setting="inpatient"), rate(source="payer", setting="both"))
+        assert can_compare(rate(setting="outpatient"), rate(source="payer", setting="both"))
+
+    def test_two_specific_and_different_settings_still_refuse(self):
+        verdict = can_compare(rate(setting="inpatient"), rate(source="payer", setting="outpatient"))
+
+        assert not verdict
+        assert verdict.reason == NotComparable.DIFFERENT_SETTING
+
+    def test_an_absent_setting_stays_compatible(self):
+        assert can_compare(rate(setting=None), rate(source="payer", setting="inpatient"))
+
+    def test_both_against_both_is_comparable(self):
+        assert can_compare(rate(setting="both"), rate(source="payer", setting="both"))
+
+    def test_the_bucket_collapses_only_the_wildcards(self):
+        assert setting_key("both") == ""
+        assert setting_key(None) == ""
+        assert setting_key("  ") == ""
+        assert setting_key("Inpatient") == "inpatient"
+        assert setting_key("inpatient") != setting_key("outpatient")
 
 
 class TestUnstatedBillingClass:
