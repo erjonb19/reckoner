@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from statistics import median
 
+from agents.plan_resolution import PlanMatch, PlanVerdict, resolve_plan
 from reconcile.comparability import (
     ComparableRate,
     NotComparable,
@@ -210,15 +211,26 @@ def explain(left: ComparableRate, right: ComparableRate) -> tuple[str, tuple[str
 
     if _plans_differ(left, right):
         if _across_sources(left, right):
-            # A hospital publishes plan names and a payer file is one network
-            # label; the two vocabularies have not been matched to each other,
-            # so a string difference is not evidence that the contracts differ.
-            # Calling it a granularity mismatch would assert a finding that the
-            # A2 plan matcher has not yet earned.
-            notes.append(f"plans not matched across sources: {left.plan!r} vs {right.plan!r}")
-            return str(Explanation.PLAN_UNRESOLVED), tuple(notes)
-        notes.append(f"plans differ: {left.plan!r} vs {right.plan!r}")
-        return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
+            # The two sides name plans differently -- a hospital by product, a
+            # payer file by network -- so a raw string difference proves nothing.
+            # Ask the A2 plan matcher what the strings mean before judging.
+            match = _resolve_across_sources(left, right)
+            if match.verdict is PlanVerdict.MATCH:
+                # Same network. The plan difference is spelling, not substance,
+                # so it explains nothing and the pair falls through.
+                pass
+            elif match.verdict is PlanVerdict.AGGREGATE:
+                notes.append(match.reasoning)
+                return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
+            else:
+                notes.append(
+                    f"plans not matched across sources: {left.plan!r} vs "
+                    f"{right.plan!r} ({match.reasoning})"
+                )
+                return str(Explanation.PLAN_UNRESOLVED), tuple(notes)
+        else:
+            notes.append(f"plans differ: {left.plan!r} vs {right.plan!r}")
+            return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
 
     return str(Explanation.UNEXPLAINED), tuple(notes)
 
@@ -249,6 +261,17 @@ def _drift_could_explain(left: ComparableRate, right: ComparableRate) -> tuple[i
 def _across_sources(left: ComparableRate, right: ComparableRate) -> bool:
     """True when the pair spans the hospital and payer disclosures."""
     return bool(left.source and right.source and left.source != right.source)
+
+
+def _resolve_across_sources(left: ComparableRate, right: ComparableRate) -> PlanMatch:
+    """Ask the plan matcher about the pair, whichever side is the payer.
+
+    The hospital names a product and the payer names a network, so the matcher
+    takes them in that order regardless of which side of the pair they arrived on.
+    """
+    if left.source == "payer":
+        return resolve_plan(right.plan, left.plan)
+    return resolve_plan(left.plan, right.plan)
 
 
 def _plans_differ(left: ComparableRate, right: ComparableRate) -> bool:
