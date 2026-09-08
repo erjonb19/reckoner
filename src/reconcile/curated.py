@@ -33,6 +33,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 
 from agents.entity_resolution import RuleBasedMatcher, canonical_key
+from hospital.facility import resolve_facility
 from reconcile.comparability import ComparableRate
 
 #: Columns the comparison needs. Reading only these keeps a 13 million row scan
@@ -155,9 +156,16 @@ def to_comparable_rates(
         rates.append(
             ComparableRate(
                 source=source,
-                # The facility is the unit of comparison, falling back to the
-                # system only where the file names no location.
-                hospital=str(row.get("location_name") or row.get("hospital") or ""),
+                # The facility is the unit of comparison. It comes from the plan
+                # suffix where a system is known to publish several hospitals in
+                # one file, and from the file-level location otherwise -- see
+                # hospital.facility for why trusting the file alone merged two
+                # Mount Sinai hospitals under one name.
+                hospital=resolve_facility(
+                    _optional(row.get("hospital")),
+                    _optional(row.get("location_name")),
+                    _optional(row.get("plan_name_raw")),
+                ),
                 code=str(row.get("code") or ""),
                 code_type=_optional(row.get("code_type")),
                 setting=_optional(row.get("setting")),
@@ -209,14 +217,15 @@ def load_comparable_rates(
 def distinct_locations(root: Path) -> list[str]:
     """Every facility name in the lake, for the CCN crosswalk to resolve."""
     dataset = open_curated(root)
-    table = dataset.to_table(columns=["location_name", "hospital"])
+    table = dataset.to_table(columns=["location_name", "hospital", "plan_name_raw"])
     names = set()
-    for location, hospital in zip(
+    for location, hospital, plan in zip(
         table.column("location_name").to_pylist(),
         table.column("hospital").to_pylist(),
+        table.column("plan_name_raw").to_pylist(),
         strict=True,
     ):
-        name = (location or hospital or "").strip()
+        name = resolve_facility(hospital, location, plan)
         if name:
             names.add(name)
     return sorted(names)
