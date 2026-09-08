@@ -9,9 +9,12 @@ import pytest
 from reconcile.comparability import ComparableRate
 from reconcile.variance import (
     Explanation,
+    VarianceMart,
+    apply_systematic_offsets,
     cross_hospital_variance,
     cross_source_variance,
     explain,
+    find_systematic_offsets,
     spread_by_code,
 )
 
@@ -364,3 +367,89 @@ class TestMartSummaries:
         mart = cross_hospital_variance([rate()])
 
         assert "0 comparable pairs" in mart.summary()
+
+
+class TestSystematicOffset:
+    """Hundreds of codes at one ratio is one fact, not hundreds of findings.
+
+    A DRG rate is a base rate times a weight, so two sources using the same
+    weights and different base rates produce the identical ratio on every code.
+    A Mount Sinai run reported 2,943 unexplained pairs that were 23 distinct
+    ratios, two of which covered 2,852 of them.
+    """
+
+    def _constant_ratio_mart(self, factor: float, codes: int = 30) -> VarianceMart:
+        left = [rate(code=str(400 + i), rate_dollar=1000.0 + 100 * i) for i in range(codes)]
+        right = [
+            rate(source="payer", code=str(400 + i), rate_dollar=(1000.0 + 100 * i) * factor)
+            for i in range(codes)
+        ]
+        return cross_source_variance(left, right)
+
+    def test_a_constant_ratio_is_found(self):
+        mart = self._constant_ratio_mart(1.41)
+        offsets = find_systematic_offsets(mart)
+
+        assert len(offsets) == 1
+        assert offsets[0].ratio == pytest.approx(1.41, abs=0.01)
+        assert offsets[0].codes == 30
+
+    def test_applying_it_reclassifies_the_rows(self):
+        mart = self._constant_ratio_mart(1.41)
+        assert len(mart.unexplained) == 30
+
+        apply_systematic_offsets(mart)
+
+        assert mart.unexplained == []
+        assert mart.by_explanation()[str(Explanation.SYSTEMATIC_OFFSET)] == 30
+
+    def test_genuinely_varying_ratios_are_left_alone(self):
+        """Real negotiations scatter; they must stay unexplained."""
+        left = [rate(code=str(400 + i), rate_dollar=1000.0) for i in range(30)]
+        right = [
+            rate(source="payer", code=str(400 + i), rate_dollar=1000.0 * (1.1 + i * 0.05))
+            for i in range(30)
+        ]
+        mart = cross_source_variance(left, right)
+
+        assert find_systematic_offsets(mart) == []
+        apply_systematic_offsets(mart)
+        assert mart.unexplained
+
+    def test_a_handful_of_codes_is_a_coincidence_not_a_base_rate(self):
+        assert find_systematic_offsets(self._constant_ratio_mart(1.41, codes=5)) == []
+
+    def test_a_more_specific_explanation_is_not_overwritten(self):
+        """An offset is the explanation of last resort."""
+        left = [
+            rate(code=str(400 + i), rate_dollar=1000.0 + 100 * i, plan="Choice Plus")
+            for i in range(30)
+        ]
+        right = [
+            rate(
+                source="payer",
+                code=str(400 + i),
+                rate_dollar=(1000.0 + 100 * i) * 1.41,
+                plan="SCREEN ACTORS GUILD 1220",
+            )
+            for i in range(30)
+        ]
+        mart = cross_source_variance(left, right)
+        assert mart.by_explanation().get(str(Explanation.PLAN_UNRESOLVED)) == 30
+
+        apply_systematic_offsets(mart)
+
+        assert mart.by_explanation()[str(Explanation.PLAN_UNRESOLVED)] == 30
+        assert str(Explanation.SYSTEMATIC_OFFSET) not in mart.by_explanation()
+
+    def test_two_contracts_at_different_ratios_are_reported_separately(self):
+        """Pooling them would hide both."""
+        rows = []
+        for hosp, factor in (("A", 1.30), ("B", 1.41)):
+            for i in range(30):
+                rows.append((hosp, str(400 + i), 1000.0 + 100 * i, factor))
+        left = [rate(hospital=h, code=c, rate_dollar=v) for h, c, v, _ in rows]
+        right = [rate(source="payer", hospital=h, code=c, rate_dollar=v * f) for h, c, v, f in rows]
+        offsets = find_systematic_offsets(cross_source_variance(left, right))
+
+        assert {round(o.ratio, 2) for o in offsets} == {1.30, 1.41}
