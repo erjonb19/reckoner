@@ -18,7 +18,12 @@ The conventions are the payer harness's, for the same reasons:
 One caveat belongs in the numbers rather than a footnote: the positive class is
 small. Only Cigna's hospital vocabulary and payer network labels line up, so
 there are 17 ``MATCH`` labels among 190. Precision on so few positives moves in
-large steps, and the set is a regression guard before it is a benchmark.
+large steps, so treat the set as a regression guard as much as a benchmark.
+
+The labels were proposed by a model and then reviewed and confirmed by a person,
+which is why :attr:`PlanEvalSet.reviewed_share` is reported beside every score:
+a number measured against unreviewed labels says how well a matcher agrees with
+whoever proposed them, which is not the same claim.
 
 The set itself is the source of truth and is edited by hand from here. It was
 seeded from the real plan strings in the lake, but no generator is shipped: one

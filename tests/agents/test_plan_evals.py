@@ -149,16 +149,17 @@ class TestShippedEvalSet:
 
         assert score.false_positives == 0, [(m.plan_raw, m.network) for m, _ in misses]
 
-    def test_the_labels_are_marked_unreviewed(self):
-        """They were proposed by a model. A score against them carries that caveat.
+    def test_every_label_has_been_reviewed(self):
+        """The labels were proposed by a model and then signed off by a person.
 
-        When a person signs them off, flip ``reviewed`` and this test changes to
-        assert the opposite -- deliberately, so the change is a visible decision.
+        This assertion was the opposite until that review happened, so flipping
+        it is the record of it. A label added later lands unreviewed and fails
+        here until someone has actually looked at it, which is the point.
         """
         eval_set = load_default(EVAL_SET.parent)
 
-        assert eval_set.reviewed_share == 0.0
-        assert all("unreviewed" in x.labelled_by for x in eval_set.labels)
+        assert eval_set.reviewed_share == 1.0
+        assert all("reviewed" in x.labelled_by for x in eval_set.labels)
 
     def test_every_label_carries_its_reasoning(self):
         assert all(x.note for x in load_default(EVAL_SET.parent).labels)
