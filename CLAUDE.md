@@ -66,11 +66,12 @@ Four agents, all doing work **inside** the pipeline. NL-to-SQL over the marts is
 ├── docs/SPEC.md
 ├── src/
 │   ├── discovery/     # cms-hpt.txt crawler, TOC walker, HEAD size probe
-│   ├── hospital/      # CMS template parser + deviation handlers
-│   ├── payer/         # streaming TiC parser, provider reference resolution
+│   ├── hospital/      # CMS template parser, deviation handlers, facility and
+│   │                  #   region resolution, the landing/audit layer
+│   ├── payer/         # reader over the already-parsed TiC parquet
 │   ├── benchmark/     # CMS fee schedule loaders
-│   ├── reconcile/     # join logic, comparability rules, variance mart
-│   └── agents/        # A1-A4, each with its own eval harness
+│   ├── reconcile/     # comparability rules, variance mart, system-range compare
+│   └── agents/        # A2 (payer + plan matchers) and their eval harnesses
 ├── notebooks/         # Fabric notebooks, exported
 ├── tests/
 └── evals/             # labeled sets, scoring, results history
@@ -78,6 +79,30 @@ Four agents, all doing work **inside** the pipeline. NL-to-SQL over the marts is
 
 ## Current phase
 
-Phase 0 — foundation. See `docs/SPEC.md`.
+**Phase 3 done, Phase 4 in progress.** See `docs/SPEC.md` for the plan; this
+section is the state, and it is the first thing to correct when it drifts.
 
-**Open gate:** Fabric trial activation depends on tenant access. If unresolved, do not write Fabric-specific code yet.
+Landed: hospital ingest, the Medicare benchmark, the payer TiC reader, the
+comparability and variance layers, and the A2 matchers at payer and plan level.
+A1, A3 and A4 do not exist yet.
+
+**Data on hand** (local, not committed):
+
+- 156M curated hospital rate lines across 11 health systems
+- 40M payer rate lines across 14 completed TiC files — Aetna, Cigna, UHC only
+- Empire BCBS and EmblemHealth are the largest NY payers and are **not** parsed
+
+**What actually reconciles is much smaller than those totals.** `billing_class`
+is optional for hospitals and required for payers, so a hospital that omits it
+cannot be compared against an insurer at all: seven of eleven systems publish it,
+four do not, and about 30% of rows are reconcilable. Cross-source coverage is
+Mount Sinai against three carriers.
+
+**Open gates:**
+
+- Fabric trial activation depends on tenant access. If unresolved, do not write
+  Fabric-specific code yet.
+- **There is no committed runner.** Every real-data result so far came from
+  throwaway scripts, so the analysis is not reproducible from the repository.
+  That is the next thing to fix, and until it is, treat any number quoted in a
+  document as unverifiable.
