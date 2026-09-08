@@ -206,7 +206,7 @@ class Landing:
         staged = self.staging / batch_id
         if not staged.exists():
             return []
-        vintage_part = (vintage or "unknown")[:7]
+        vintage_part = partition_vintage(vintage)
         key = source_key(source_url)
         moved: list[Path] = []
         for source in sorted(staged.glob("*.parquet")):
@@ -247,6 +247,40 @@ class Landing:
         for name in orphans:
             shutil.rmtree(self.staging / name, ignore_errors=True)
         return orphans
+
+
+#: Date spellings hospitals actually publish in `last_updated_on`. ISO is the
+#: CMS template's format, but US order appears throughout the corpus.
+_VINTAGE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%Y/%m/%d", "%d-%m-%Y", "%Y-%m", "%Y")
+
+
+def partition_vintage(value: str | None) -> str:
+    """A partition-safe ``YYYY-MM`` for the vintage a hospital published.
+
+    Slicing the raw string to seven characters looked equivalent and was not.
+    A US-format date truncates mid-field -- ``4/1/2026`` becomes ``4/1/202`` --
+    and the slashes are then read as directory separators, so the Hive key comes
+    back as ``vintage=4``. Four systems landed that way: Catholic Health at
+    ``vintage=2`` from ``2/25/2025``, Rochester Regional at ``4``, and the
+    University of Rochester at ``1`` and ``7``.
+
+    That matters beyond tidiness. CLAUDE.md names vintage mismatch as a
+    structural hazard and requires it be ruled out before a variance is called a
+    finding, which cannot be done when the partition says the file is from month
+    ``4`` of no year. The published value is preserved unchanged in the
+    ``file_vintage`` column; this is only the key the lake is partitioned by.
+
+    An unparseable value becomes ``unknown`` rather than a guess, and no return
+    value can contain a path separator.
+    """
+    text = (value or "").strip()
+    if text:
+        for fmt in _VINTAGE_FORMATS:
+            try:
+                return datetime.strptime(text, fmt).strftime("%Y-%m")
+            except ValueError:
+                continue
+    return "unknown"
 
 
 class _StagedWriter:
