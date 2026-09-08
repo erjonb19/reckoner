@@ -92,13 +92,38 @@ class TestDiscovery:
         assert by_stem["AetnaALIC_Hmo"].network == "Hmo"
         assert by_stem["Cigna_NationalOAP"].network == "NationalOAP"
 
-    def test_vintage_comes_from_the_declared_table_not_the_file_mtime(self, files):
-        """The Parquet has no as-of date; mtime would date it to the parse run."""
+    def test_vintage_falls_back_to_the_declared_table(self, files):
+        """These fixtures predate ``last_updated_on``, so the map is all there is.
+
+        mtime is not a substitute: it dates the parse run, not the disclosure.
+        """
         by_stem = {f.stem: f for f in files}
+        for stem in ("Aetna_NY", "AetnaALIC_Hmo", "Cigna_NationalOAP"):
+            assert "last_updated_on" not in pq.ParquetFile(
+                FIXTURES / f"{stem}.parquet"
+            ).schema_arrow.names, "fixture must lack the column for this to test the fallback"
         assert by_stem["Aetna_NY"].vintage == "2026-06-05"
         assert by_stem["AetnaALIC_Hmo"].vintage == "2026-08-05"
         assert by_stem["Cigna_NationalOAP"].vintage == "2026-08-01"
         assert PAYER_SOURCE_VINTAGES["Aetna_NY"] != PAYER_SOURCE_VINTAGES["AetnaALIC_Hmo"]
+
+    def test_vintage_is_read_off_a_file_that_carries_its_own(self, files):
+        """A payer not in the map still gets a vintage, from the file's header.
+
+        The map was written when twelve files were the whole lake. It now
+        describes a tenth of it, and Empire, Emblem and UHC all landed with no
+        vintage at all -- which silently disarms every rule that reasons about
+        one. The parser stamps the source's ``last_updated_on`` on every row,
+        so the file can answer for itself.
+        """
+        by_stem = {f.stem: f for f in files}
+        assert "Emblem_HIPHOSH00687" not in PAYER_SOURCE_VINTAGES
+        assert by_stem["Emblem_HIPHOSH00687"].vintage == "2026-09-04"
+
+    def test_every_discovered_file_is_dated(self, files):
+        """An undated file is the failure this guards: it cannot be ruled a
+        timing artifact, so its variances are unexplainable by construction."""
+        assert [f.stem for f in files if not f.vintage] == []
 
     def test_summary_names_what_was_skipped_and_why(self):
         rows = {r["stem"]: r for r in file_summary(FIXTURES)}
@@ -113,7 +138,7 @@ class TestAggregation:
     def test_exact_duplicate_rows_are_removed_before_counting(self, files):
         """The fixture repeats 12 whole rows, as the real Aetna_NY repeats 17.8%."""
         raw = open_payer_dataset(files).to_table()
-        assert raw.num_rows == 278  # 198 Aetna_NY + 40 ALIC + 40 Cigna
+        assert raw.num_rows == 298  # 198 Aetna_NY + 40 ALIC + 40 Cigna + 20 Emblem
 
         table = aggregate_rates(
             open_payer_dataset(files),
@@ -278,7 +303,9 @@ class TestCuratedShape:
 
     def test_vintage_reaches_the_rate(self, files, table):
         rates = to_comparable_rates(table, files)
-        assert {"2026-06-05", "2026-08-05", "2026-08-01"} >= {r.vintage for r in rates if r.vintage}
+        assert {"2026-06-05", "2026-08-05", "2026-08-01", "2026-09-04"} >= {
+            r.vintage for r in rates if r.vintage
+        }
 
 
 class TestPayerResolution:
