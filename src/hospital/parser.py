@@ -16,6 +16,7 @@ import csv
 import io
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import ijson
 
@@ -87,19 +88,28 @@ class MrfParser:
     # -- JSON ------------------------------------------------------------
 
     def _iter_json(self) -> Iterator[RawRate]:
+        """Stream the charge array, building one item at a time.
+
+        The obvious call here is ``ijson.kvitems(reader, "")``, which yields the
+        document's top-level keys. It also yields each key's **fully built
+        value**, so ``standard_charge_information`` arrives as the entire array
+        materialised as Python objects before a single row comes out. On a
+        Northwell file that is roughly 7 GB of dicts for 5 million rates, and
+        three of those in parallel exhausted a 16 GB machine.
+
+        Parsing the event stream instead keeps exactly one charge item alive at
+        a time. The header fields sit before the array in the document, so they
+        are picked off the same events on the way past rather than needing a
+        second pass over a stream that cannot be rewound.
+        """
         ordinal = 0
-        # ijson.kvitems over the document root lets us read the header fields and
-        # the charge array in a single pass, without buffering the document.
         try:
-            for key, value in ijson.kvitems(self._reader, ""):
-                if key != "standard_charge_information":
-                    self._absorb_meta(key, value)
-                    continue
-                for item in value:
-                    for charge in item.get("standard_charges") or []:
-                        for payer in charge.get("payers_information") or []:
-                            ordinal += 1
-                            yield self._json_rate(ordinal, item, charge, payer)
+            events = self._capture_meta(ijson.parse(self._reader))
+            for item in ijson.items(events, "standard_charge_information.item"):
+                for charge in item.get("standard_charges") or []:
+                    for payer in charge.get("payers_information") or []:
+                        ordinal += 1
+                        yield self._json_rate(ordinal, item, charge, payer)
         except ijson.IncompleteJSONError:
             # A capped or interrupted read ends mid-document. Rows already
             # yielded are still valid; stopping quietly is right for sampling,
@@ -107,6 +117,36 @@ class MrfParser:
             # than by an exception here.
             self.truncated = True
             return
+
+    #: Top-level header fields, by the event prefix each arrives under. A
+    #: hospital may publish ``location_name`` as a bare string or as an array,
+    #: so both spellings map to the same field.
+    _META_PREFIXES: ClassVar[dict[str, str]] = {
+        "hospital_name": "hospital_name",
+        "last_updated_on": "last_updated_on",
+        "version": "version",
+        "location_name": "location_name",
+        "location_name.item": "location_name",
+        "license_information.license_number": "license_number",
+    }
+
+    def _capture_meta(
+        self, events: Iterator[tuple[str, str, object]]
+    ) -> Iterator[tuple[str, str, object]]:
+        """Pass parse events through, taking the header fields as they go by.
+
+        Only the first value for a field is kept: a file listing several
+        locations names the one it is for first, and later entries would
+        overwrite it with a sibling's name.
+        """
+        for prefix, event, value in events:
+            if event in ("string", "number") and value is not None:
+                field = self._META_PREFIXES.get(prefix)
+                if field and not getattr(self.meta, field, None):
+                    text = str(value).strip()
+                    if text:
+                        self.meta = _replace_meta(self.meta, field, text)
+            yield prefix, event, value
 
     def _absorb_meta(self, key: str, value: object) -> None:
         text = _first_str(value)
