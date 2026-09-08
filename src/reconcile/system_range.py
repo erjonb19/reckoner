@@ -33,6 +33,11 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from statistics import median
 
+#: Beyond this multiple the two sides are not describing the same thing. Matches
+#: the bound the pairwise mart already used; the range comparison shipped without
+#: one, so it reported 193x gaps as findings.
+IMPLAUSIBLE_RATIO = 10.0
+
 
 class RangeVerdict(StrEnum):
     """Where the payer's published rate sits against the hospitals' own."""
@@ -44,6 +49,11 @@ class RangeVerdict(StrEnum):
     BELOW = "below"
     #: Above every hospital in the system.
     ABOVE = "above"
+    #: So far apart that it is not a price difference. A hospital publishing $270
+    #: against a payer's $52,078 for one service is a unit or coding mismatch,
+    #: and counting it as a disagreement puts nonsense in the denominator that
+    #: every share is measured against.
+    IMPLAUSIBLE = "implausible"
 
 
 @dataclass(frozen=True)
@@ -60,6 +70,8 @@ class RangeComparison:
     #: How many payer rate rows backed ``payer_rate``, so a single-row median is
     #: not mistaken for a well-supported one.
     payer_rows: int = 1
+    #: The bound past which a difference stops being a price difference.
+    implausible_ratio: float = IMPLAUSIBLE_RATIO
 
     @property
     def low(self) -> float:
@@ -79,21 +91,27 @@ class RangeComparison:
         return self.high / self.low if self.low else 0.0
 
     @property
+    def gap(self) -> float:
+        """How far outside the range the payer sits, as a multiple. 1.0 inside.
+
+        Computed before the verdict rather than from it, because the verdict now
+        depends on the size of the gap.
+        """
+        if self.payer_rate < self.low and self.payer_rate:
+            return self.low / self.payer_rate
+        if self.payer_rate > self.high and self.high:
+            return self.payer_rate / self.high
+        return 1.0
+
+    @property
     def verdict(self) -> RangeVerdict:
+        if self.gap >= self.implausible_ratio:
+            return RangeVerdict.IMPLAUSIBLE
         if self.payer_rate < self.low:
             return RangeVerdict.BELOW
         if self.payer_rate > self.high:
             return RangeVerdict.ABOVE
         return RangeVerdict.INSIDE
-
-    @property
-    def gap(self) -> float:
-        """How far outside the range the payer sits, as a multiple. 1.0 inside."""
-        if self.verdict is RangeVerdict.BELOW and self.payer_rate:
-            return self.low / self.payer_rate
-        if self.verdict is RangeVerdict.ABOVE and self.high:
-            return self.payer_rate / self.high
-        return 1.0
 
     @property
     def vs_median(self) -> float:
@@ -159,19 +177,27 @@ def summarise(comparisons: list[RangeComparison]) -> dict[str, float | int]:
     counts = {v: 0 for v in RangeVerdict}
     for row in comparisons:
         counts[row.verdict] += 1
-    outside = [c.gap for c in comparisons if c.verdict is not RangeVerdict.INSIDE]
+    # Implausible pairs are not a disagreement about price, so they are counted
+    # and then kept out of every share. Leaving them in measured agreement
+    # against a denominator holding unit mismatches.
+    comparable = [c for c in comparisons if c.verdict is not RangeVerdict.IMPLAUSIBLE]
+    outside = [c.gap for c in comparable if c.verdict is not RangeVerdict.INSIDE]
+    denominator = len(comparable) or 1
     return {
         "total": total,
+        "comparable": len(comparable),
+        "implausible_excluded": counts[RangeVerdict.IMPLAUSIBLE],
         "inside": counts[RangeVerdict.INSIDE],
         "below": counts[RangeVerdict.BELOW],
         "above": counts[RangeVerdict.ABOVE],
-        "inside_share": counts[RangeVerdict.INSIDE] / total,
+        "inside_share": counts[RangeVerdict.INSIDE] / denominator,
         "median_gap_when_outside": median(outside) if outside else 0.0,
-        "median_range_width": median(c.width for c in comparisons),
+        "median_range_width": median(c.width for c in comparable) if comparable else 0.0,
     }
 
 
 __all__ = [
+    "IMPLAUSIBLE_RATIO",
     "RangeComparison",
     "RangeVerdict",
     "compare_to_system_range",
