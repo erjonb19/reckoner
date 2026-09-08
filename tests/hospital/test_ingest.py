@@ -7,7 +7,7 @@ import respx
 
 from hospital.codeset import CodeSet
 from hospital.ingest_cli import ingest_one, slugify
-from hospital.landing import Landing
+from hospital.landing import Landing, partition_vintage
 
 from .test_parser import JSON_MRF
 
@@ -642,3 +642,52 @@ class TestResume:
             second = ingest_one(client, landing, "Example Hospital", URL, backoff=0)
 
         assert second.status == "ok"
+
+
+class TestPartitionVintage:
+    """Slicing a date string to seven characters is not the same as parsing it.
+
+    Four systems landed under a broken key before this: Catholic Health at
+    ``vintage=2`` from ``2/25/2025``, Rochester Regional at ``4``, and the
+    University of Rochester at ``1`` and ``7``. The slashes in a US-format date
+    are read as directory separators once the string is truncated mid-field.
+    """
+
+    @pytest.mark.parametrize(
+        ("published", "expected"),
+        [
+            ("2026-04-01", "2026-04"),
+            # The spellings that actually broke it.
+            ("4/1/2026", "2026-04"),
+            ("2/25/2025", "2025-02"),
+            ("1/1/2026", "2026-01"),
+            ("7/1/2026", "2026-07"),
+            ("2026-04", "2026-04"),
+            ("2026", "2026-01"),
+        ],
+    )
+    def test_real_spellings_become_a_month(self, published, expected):
+        assert partition_vintage(published) == expected
+
+    @pytest.mark.parametrize("bad", [None, "", "   ", "garbage", "not-a-date"])
+    def test_an_unparseable_value_is_unknown_not_a_guess(self, bad):
+        assert partition_vintage(bad) == "unknown"
+
+    def test_no_result_can_contain_a_path_separator(self):
+        """The original bug was a partition key escaping into the directory tree."""
+        for value in ("4/1/2026", "../../etc", "a/b/c", "2026-04-01", "garbage"):
+            assert "/" not in partition_vintage(value)
+            assert "\\" not in partition_vintage(value)
+
+    @respx.mock
+    def test_a_us_format_date_lands_in_one_partition(self, landing):
+        """End to end: the tree must gain no extra directory levels."""
+        body = JSON_MRF.replace('"last_updated_on": "2026-04-01"', '"last_updated_on": "4/1/2026"')
+        body = body.replace('"last_updated_on":"2026-04-01"', '"last_updated_on":"4/1/2026"')
+        respx.get(URL).mock(return_value=httpx.Response(200, text=body))
+
+        with _client() as client:
+            ingest_one(client, landing, "Example Hospital", URL)
+
+        parts = {p.name for p in landing.curated.rglob("vintage=*")}
+        assert parts == {"vintage=2026-04"}
