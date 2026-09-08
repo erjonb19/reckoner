@@ -1,0 +1,1 @@
+{"matcher": "rule-based", "eval_set": "plan_matching", "total": 190, "true_positives": 17, "false_positives": 0, "false_negatives": 0, "true_negatives": 173, "confused_non_matches": 1, "reviewed_share": 1.0, "recorded_at": "2026-09-08T01:12:51+00:00"}

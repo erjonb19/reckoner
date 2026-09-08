@@ -20,7 +20,7 @@ that need no judgement.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from statistics import median
 
@@ -48,6 +48,9 @@ class Explanation(StrEnum):
     #: to each other. Not a claim that the contracts differ -- a claim that we do
     #: not yet know whether they do.
     PLAN_UNRESOLVED = "plan_unresolved"
+    #: The same near-constant ratio across many different services, which is one
+    #: fact about a contract rather than one finding per code.
+    SYSTEMATIC_OFFSET = "systematic_offset"
     #: Survived the deterministic checks. A real disagreement, or close to it.
     UNEXPLAINED = "unexplained"
 
@@ -435,6 +438,153 @@ def _median_rate(group: list[ComparableRate]) -> ComparableRate:
         return group[0]
     ordered = sorted(group, key=lambda r: r.rate_dollar or 0.0)
     return ordered[len(ordered) // 2]
+
+
+#: How tightly ratios must cluster before they count as one offset rather than
+#: many differences. Three percent of the median: wide enough to survive the
+#: rounding in published rates -- a real cluster measured at 1.385 to 1.444
+#: around 1.410 -- and tight enough that genuinely varying negotiations do not
+#: collapse into a single claim.
+OFFSET_TOLERANCE = 0.03
+
+#: How much of a contract must sit inside the tolerance before the cluster is
+#: called an offset. Requiring *every* pair to fit made one stray ratio suppress
+#: an otherwise textbook cluster of 735; a real contract can carry a handful of
+#: genuinely different rates without ceasing to have a base rate.
+OFFSET_MIN_SHARE = 0.8
+
+#: How many distinct services a constant ratio must span. A handful of codes at
+#: the same ratio is a coincidence; hundreds is a base rate.
+OFFSET_MIN_CODES = 20
+
+
+@dataclass(frozen=True)
+class SystematicOffset:
+    """One constant ratio holding across many services for one contract."""
+
+    hospital: str
+    payer: str
+    hospital_plan: str | None
+    payer_plan: str | None
+    ratio: float
+    codes: int
+    rows: int
+
+    def describe(self) -> str:
+        return (
+            f"{self.hospital} / {self.payer}: the payer rate is "
+            f"{self.ratio:.3f}x the hospital rate across {self.codes:,} services "
+            f"({self.rows:,} pairs)"
+        )
+
+
+def find_systematic_offsets(
+    mart: VarianceMart,
+    *,
+    tolerance: float = OFFSET_TOLERANCE,
+    min_codes: int = OFFSET_MIN_CODES,
+    min_share: float = OFFSET_MIN_SHARE,
+) -> list[SystematicOffset]:
+    """Find contracts whose rates differ by one constant factor, not many.
+
+    A DRG rate is a base rate times a weight. When two sources use the same
+    weights and different base rates, the weight cancels and every code comes
+    out at the same ratio -- so hundreds of codes at one ratio is a single fact
+    about the two base rates, not hundreds of disagreements.
+
+    This was not hypothetical. A Mount Sinai run reported 2,943 unexplained
+    pairs that were four constant ratios: 2,916 of them collapsed, leaving 27.
+    Reported per code it read as hundreds of findings; it was four facts.
+
+    Chasing what those four were found a real defect. Two of Mount Sinai's five
+    files each carry rates for *two* hospitals -- the "Behavioral Health Center"
+    file holds Brooklyn and Queens, the "Morningside" file holds Beth Israel and
+    St Luke's West -- and the file-level location names only one of them. The
+    facility a rate belongs to is in the plan-name suffix. So one payer rate,
+    which resolves no finer than the health system, was being differenced against
+    two facilities' base rates under a single label, and the ratio between those
+    base rates is what showed up 729 times each.
+
+    That is the value of collapsing them: a constant repeated across hundreds of
+    services is a question about the join, and reporting it once asks the
+    question, where reporting it per code buries it.
+
+    Grouped by contract rather than globally, because two different contracts
+    may each be internally consistent at different ratios, and pooling them would
+    hide both.
+    """
+    groups: dict[tuple[str, str, str | None, str | None], list[Variance]] = {}
+    for row in mart.rows:
+        key = (row.left.hospital, row.payer, row.left.plan, row.right.plan)
+        groups.setdefault(key, []).append(row)
+
+    offsets: list[SystematicOffset] = []
+    for (hospital, payer, left_plan, right_plan), rows in groups.items():
+        priced = [r for r in rows if r.ratio > 0]
+        if len(priced) < min_codes:
+            continue
+        centre = median(r.ratio for r in priced)
+        if not centre:
+            continue
+        # The cluster is the offset; whatever sits outside it is left alone. A
+        # contract can carry a few genuinely different rates and still have a
+        # base rate, and those stragglers are exactly the rows worth keeping as
+        # findings rather than dissolving into the average.
+        inside = [r for r in priced if abs(r.ratio - centre) / centre <= tolerance]
+        codes = {r.code for r in inside}
+        if len(codes) < min_codes or len(inside) / len(priced) < min_share:
+            continue
+        offsets.append(
+            SystematicOffset(
+                hospital=hospital,
+                payer=payer,
+                hospital_plan=left_plan,
+                payer_plan=right_plan,
+                ratio=median(r.ratio for r in inside),
+                codes=len(codes),
+                rows=len(inside),
+            )
+        )
+    return sorted(offsets, key=lambda o: -o.rows)
+
+
+def apply_systematic_offsets(
+    mart: VarianceMart,
+    *,
+    tolerance: float = OFFSET_TOLERANCE,
+    min_codes: int = OFFSET_MIN_CODES,
+    min_share: float = OFFSET_MIN_SHARE,
+) -> list[SystematicOffset]:
+    """Reclassify rows that a constant ratio already accounts for.
+
+    Only rows still ``unexplained`` are touched: an offset is the explanation of
+    last resort, and a pair already attributed to timing or an unresolved plan
+    keeps that more specific reason.
+    """
+    offsets = find_systematic_offsets(
+        mart, tolerance=tolerance, min_codes=min_codes, min_share=min_share
+    )
+    by_key = {(o.hospital, o.payer, o.hospital_plan, o.payer_plan): o for o in offsets}
+    for index, row in enumerate(mart.rows):
+        if row.explanation != str(Explanation.UNEXPLAINED):
+            continue
+        offset = by_key.get((row.left.hospital, row.payer, row.left.plan, row.right.plan))
+        if offset is None:
+            continue
+        # Only the rows the cluster actually covers. A straggler inside a
+        # contract that has an offset is still a finding.
+        if not offset.ratio or abs(row.ratio - offset.ratio) / offset.ratio > tolerance:
+            continue
+        mart.rows[index] = replace(
+            row,
+            explanation=str(Explanation.SYSTEMATIC_OFFSET),
+            notes=(
+                *row.notes,
+                f"one of {offset.rows:,} pairs differing by a constant "
+                f"{offset.ratio:.3f}x across {offset.codes:,} services",
+            ),
+        )
+    return offsets
 
 
 def spread_by_code(mart: VarianceMart) -> list[tuple[str, float, int]]:
