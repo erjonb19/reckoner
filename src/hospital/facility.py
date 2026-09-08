@@ -28,7 +28,7 @@ NewYork-Presbyterian, whose plan names carry no suffix at all.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 #: Mount Sinai's plan-name suffixes, from the abbreviations in its own files.
 #:
@@ -76,6 +76,8 @@ def resolve_facility(
     plan_name: str | None,
     *,
     maps: Mapping[str, dict[str, str]] | None = None,
+    source_url: str | None = None,
+    ambiguous: frozenset[str] = frozenset(),
 ) -> str:
     """The facility a rate belongs to, preferring the plan suffix where it is known.
 
@@ -89,6 +91,12 @@ def resolve_facility(
         found = table.get(suffix_of(plan_name) or "")
         if found:
             return found
+    # A location label shared by several files has merged hospitals; the file's
+    # own name is then the better identifier, and the only one available.
+    if location_name and location_name in ambiguous:
+        from_file = facility_from_source(source_url)
+        if from_file:
+            return from_file
     return (location_name or hospital or "").strip()
 
 
@@ -102,9 +110,60 @@ def is_multi_facility(hospital: str | None, rows: list[tuple[str | None, str | N
     return len({resolve_facility(hospital, loc, plan) for loc, plan in rows}) > 1
 
 
+#: The CMS filename convention: an optional tax id, the hospital's name, then
+#: ``standardcharges``. Every file in the corpus that needs disambiguating
+#: follows it -- ``16-0762843_Kenmore-Mercy-Hospital_StandardCharges.csv``,
+#: ``Zucker_Hillside_Hospital_Hospital_StandardCharges.zip``.
+_FROM_FILENAME = re.compile(r"^(?:[\d][\d-]*_)?(.+?)[_-]standardcharges", re.I)
+
+#: Words that stay lowercase when a filename is turned back into a name.
+_MINOR = frozenset({"of", "at", "the", "and", "for"})
+
+
+def facility_from_source(source_url: str | None) -> str:
+    """The hospital named in a file's own name, or empty if it does not say.
+
+    Used only to separate hospitals a location label has merged. The name a
+    hospital gives its file is a weaker source than the name it puts inside the
+    file, so it is never preferred over a location that already distinguishes
+    its sources.
+    """
+    if not source_url:
+        return ""
+    name = source_url.split("?")[0].rstrip("/").rsplit("/", 1)[-1]
+    found = _FROM_FILENAME.match(name)
+    if not found:
+        return ""
+    words = [w for w in re.split(r"[-_\s]+", found.group(1)) if w]
+    if not words:
+        return ""
+    return " ".join(
+        w.lower() if i and w.lower() in _MINOR else w[:1].upper() + w[1:]
+        for i, w in enumerate(words)
+    )
+
+
+def ambiguous_locations(pairs: Iterable[tuple[str | None, str | None]]) -> frozenset[str]:
+    """Location labels that more than one source file publishes under.
+
+    A label backed by two files is not identifying a hospital: Northwell's
+    "Danbury Hospital" covers Danbury and New Milford, and Catholic Health
+    publishes four Buffalo hospitals under one name. Computed from the files
+    present rather than hardcoded, so a system that starts or stops colliding is
+    handled without a code change.
+    """
+    seen: dict[str, set[str]] = {}
+    for location, source in pairs:
+        if location and source:
+            seen.setdefault(location, set()).add(source)
+    return frozenset(name for name, sources in seen.items() if len(sources) > 1)
+
+
 __all__ = [
     "FACILITY_SUFFIX_MAPS",
     "MOUNT_SINAI_SUFFIXES",
+    "ambiguous_locations",
+    "facility_from_source",
     "is_multi_facility",
     "resolve_facility",
     "suffix_of",

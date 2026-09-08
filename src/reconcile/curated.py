@@ -33,7 +33,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 
 from agents.entity_resolution import RuleBasedMatcher, canonical_key
-from hospital.facility import resolve_facility
+from hospital.facility import ambiguous_locations, resolve_facility
 from reconcile.comparability import ComparableRate
 
 #: Columns the comparison needs. Reading only these keeps a 13 million row scan
@@ -41,6 +41,9 @@ from reconcile.comparability import ComparableRate
 NEEDED_COLUMNS = (
     "hospital",
     "location_name",
+    # Read so a location label shared by several files can be disambiguated by
+    # the file's own name -- see hospital.facility.ambiguous_locations.
+    "source_url",
     "file_vintage",
     "code",
     "code_type",
@@ -109,6 +112,7 @@ def aggregate_rates(
     keys = [
         "hospital",
         "location_name",
+        "source_url",
         "file_vintage",
         "code",
         "code_type",
@@ -144,6 +148,11 @@ def to_comparable_rates(
     if table.num_rows == 0:
         return []
     rows = table.to_pylist()
+    # Which location labels fail to distinguish their own files, computed from
+    # the rows in hand rather than assumed.
+    ambiguous = ambiguous_locations(
+        (row.get("location_name"), row.get("source_url")) for row in rows
+    )
     payer_names = {str(row.get("payer_name_raw") or "") for row in rows}
     canonical = _canonical_payers(payer_names) if canonicalise_payers else {}
 
@@ -165,6 +174,8 @@ def to_comparable_rates(
                     _optional(row.get("hospital")),
                     _optional(row.get("location_name")),
                     _optional(row.get("plan_name_raw")),
+                    source_url=_optional(row.get("source_url")),
+                    ambiguous=ambiguous,
                 ),
                 code=str(row.get("code") or ""),
                 code_type=_optional(row.get("code_type")),
