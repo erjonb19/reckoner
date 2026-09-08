@@ -9,6 +9,8 @@ import pytest
 
 from hospital.facility import (
     MOUNT_SINAI_SUFFIXES,
+    ambiguous_locations,
+    facility_from_source,
     is_multi_facility,
     resolve_facility,
     suffix_of,
@@ -116,3 +118,102 @@ class TestScoping:
     def test_the_map_covers_every_suffix_seen_in_the_lake(self):
         seen = {"tmsh", "msq", "brook", "bi", "slw", "snch", "nyeei", "nyee"}
         assert seen <= set(MOUNT_SINAI_SUFFIXES)
+
+
+class TestFilenameFallback:
+    """A location label that cannot distinguish its own files is not a facility.
+
+    Northwell publishes Danbury and New Milford under "Danbury Hospital", and
+    Catholic Health publishes four Buffalo hospitals under one name. In both the
+    hospital's name is in the file's name, following the CMS convention.
+    """
+
+    @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            (
+                "https://x/16-0762843_Kenmore-Mercy-Hospital_StandardCharges.csv",
+                "Kenmore Mercy Hospital",
+            ),
+            (
+                "https://x/060646597_new-milford-hospital_standardcharges.zip",
+                "New Milford Hospital",
+            ),
+            # A doubled word is really in the filename; keep it rather than guess.
+            (
+                "https://x/Zucker_Hillside_Hospital_Hospital_StandardCharges.zip",
+                "Zucker Hillside Hospital Hospital",
+            ),
+            # No tax-id prefix at all.
+            ("https://x/Glen_Cove_Hospital_StandardCharges.zip", "Glen Cove Hospital"),
+            # Query strings and paths must not confuse it.
+            (
+                "https://x/y/Phelps_Hospital_StandardCharges.zip?u=1&download=true",
+                "Phelps Hospital",
+            ),
+        ],
+    )
+    def test_reads_the_cms_filename_convention(self, url, expected):
+        assert facility_from_source(url) == expected
+
+    def test_minor_words_stay_lowercase(self):
+        assert (
+            facility_from_source(
+                "https://x/16-0743187_Sisters-of-Charity-Hospital_StandardCharges.csv"
+            )
+            == "Sisters of Charity Hospital"
+        )
+
+    def test_a_filename_that_does_not_follow_the_convention_gives_nothing(self):
+        assert facility_from_source("https://x/rates.json") == ""
+        assert facility_from_source(None) == ""
+
+    def test_ambiguity_is_measured_from_the_files_present(self):
+        """Not hardcoded, so a system that starts or stops colliding is handled."""
+        found = ambiguous_locations(
+            [
+                ("Danbury Hospital", "a.zip"),
+                ("Danbury Hospital", "b.zip"),
+                ("Glen Cove Hospital", "c.zip"),
+            ]
+        )
+
+        assert found == {"Danbury Hospital"}
+
+    def test_a_merged_label_is_replaced_by_the_filename(self):
+        assert (
+            resolve_facility(
+                "Northwell Health",
+                "Danbury Hospital",
+                None,
+                source_url="https://x/060646597_new-milford-hospital_standardcharges.zip",
+                ambiguous=frozenset({"Danbury Hospital"}),
+            )
+            == "New Milford Hospital"
+        )
+
+    def test_an_unambiguous_label_is_left_alone(self):
+        """The name inside the file beats the name on it, when it distinguishes."""
+        assert (
+            resolve_facility(
+                "Northwell Health",
+                "Glen Cove Hospital",
+                None,
+                source_url="https://x/Glen_Cove_Hospital_StandardCharges.zip",
+                ambiguous=frozenset(),
+            )
+            == "Glen Cove Hospital"
+        )
+
+    def test_a_suffix_map_still_wins(self):
+        """Mount Sinai's suffixes are more specific than any filename."""
+        assert (
+            resolve_facility(
+                MSHS,
+                "Mount Sinai Behavioral Health Center",
+                "Cigna Ppo - Msq",
+                source_url="https://x/135564934_mount-sinai-behavioral-health-center_standardcharges.json",
+                ambiguous=frozenset({"Mount Sinai Behavioral Health Center"}),
+            )
+            == "Mount Sinai Queens"
+        )
