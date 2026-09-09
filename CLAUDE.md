@@ -63,7 +63,10 @@ Four agents, all doing work **inside** the pipeline. NL-to-SQL over the marts is
 
 ```
 ├── CLAUDE.md
-├── docs/SPEC.md
+├── docs/
+│   ├── SPEC.md              # the plan
+│   ├── BUILT_VS_PLANNED.md  # what is actually built; check before claiming
+│   └── adr/                 # design decisions, numbered
 ├── src/
 │   ├── discovery/     # cms-hpt.txt crawler, TOC walker, HEAD size probe
 │   ├── hospital/      # CMS template parser, deviation handlers, facility and
@@ -86,23 +89,34 @@ Landed: hospital ingest, the Medicare benchmark, the payer TiC reader, the
 comparability and variance layers, and the A2 matchers at payer and plan level.
 A1, A3 and A4 do not exist yet.
 
+`docs/BUILT_VS_PLANNED.md` is the detailed built/scaffolded/not-started split and
+the place to check before claiming anything. `docs/adr/` holds the design decisions.
+
 **Data on hand** (local, not committed):
 
-- 156M curated hospital rate lines across 11 health systems
-- 40M payer rate lines across 14 completed TiC files — Aetna, Cigna, UHC only
-- Empire BCBS and EmblemHealth are the largest NY payers and are **not** parsed
+- 156M curated hospital rate lines across 12 health systems
+- 59.5M payer rate lines across 120 TiC files and 6 carriers — UHC, Aetna (group
+  and individual), Cigna, Empire BCBS, EmblemHealth. Vintages span 2026-06-05 to
+  2026-09-04, so vintage handling is load-bearing rather than a footnote.
 
 **What actually reconciles is much smaller than those totals.** `billing_class`
 is optional for hospitals and required for payers, so a hospital that omits it
-cannot be compared against an insurer at all: seven of eleven systems publish it,
-four do not, and about 30% of rows are reconcilable. Cross-source coverage is
-Mount Sinai against three carriers.
+cannot be compared against an insurer at all: seven of twelve systems publish it,
+four do not, Northwell publishes it on 1.6% of rows, and about 30% of rows are
+reconcilable. Volume is not coverage either — roughly 46% of EmblemHealth's rows
+carry a rate of exactly $0.
+
+**Cross-source coverage is bounded by name overlap, not row counts.** The hospital
+lake holds 12 systems and the payer target list holds 7; four appear in both —
+Mount Sinai, NYU Langone, NewYork-Presbyterian, Northwell. Only those four can be
+reconciled at all.
 
 **Open gates:**
 
 - Fabric trial activation depends on tenant access. If unresolved, do not write
-  Fabric-specific code yet.
-- **There is no committed runner.** Every real-data result so far came from
-  throwaway scripts, so the analysis is not reproducible from the repository.
-  That is the next thing to fix, and until it is, treat any number quoted in a
-  document as unverifiable.
+  Fabric-specific code yet. The seam that keeps this cheap is ADR 0002.
+- **No data contract at the payer boundary.** `mrf_pipeline` writes the Parquet
+  that `src/payer/curated.py` reads, and that interface is undeclared. A column
+  the parser had been writing for months (`last_updated_on`) went unused while
+  the reader fell back to a hardcoded date map covering 10% of the files. A3
+  (schema adaptation) is blocked on this contract existing.
