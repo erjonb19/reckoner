@@ -99,9 +99,10 @@ class TestDiscovery:
         """
         by_stem = {f.stem: f for f in files}
         for stem in ("Aetna_NY", "AetnaALIC_Hmo", "Cigna_NationalOAP"):
-            assert "last_updated_on" not in pq.ParquetFile(
-                FIXTURES / f"{stem}.parquet"
-            ).schema_arrow.names, "fixture must lack the column for this to test the fallback"
+            assert (
+                "last_updated_on"
+                not in pq.ParquetFile(FIXTURES / f"{stem}.parquet").schema_arrow.names
+            ), "fixture must lack the column for this to test the fallback"
         assert by_stem["Aetna_NY"].vintage == "2026-06-05"
         assert by_stem["AetnaALIC_Hmo"].vintage == "2026-08-05"
         assert by_stem["Cigna_NationalOAP"].vintage == "2026-08-01"
