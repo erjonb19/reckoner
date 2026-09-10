@@ -122,8 +122,14 @@ reconciled at all.
 
 **Open gates:**
 
-- Fabric trial activation depends on tenant access. If unresolved, do not write
-  Fabric-specific code yet. The seam that keeps this cheap is ADR 0002.
+- Fabric trial activation depends on tenant access, still unresolved. Do not
+  write Fabric-specific code yet. The seam is now built (`src/storage/`), so
+  adopting the cloud is a matter of configuration rather than code: set
+  `RECKONER_STORAGE=adls`, `RECKONER_ADLS_ACCOUNT` and `RECKONER_ADLS_ROOT`.
+  Authentication is `DefaultAzureCredential`'s job and no secret is read in
+  code. Note the target is **ADLS Gen2, not Fabric** -- rule 2 makes ADLS
+  authoritative and Fabric a consumer via OneLake shortcuts, so a workspace on
+  its own is not a place this project may write.
 - **The payer contract is declared but not enforced.** `src/payer/contract.py`
   states the boundary `mrf_pipeline` writes and `src/payer/curated.py` reads —
   shape, the federal TiC enums, and the per-file invariants live code assumes.

@@ -63,6 +63,7 @@ import pyarrow.parquet as pq
 from agents.entity_resolution import CANONICAL_PAYERS, PayerCandidate, RuleBasedMatcher
 from payer.contract import ContractCheck, Severity, validate_file, validate_schema
 from reconcile.comparability import ComparableRate
+from storage import Location
 
 #: Columns the curated shape needs. The upstream file has 14; ``description``
 #: is excluded because the schema doc records the same code carrying up to
@@ -376,7 +377,9 @@ def _touches_system(systems: Sequence[str]) -> ds.Expression:
     return term
 
 
-def open_payer_dataset(files: Sequence[PayerFile]) -> ds.Dataset:
+def open_payer_dataset(
+    files: Sequence[PayerFile], *, location: Location | None = None
+) -> ds.Dataset:
     """Open the completed payer files as one dataset.
 
     All ten completed files share an identical schema, so they form a single
@@ -384,7 +387,12 @@ def open_payer_dataset(files: Sequence[PayerFile]) -> ds.Dataset:
     """
     if not files:
         raise FileNotFoundError("no completed payer parquet files to read")
-    return ds.dataset([str(f.path) for f in files], format="parquet")
+    if location is None:
+        return ds.dataset([str(f.path) for f in files], format="parquet")
+    # A list of paths rather than a root, so the seam supplies the filesystem and
+    # each file is named relative to it.
+    paths = [location.child(f.path.name).root for f in files]
+    return ds.dataset(paths, filesystem=location.filesystem, format="parquet")
 
 
 def aggregate_rates(
