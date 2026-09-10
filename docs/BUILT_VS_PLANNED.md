@@ -97,7 +97,16 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   test.
 - **Measured: 120 files, 118 read, 2 duplicates, 56,784,415 rows** across 5 vintages. A
   second snapshot diffs clean against the first.
-- 17 tests, including two that pin down what it refuses to claim.
+- **Taken on a schedule.** `scripts/snapshot_payer_manifest.ps1 -Register` installs a daily
+  Windows Scheduled Task that snapshots into `data/manifests/`, diffs against the previous
+  one, prunes to 30, and logs. Verified end to end through Task Scheduler, not just by
+  running the script by hand. It runs locally by necessity: the payer Parquet is a
+  gitignored 4.3 GB directory in a sibling repo, so CI and cloud schedulers cannot see it.
+  The task runs as the current user while logged on, so no credential is stored.
+- A first run reports "nothing to compare against" rather than an empty diff — those are
+  different statements and only one is reassuring.
+- 26 tests, including two that pin down what it refuses to claim and two regression tests
+  for snapshot naming (see below).
 
 **What it cannot tell you, by construction.** A payer file that parsed but matched no target
 hospital leaves no Parquet, so its absence is identical to never having been attempted —
@@ -117,7 +126,7 @@ named.
 
 ### Engineering
 
-- **710 tests**, all passing. Parser tests are
+- **719 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 

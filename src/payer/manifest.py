@@ -28,6 +28,13 @@ reads 4.3 GB and is not the default for that reason.
 
     python -m payer.manifest --payer-root ../mrf_pipeline/payer_parquet --out manifest.json
     python -m payer.manifest --payer-root ... --against manifest.json
+    python -m payer.manifest --payer-root ... --snapshot-dir data/manifests
+
+The last form is what the daily task runs: it diffs against the newest snapshot
+already in the directory, writes a new one, and prunes. See
+``scripts/snapshot_payer_manifest.ps1``. It has to run locally -- the payer
+Parquet is a gitignored 4.3 GB directory in a sibling repo, so no cloud runner
+can see it.
 """
 
 from __future__ import annotations
@@ -282,6 +289,66 @@ def build(root: Path, *, with_hash: bool = False) -> Manifest:
     )
 
 
+#: Snapshot filenames sort lexicographically into chronological order, because
+#: the timestamp is UTC and fixed-width. That is what lets "the previous one" be
+#: a sort rather than a stored pointer that can go stale.
+SNAPSHOT_GLOB = "manifest-*.json"
+_SNAPSHOT_STAMP = "%Y%m%dT%H%M%SZ"
+
+
+def latest_snapshot(directory: Path) -> Path | None:
+    """The most recent snapshot in ``directory``, or ``None`` on the first run."""
+    existing = sorted(directory.glob(SNAPSHOT_GLOB))
+    return existing[-1] if existing else None
+
+
+def rotate(
+    manifest: Manifest, directory: Path, *, keep: int = 30
+) -> tuple[Path, ManifestDiff | None]:
+    """Write ``manifest`` into ``directory`` and diff it against the one before.
+
+    Returns the path written and the diff, or ``None`` for the diff on a first
+    run. ``None`` rather than an empty diff because "nothing changed" and
+    "nothing to compare against" are different statements, and only one of them
+    is reassuring -- a scheduled job that reported the first as the second would
+    be quietly useless for exactly as long as nobody checked.
+
+    Old snapshots are pruned to ``keep``. They are a few kilobytes each, so the
+    limit is about not accumulating forever rather than about space.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    previous = latest_snapshot(directory)
+    changes = diff(Manifest.read_json(previous), manifest) if previous else None
+
+    # Second resolution, so two snapshots inside one second would otherwise land
+    # on the same name and the older would vanish into the newer.
+    #
+    # The counter is always present, never only on collision. With it optional,
+    # "manifest-<stamp>-01.json" sorts *before* "manifest-<stamp>.json" -- "-" is
+    # 0x2D and "." is 0x2E -- so the first file written in a second sorted as the
+    # newest, and rotation compared against the wrong snapshot. Uniform names
+    # keep the lexicographic sort chronological, which is the whole basis for
+    # `latest_snapshot` being a sort rather than a stored pointer.
+    stamp = datetime.now(UTC).strftime(_SNAPSHOT_STAMP)
+    # One past the highest counter already used this second, rather than the
+    # first free one. Pruning frees old names, so a search for a gap will happily
+    # reuse "-00" after it has been deleted -- and that file then sorts oldest,
+    # gets pruned again on the same call, and `rotate` returns a path that no
+    # longer exists. Monotonic avoids the whole class.
+    used = [
+        int(candidate.stem.rsplit("-", 1)[1])
+        for candidate in directory.glob(f"manifest-{stamp}-*.json")
+        if candidate.stem.rsplit("-", 1)[1].isdigit()
+    ]
+    path = directory / f"manifest-{stamp}-{(max(used) + 1 if used else 0):02d}.json"
+    manifest.write(path)
+
+    if keep > 0:
+        for stale in sorted(directory.glob(SNAPSHOT_GLOB))[:-keep]:
+            stale.unlink()
+    return path, changes
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--payer-root", type=Path, required=True)
@@ -291,7 +358,17 @@ def main(argv: list[str] | None = None) -> int:
         "--hash", action="store_true", help="compute SHA-256 per file; reads every byte"
     )
     parser.add_argument(
-        "--fail-on-change", action="store_true", help="exit non-zero if --against differs"
+        "--snapshot-dir",
+        type=Path,
+        help="take a snapshot here, diffing against the newest already present",
+    )
+    parser.add_argument(
+        "--keep", type=int, default=30, help="snapshots to retain in --snapshot-dir"
+    )
+    parser.add_argument(
+        "--fail-on-change",
+        action="store_true",
+        help="exit non-zero when the diff is non-empty; for a scheduled run that should be quiet",
     )
     args = parser.parse_args(argv)
 
@@ -320,8 +397,16 @@ def main(argv: list[str] | None = None) -> int:
         manifest.write(args.out)
         print(f"\nwritten to {args.out}")
 
-    if args.against:
+    changes: ManifestDiff | None = None
+    if args.snapshot_dir:
+        path, changes = rotate(manifest, args.snapshot_dir, keep=args.keep)
+        print(f"\nsnapshot written to {path}")
+        if changes is None:
+            print("no previous snapshot: nothing to compare against yet")
+    elif args.against:
         changes = diff(Manifest.read_json(args.against), manifest)
+
+    if changes is not None:
         print("\n" + json.dumps(changes.summary(), indent=1))
         if args.fail_on_change and not changes.unchanged:
             return 1
