@@ -163,6 +163,30 @@ class TestFilters:
         assert max(wide.column("group_tins_min").to_pylist()) > 1000
         assert max(narrow.column("group_tins_min").to_pylist()) <= 10
 
+    def test_code_prefix_keeps_only_that_shard(self, files):
+        table = aggregate_rates(open_payer_dataset(files), PayerFilter(code_prefix="J"))
+        codes = table.column("billing_code").to_pylist()
+        assert codes, "fixture must contain J codes for this to mean anything"
+        assert all(c.startswith("J") for c in codes)
+
+    def test_the_shards_partition_the_data_exactly(self, files):
+        """The claim the memory fix rests on: sharding loses and duplicates nothing.
+
+        ``aggregate_rates`` holds the whole filtered table plus a distinct over
+        every column, so a large system has to be run in slices. That is only
+        sound if the slices reassemble into the same set of rows.
+        """
+        whole = aggregate_rates(open_payer_dataset(files), PayerFilter())
+        prefixes = {c[0] for c in whole.column("billing_code").to_pylist() if c}
+        assert len(prefixes) > 1, "fixture must span several shards"
+
+        swept: list[str] = []
+        for prefix in sorted(prefixes):
+            shard = aggregate_rates(open_payer_dataset(files), PayerFilter(code_prefix=prefix))
+            swept.extend(shard.column("billing_code").to_pylist())
+
+        assert sorted(swept) == sorted(whole.column("billing_code").to_pylist())
+
     def test_system_filter_matches_inside_the_comma_joined_list(self, files):
         exploded = aggregate_rates(
             open_payer_dataset(files),
