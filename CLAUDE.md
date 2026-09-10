@@ -121,5 +121,6 @@ reconciled at all.
   Run it with `python -m payer.contract --payer-root ../mrf_pipeline/payer_parquet`;
   it is clean on all 120 files bar 49 warnings for blank billing codes. What is
   missing is a gate: nothing calls it before a load, so a drift is found only when
-  someone runs it. There is also no file manifest yet, so "no parquet" is still
-  ambiguous between "not parsed" and "parsed, nothing matched".
+  someone runs it. `python -m payer.manifest --payer-root ... --against <snapshot>`
+  now names what moved between two runs, but nothing takes a snapshot on a
+  schedule, so there is rarely a previous one to compare against.

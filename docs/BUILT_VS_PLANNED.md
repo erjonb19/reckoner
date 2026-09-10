@@ -73,6 +73,28 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   (196 blank billing codes, all Emblem). 20 tests, built by damaging a real file one column
   at a time.
 
+### Payer file manifest
+
+- `src/payer/manifest.py` — a snapshot of the boundary: one row per file with vintage, row
+  count, and an identity taken from the Parquet footer rather than a hash of the bytes, so
+  it is cheap enough to take on every run. `--hash` computes a real SHA-256 when a specific
+  claim needs one; it reads 4.3 GB and is not the default.
+- **The diff is the part that earns its keep.** Two snapshots turn "the payer data changed"
+  into a named list — added, removed, and per-file field changes. The change most likely to
+  go unnoticed is a re-parse at a newer vintage under the same filename, and that is a
+  test.
+- **Measured: 120 files, 118 read, 2 duplicates, 56,784,415 rows** across 5 vintages. A
+  second snapshot diffs clean against the first.
+- 17 tests, including two that pin down what it refuses to claim.
+
+**What it cannot tell you, by construction.** A payer file that parsed but matched no target
+hospital leaves no Parquet, so its absence is identical to never having been attempted —
+182 of ~280 Emblem files are in that state. That fact lives upstream in `mrf_pipeline`'s
+config and logs, on the far side of the boundary ADR 0001 draws. The manifest defines no
+"expected but missing" state rather than guessing at one; what it does instead is make the
+absence *enumerable after the fact*, since a file that vanishes between two snapshots is
+named.
+
 ### A2 entity resolution
 
 - Payer-level and plan-level matchers — `src/agents/entity_resolution.py`, `plan_resolution.py`.
@@ -83,7 +105,7 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 
 ### Engineering
 
-- **683 tests**, all passing. Parser tests are
+- **700 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -111,11 +133,6 @@ Real code, but not yet load-bearing.
 - **A3 schema adaptation.** No longer blocked — `src/payer/contract.py` is the thing it
   would diff a new drop against — but not started.
 - **A4 ingest monitoring.**
-- **Payer file manifest.** `src/payer/manifest.py` — proposed in ADR 0001, not written.
-  `file_summary()` already reports in-flight and superseded files, so what is missing is the
-  third case: a file parsed that produced no target rows leaves no parquet, so "absent"
-  stays ambiguous between "not parsed" and "parsed, nothing matched". 182 of ~280 Emblem
-  files are in exactly that state.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
 - **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access. No
   Fabric-specific code is written, deliberately (ADR 0002).

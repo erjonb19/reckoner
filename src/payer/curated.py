@@ -229,7 +229,7 @@ def discover_payer_files(
     files = []
     for path in sorted(root.glob("*.parquet")):
         stem = path.stem
-        carrier, network = _split_label(stem)
+        carrier, network = split_label(stem)
         files.append(
             PayerFile(
                 path=path,
@@ -244,7 +244,7 @@ def discover_payer_files(
     return files
 
 
-def _split_label(stem: str) -> tuple[str, str]:
+def split_label(stem: str) -> tuple[str, str]:
     """Split a config label into its carrier and network halves.
 
     ``AetnaALIC_OpenAccessManagedChoice`` is Aetna Life Insurance Company's
@@ -570,7 +570,7 @@ def _carrier_alias(stem: str) -> str:
     for alias, _canonical in _ALIASES_BY_LENGTH:
         if lowered.startswith(re.sub(r"[^a-z]", "", alias.casefold())):
             return alias
-    return _split_label(stem)[0]
+    return split_label(stem)[0]
 
 
 def _optional(value: Any) -> str | None:  # noqa: ANN401 - an Arrow cell, any scalar type
@@ -636,8 +636,8 @@ def file_summary(root: Path) -> list[dict[str, Any]]:
     ] + [
         {
             "stem": stem,
-            "carrier": _split_label(stem)[0],
-            "network": _split_label(stem)[1],
+            "carrier": split_label(stem)[0],
+            "network": split_label(stem)[1],
             "vintage": PAYER_SOURCE_VINTAGES.get(stem),
             "read": False,
             "skipped_reason": "parse in flight (.part has no footer)",
@@ -661,5 +661,6 @@ __all__ = [
     "file_summary",
     "load_comparable_rates",
     "open_payer_dataset",
+    "split_label",
     "to_comparable_rates",
 ]
