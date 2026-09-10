@@ -79,6 +79,27 @@ class MrfParser:
         self.meta = FileMeta(layout="json" if self._is_json else "csv")
         #: Set when the document ended mid-structure, e.g. a capped read.
         self.truncated = False
+        #: Charge items encountered, whether or not any rate came out of them.
+        #:
+        #: Yielded rates alone cannot tell "this file has no negotiated rates"
+        #: apart from "we could not find the rates in this file", and those need
+        #: opposite responses: the first is a hospital publishing gross and cash
+        #: only, the second is a parser that needs an adapter. Mount Sinai
+        #: Brooklyn is 82 MB of the former, and telling which it was took a full
+        #: download by hand. See :mod:`hospital.conformance`.
+        self.items_seen = 0
+        self._header_found = False
+
+    @property
+    def structure_found(self) -> bool:
+        """Whether the parser located the container it reads rates out of.
+
+        JSON: at least one ``standard_charge_information`` item. CSV: a row that
+        looks like a header. False after a full read means the file is laid out
+        in a way this parser does not recognise, which is a different problem
+        from a file that simply carries no negotiated rates.
+        """
+        return self.items_seen > 0 if self._is_json else self._header_found
 
     def __iter__(self) -> Iterator[RawRate]:
         if self._is_json:
@@ -106,6 +127,7 @@ class MrfParser:
         try:
             events = self._capture_meta(ijson.parse(self._reader))
             for item in ijson.items(events, "standard_charge_information.item"):
+                self.items_seen += 1
                 for charge in item.get("standard_charges") or []:
                     for payer in charge.get("payers_information") or []:
                         ordinal += 1
@@ -218,6 +240,7 @@ class MrfParser:
                 break
         if header is None:
             return
+        self._header_found = True
 
         self._absorb_csv_meta(preamble)
         index_of = {name.strip().lower(): i for i, name in enumerate(header)}

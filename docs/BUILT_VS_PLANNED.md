@@ -85,6 +85,28 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   (196 blank billing codes, all Emblem), 0 quarantined. 30 tests, built by damaging a real
   file one column at a time.
 
+### A3 schema adaptation (deterministic half)
+
+- `src/hospital/conformance.py` — when a file yields no curated rows, say *which kind of
+  nothing*. The ingest recorded both cases as "no curated rows produced", and they need
+  opposite responses: a file we could not read needs an adapter; a file with nothing in it
+  to read needs nothing at all.
+- **The distinction is real and was costly.** Mount Sinai Brooklyn is 82 MB, CMS template
+  3.0.0, **217,957 charge items and not one `payers_information` entry** — gross and cash
+  prices only. Establishing that took a full download and six manual probes. It is now a
+  line in the audit, and the verdict is `no_negotiated_rates`, *not actionable*.
+- Required one new observation the ingest was not collecting: `MrfParser.items_seen` and
+  `structure_found`. Yielded rates alone cannot separate the two cases — both are zero.
+- 12 tests, with the gross-and-cash document copied in shape from the real file.
+
+**The generative half is not built, and the reason is evidence rather than effort.** A3
+exists to write parser adapters for non-conforming files, and there are none: all 12 systems
+parse into one of three known layouts, and the only two files yielding nothing yield nothing
+correctly. An adapter generator today would have no non-conforming file to be tested
+against — exactly the condition guardrail 1 forbids, generated code no deterministic check
+can validate. `STRUCTURE_NOT_FOUND` is the verdict that would trigger it, and it has never
+once fired on real data.
+
 ### A4 ingest monitoring (deterministic half)
 
 - `src/agents/ingest_monitor.py` — the manifest says *what* moved; this says whether anyone
@@ -147,7 +169,7 @@ named.
 
 ### Engineering
 
-- **737 tests**, all passing. Parser tests are
+- **749 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -172,8 +194,7 @@ Real code, but not yet load-bearing.
 - **A1 variance triage.** Blocked by design, not by capability: CLAUDE.md sets the build
   order as deterministic first, agent second, once the variance table shows where the long
   tail is.
-- **A3 schema adaptation.** No longer blocked — `src/payer/contract.py` is the thing it
-  would diff a new drop against — but not started.
+- **A3's generative half.** Blocked by evidence, not capability: see above.
 - **A4's agent half.** Blocked by build order, not capability: see above.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
 - **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access. No
