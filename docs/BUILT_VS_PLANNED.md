@@ -127,12 +127,43 @@ Both sides must name the same system. The hospital lake holds 12 systems; the pa
 list holds 7; **4 systems appear in both** — Mount Sinai, NYU Langone, NewYork-Presbyterian,
 Northwell. Only those 4 can be reconciled at all, regardless of row counts.
 
-| System | Cross-source run |
-|---|---|
-| Mount Sinai | Measured — 70.4% inside range, 5 carriers |
-| NYU Langone | Not yet run |
-| NewYork-Presbyterian | Not yet run |
-| Northwell | Not yet run |
+| System | Facilities | Comparisons | Inside range | Median range width | Carriers |
+|---|---:|---:|---:|---:|---:|
+| Mount Sinai | 8 | 5,609 | **70.4%** | 1.78× | 5 |
+| NewYork-Presbyterian | 3 | 5,450 | **14.8%** | 1.50× | 4 |
+| NYU Langone | — | — | run does not complete (see below) | — | — |
+| Northwell | — | — | not yet run | — | — |
+
+**Do not read 70.4% against 14.8% as a pricing finding.** The two are not measuring the
+same thing. "Inside range" asks whether an insurer's rate falls between the lowest and
+highest price the system's own hospitals published — so the answer depends on how wide that
+range is, which depends on how many facilities the system discloses. Mount Sinai publishes
+8 facilities spanning 1.78×; NYP publishes 3 spanning 1.50×. A narrower target is harder to
+hit regardless of what anyone negotiated. NYP's misses also split both ways (1,870 below,
+2,771 above), which is the signature of a narrow band rather than of systematically
+underpaying insurers.
+
+What the comparison can support is the weaker, more useful claim: **a single system's
+published "price" for one service is a spread, not a number** — 1.5× to 1.8× wide at the
+median, before any payer is named.
+
+**NYU Langone exhausts memory and cannot currently be run.** The payer-side aggregation
+reached ~58 GB of virtual memory on a 15.6 GB machine and took the terminal down with it
+(Windows Resource-Exhaustion events, 2026-09-09 19:44 and 19:51, 2026-09-10 07:52).
+
+The cause is `aggregate_rates` in `src/payer/curated.py`: it materialises the whole
+filtered payer table with `to_table()`, then takes a DISTINCT over all ten columns via
+`group_by(NEEDED_COLUMNS)`, so Arrow holds every distinct row's key material — including
+wide strings — in one hash table. Rows entering that call, counted without materialising:
+
+| System | Rows into `to_table()` | Outcome |
+|---|---:|---|
+| NYP | 5,165,289 | completes |
+| Mount Sinai | 8,762,681 | completes |
+| Northwell | 9,663,999 | untested, near the limit |
+| NYU Langone | 15,149,291 | exhausts memory |
+
+`mart_cli --shard` bounds the *hospital* side only, which is why it does not help here.
 
 ---
 
