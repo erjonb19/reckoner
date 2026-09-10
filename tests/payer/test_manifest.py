@@ -22,10 +22,13 @@ import pytest
 from payer.contract import CONTRACT_VERSION
 from payer.manifest import (
     MANIFEST_VERSION,
+    SNAPSHOT_GLOB,
     FileState,
     Manifest,
     build,
     diff,
+    latest_snapshot,
+    rotate,
 )
 
 REAL = Path(__file__).parent.parent / "fixtures" / "payer_parquet" / "Emblem_HIPHOSH00687.parquet"
@@ -196,3 +199,91 @@ class TestWhatItRefusesToClaim:
 
         assert "Emblem_NEVER_EXISTED" not in manifest.by_stem()
         assert "Emblem_PARSED_BUT_EMPTY" not in manifest.by_stem()
+
+
+class TestScheduledRotation:
+    """The snapshot the scheduled task takes.
+
+    A manifest only detects drift against a previous snapshot, and nothing was
+    taking one, so in practice there was rarely anything to compare against.
+    Rotation is what a daily task calls.
+    """
+
+    def test_the_first_rotation_reports_no_comparison_rather_than_no_change(self, lake, tmp_path):
+        """These are different statements and only one of them is reassuring."""
+        path, changes = rotate(build(lake), tmp_path / "snaps")
+
+        assert path.exists()
+        assert changes is None, "an empty diff here would claim a comparison that never happened"
+
+    def test_the_second_rotation_compares_against_the_first(self, lake, tmp_path):
+        snaps = tmp_path / "snaps"
+        rotate(build(lake), snaps)
+
+        _, changes = rotate(build(lake), snaps)
+
+        assert changes is not None
+        assert changes.unchanged
+
+    def test_a_change_between_rotations_is_named(self, lake, tmp_path):
+        snaps = tmp_path / "snaps"
+        rotate(build(lake), snaps)
+        pq.write_table(pq.read_table(REAL), lake / "Emblem_LATE0001.parquet")
+
+        _, changes = rotate(build(lake), snaps)
+
+        assert changes is not None
+        assert changes.added == ["Emblem_LATE0001"]
+
+    def test_two_rotations_in_the_same_second_do_not_overwrite_each_other(self, lake, tmp_path):
+        """The stamp is second-resolution; a scheduled run plus a manual one can collide."""
+        snaps = tmp_path / "snaps"
+        first, _ = rotate(build(lake), snaps)
+        second, _ = rotate(build(lake), snaps)
+
+        assert first != second
+        assert first.exists() and second.exists()
+
+    def test_old_snapshots_are_pruned_to_the_limit(self, lake, tmp_path):
+        snaps = tmp_path / "snaps"
+        for _ in range(5):
+            rotate(build(lake), snaps, keep=3)
+
+        assert len(list(snaps.glob(SNAPSHOT_GLOB))) == 3
+
+    def test_pruning_keeps_the_newest(self, lake, tmp_path):
+        snaps = tmp_path / "snaps"
+        for _ in range(4):
+            newest, _ = rotate(build(lake), snaps, keep=2)
+
+        assert latest_snapshot(snaps) == newest
+
+    def test_latest_is_none_on_an_empty_directory(self, tmp_path):
+        empty = tmp_path / "snaps"
+        empty.mkdir()
+
+        assert latest_snapshot(empty) is None
+
+    def test_names_sort_chronologically_even_within_one_second(self, lake, tmp_path):
+        """The bug this pins: an optional counter sorted "-01" before "Z.json".
+
+        latest_snapshot is a sort, so a naming scheme that does not sort in
+        write order silently compares against the wrong snapshot.
+        """
+        snaps = tmp_path / "snaps"
+        written = [rotate(build(lake), snaps)[0] for _ in range(3)]
+
+        assert [p.name for p in sorted(snaps.glob(SNAPSHOT_GLOB))] == [p.name for p in written]
+        assert latest_snapshot(snaps) == written[-1]
+
+    def test_rotate_never_returns_a_path_it_then_prunes(self, lake, tmp_path):
+        """The bug this pins: the counter searched for a free name.
+
+        Pruning frees old names, so it reused "-00" after deletion; that file
+        sorted oldest, was pruned on the same call, and the returned path did
+        not exist.
+        """
+        snaps = tmp_path / "snaps"
+        for _ in range(6):
+            written, _ = rotate(build(lake), snaps, keep=2)
+            assert written.exists(), f"{written.name} was pruned by the call that wrote it"

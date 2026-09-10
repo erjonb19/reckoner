@@ -124,6 +124,8 @@ reconciled at all.
   across the lake) and quarantines a file that would break the read, reporting it
   through `file_summary` rather than dropping it silently.
 
-  What remains is the manifest half: `python -m payer.manifest --payer-root ...
-  --against <snapshot>` names what moved between two runs, but nothing takes a
-  snapshot on a schedule, so there is rarely a previous one to compare against.
+  The manifest half is closed too: `scripts/snapshot_payer_manifest.ps1
+  -Register` installs a daily Scheduled Task that snapshots the boundary into
+  `data/manifests/` and logs what moved. It runs locally because the payer
+  Parquet is a gitignored 4.3 GB sibling directory no cloud runner can reach.
+  Remove it with `-Unregister`.
