@@ -86,8 +86,10 @@ Four agents, all doing work **inside** the pipeline. NL-to-SQL over the marts is
 section is the state, and it is the first thing to correct when it drifts.
 
 Landed: hospital ingest, the Medicare benchmark, the payer TiC reader, the
-comparability and variance layers, and the A2 matchers at payer and plan level.
-A1, A3 and A4 do not exist yet.
+comparability and variance layers, the A2 matchers at payer and plan level, and
+A4's deterministic half (`agents/ingest_monitor.py`, wired into the daily
+snapshot). A1 and A3 do not exist yet, and neither does A4's agent half -- that
+one is waiting on a long tail to measure rather than on capability.
 
 `docs/BUILT_VS_PLANNED.md` is the detailed built/scaffolded/not-started split and
 the place to check before claiming anything. `docs/adr/` holds the design decisions.

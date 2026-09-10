@@ -85,6 +85,27 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   (196 blank billing codes, all Emblem), 0 quarantined. 30 tests, built by damaging a real
   file one column at a time.
 
+### A4 ingest monitoring (deterministic half)
+
+- `src/agents/ingest_monitor.py` — the manifest says *what* moved; this says whether anyone
+  should care. Every verdict is a claim about consequence: a vanished file makes a figure
+  unreproducible, a moved vintage is structural by the standing rule, a schema change may
+  quarantine the file at the next load. The one **cosmetic** verdict — rewritten at the same
+  vintage, row count, schema and state — states the assumption it rests on in its own reason
+  string, and names `--hash` as the way to settle it outright.
+- Wired into the daily task, so a scheduled run now reports materiality, not just a diff.
+- 18 tests, built by moving a real payer file. Includes a fake assessor that lies, to prove
+  an unverifiable assessment is surfaced rather than dropped.
+
+**The agent half is deliberately not built**, and that is the build order rather than an
+omission: CLAUDE.md says deterministic first, agent second, *once the tables show where the
+long tail is*. Every diff observed so far reports no change at all, so there is no
+distribution of hard cases to measure — writing an LLM classifier now would mean inventing
+one and then scoring it against labels invented from the same imagination. What exists is
+the shape it slots into: an `Assessor` protocol, `validate_assessment` already rejecting
+invented files, fields and verdicts, and a review queue that is the eval set when it starts
+filling. Until then the queue is the honest answer.
+
 ### Payer file manifest
 
 - `src/payer/manifest.py` — a snapshot of the boundary: one row per file with vintage, row
@@ -126,7 +147,7 @@ named.
 
 ### Engineering
 
-- **719 tests**, all passing. Parser tests are
+- **737 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -153,7 +174,7 @@ Real code, but not yet load-bearing.
   tail is.
 - **A3 schema adaptation.** No longer blocked — `src/payer/contract.py` is the thing it
   would diff a new drop against — but not started.
-- **A4 ingest monitoring.**
+- **A4's agent half.** Blocked by build order, not capability: see above.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
 - **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access. No
   Fabric-specific code is written, deliberately (ADR 0002).
