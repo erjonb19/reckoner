@@ -54,6 +54,25 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 - **A committed runner** — `src/reconcile/mart_cli.py`. Before it, every real-data figure
   came from throwaway scripts and no number in any write-up could be re-derived.
 
+### Payer data contract
+
+- `src/payer/contract.py` — the boundary `mrf_pipeline` writes and `payer/curated.py` reads,
+  declared in code. Three kinds of rule: shape (`string` and `large_string` are one logical
+  type, so the 104/16 split across files is not a violation); domain (`billing_class` and
+  `rate_type` are checked against the **federal TiC enums**, not against what we happened to
+  observe); and the per-file invariants live code already assumed — one vintage per file,
+  because `_file_vintage` reads row one and calls it the file's, and a `payer` column that
+  agrees with the filename, because `discover_payer_files` derives carrier and network from
+  it. Both were true and neither was checked.
+- Severity follows consequence rather than tidiness. An empty `billing_code` is a **warning**:
+  the code is the join key and the hospital side has zero empty codes, so the row cannot
+  mis-join, only fail to match. An empty `billing_class` is an **error**, because that one is
+  mis-grouped silently.
+- Reports, never raises — rows are quarantined with a reason, per architecture rule 4.
+- **Measured against the real lake: 120 files, 59,501,435 rows, 0 errors, 49 warnings**
+  (196 blank billing codes, all Emblem). 20 tests, built by damaging a real file one column
+  at a time.
+
 ### A2 entity resolution
 
 - Payer-level and plan-level matchers — `src/agents/entity_resolution.py`, `plan_resolution.py`.
@@ -64,7 +83,7 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 
 ### Engineering
 
-- **651 tests** on `main`, all passing (653 with #16, which is open). Parser tests are
+- **683 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -89,11 +108,14 @@ Real code, but not yet load-bearing.
 - **A1 variance triage.** Blocked by design, not by capability: CLAUDE.md sets the build
   order as deterministic first, agent second, once the variance table shows where the long
   tail is.
-- **A3 schema adaptation.** Needs the bronze/silver data contract from ADR 0001 to diff
-  against — that contract does not exist yet.
+- **A3 schema adaptation.** No longer blocked — `src/payer/contract.py` is the thing it
+  would diff a new drop against — but not started.
 - **A4 ingest monitoring.**
-- **Payer data contract and file manifest.** `src/payer/contract.py`, `manifest.py` —
-  proposed in ADR 0001, not written.
+- **Payer file manifest.** `src/payer/manifest.py` — proposed in ADR 0001, not written.
+  `file_summary()` already reports in-flight and superseded files, so what is missing is the
+  third case: a file parsed that produced no target rows leaves no parquet, so "absent"
+  stays ambiguous between "not parsed" and "parsed, nothing matched". 182 of ~280 Emblem
+  files are in exactly that state.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
 - **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access. No
   Fabric-specific code is written, deliberately (ADR 0002).

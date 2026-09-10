@@ -115,8 +115,11 @@ reconciled at all.
 
 - Fabric trial activation depends on tenant access. If unresolved, do not write
   Fabric-specific code yet. The seam that keeps this cheap is ADR 0002.
-- **No data contract at the payer boundary.** `mrf_pipeline` writes the Parquet
-  that `src/payer/curated.py` reads, and that interface is undeclared. A column
-  the parser had been writing for months (`last_updated_on`) went unused while
-  the reader fell back to a hardcoded date map covering 10% of the files. A3
-  (schema adaptation) is blocked on this contract existing.
+- **The payer contract is declared but not enforced.** `src/payer/contract.py`
+  states the boundary `mrf_pipeline` writes and `src/payer/curated.py` reads —
+  shape, the federal TiC enums, and the per-file invariants live code assumes.
+  Run it with `python -m payer.contract --payer-root ../mrf_pipeline/payer_parquet`;
+  it is clean on all 120 files bar 49 warnings for blank billing codes. What is
+  missing is a gate: nothing calls it before a load, so a drift is found only when
+  someone runs it. There is also no file manifest yet, so "no parquet" is still
+  ambiguous between "not parsed" and "parsed, nothing matched".
