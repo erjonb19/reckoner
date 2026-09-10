@@ -191,7 +191,7 @@ named.
 
 ### Engineering
 
-- **781 tests**, all passing. Parser tests are
+- **789 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -207,6 +207,19 @@ Real code, but not yet load-bearing.
   hospital rows and 56,784,415 payer rows identical with the seam and without it. Scaffolded
   rather than built because the ADLS path has never run against a real account — there
   isn't one yet.
+- `src/storage/publish.py` — the "cloud load" half of ADR 0001's "local parse then cloud
+  load", which nothing implemented before: the seam could only read. Streams via
+  `write_dataset` so an 89M-row system never materialises, and **verifies by reading back**
+  rather than trusting the write.
+- **Publishing repairs the #13 partition corruption rather than copying it.** The local lake
+  still holds paths written before that fix, where a US-format date was sliced mid-field and
+  its slashes read as directory separators. Rochester Regional carries both `vintage=2026-04`
+  and `vintage=4/1/202` for the same month; published, they collapse to one clean partition
+  with all 841,244 rows intact. Copying bytes would have carried the defect into the
+  authoritative store.
+- Proven locally end to end on two real systems — Crouse Health (216,206 rows) and Rochester
+  Regional (841,244) — into one shared tree. The cloud run is the same code with a different
+  filesystem.
 - **Provenance.** `src/reconcile/provenance.py` attaches vintage spans and caveats to
   reported figures. Wired into the mart; not yet surfaced in every artifact.
 - **Discovery at scale.** The crawler works, but 5 of 8 probed health systems return HTTP
