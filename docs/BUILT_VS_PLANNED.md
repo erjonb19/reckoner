@@ -133,29 +133,53 @@ Northwell. Only those 4 can be reconciled at all, regardless of row counts.
 | System | Facilities | Comparisons | Inside range | Median range width | Carriers |
 |---|---:|---:|---:|---:|---:|
 | Mount Sinai | 8 | 5,609 | **70.4%** | 1.78× | 5 |
+| Northwell | 24 | 6,897 | **50.9%** | 2.14× | 4 |
 | NYU Langone | 4 | 20,438 | **16.1%** | 1.18× | 5 |
 | NewYork-Presbyterian | 3 | 5,450 | **14.8%** | 1.50× | 4 |
-| Northwell | — | — | running | — | — |
+
+All four reconcilable systems are now measured.
 
 **Mount Sinai is the outlier, and 70.4% should not be quoted as the project's headline.**
 Two of the three systems measured sit near 15%. Any claim of the form "the two disclosures
 agree about 70% of the time" rests on the one system that behaves least like the others.
 
-**My first explanation for the gap does not survive the third data point.** When only Mount
-Sinai and NYP had run, the obvious reading was mechanical: "inside range" asks whether an
-insurer's rate falls between the cheapest and dearest price a system's own hospitals
-published, so a narrower published range is a smaller target and should produce a lower
-inside-share. That predicts the shares to order with the widths. They do not:
+**Two explanations were proposed and both are dead.** They are recorded because the
+negative results are the durable part; the mechanism is still unknown.
 
-- NYU is the **narrowest** range (1.18×) yet scores *above* NYP (1.50×).
-- Mount Sinai is only modestly wider than NYP (1.78× vs 1.50×) yet scores nearly **five
-  times** higher.
+*Range width.* "Inside range" asks whether an insurer's rate falls between the cheapest and
+dearest price a system's hospitals published, so a narrower range is a smaller target and
+should score lower. The widths do not order with the shares: NYU is the **narrowest**
+(1.18×) yet beats NYP (1.50×), and Northwell is the **widest** (2.14×) yet sits 20 points
+below Mount Sinai (1.78×).
 
-Facility count does order correctly — 8 → 70.4%, 4 → 16.1%, 3 → 14.8% — and more facilities
-plausibly means a range built from more observations rather than a wider one. But that is
-three points and several things vary between these systems at once, so it is a hypothesis
-to test, not a mechanism to report. **What is established is the negative result: range
-width does not explain the spread, and the reason Mount Sinai differs is not yet known.**
+*Facility count.* This survived three systems — 8, 4, 3 against 70.4%, 16.1%, 14.8% — and
+Northwell killed it. Northwell discloses **24 facilities, three times Mount Sinai's eight,
+and scores 20 points lower.**
+
+What the four points do show is a **split, not a gradient**: two systems land at 51–70% and
+two at 15–16%, with nothing in between. The split lines up with both disclosure breadth and
+range width, but those two are confounded — more facilities tends to mean a wider range —
+and neither orders the systems *within* the groups. So something separates
+{Mount Sinai, Northwell} from {NYU, NYP} and it is not any single variable measured here.
+**Do not quote any of these four as "the" agreement rate.**
+
+**Northwell is the clearest evidence that volume is not coverage.** It publishes 89M rate
+lines — more than the other three systems combined, and 6.6× NYU's — and yields the fewest
+comparisons per row of data by a wide margin:
+
+| System | Hospital rows | Comparisons | Comparisons per 1M rows |
+|---|---:|---:|---:|
+| Mount Sinai | 1.83M | 5,609 | 3,065 |
+| NewYork-Presbyterian | 2.79M | 5,450 | 1,946 |
+| NYU Langone | 13.46M | 20,438 | 1,514 |
+| **Northwell** | **88.96M** | **6,897** | **77** |
+
+That is a **20–40× lower yield**, and it is the `billing_class` gap made concrete: Northwell
+states it on 1.6% of rows, and a hospital rate with no billing class cannot be matched to an
+insurer's without assuming a facility rate is a professional one. The single largest
+publisher in the state is very nearly unreconcilable, for a reason that has nothing to do
+with how much it publishes. One shard in the run showed it plainly: 79,024 payer rows met
+760 hospital rows and produced zero comparisons.
 
 Two further observations that hold across systems:
 
@@ -180,8 +204,13 @@ leaving it:
 |---|---:|---|---|
 | NYP | 5,165,289 | completes | completes, ~2 min |
 | Mount Sinai | 8,762,681 | completes | — |
-| Northwell | 9,663,999 | untested | running |
-| NYU Langone | 15,149,291 | **exhausted memory** | completes in 15 min, peak ~9 GB |
+| Northwell | 9,663,999 | untested | completes, ~5 min |
+| NYU Langone | 15,149,291 | **exhausted memory** | completes, ~15 min |
+
+Peak resident memory across the sharded NYU and Northwell runs was **9,808 MB** on a
+15,600 MB machine — bounded and oscillating per shard, against the unbounded climb to 58 GB
+before. Still 63% of the machine at peak, so the headroom is real but not generous; a system
+materially larger than NYU would want a finer shard than one character.
 
 `--shard` had also never worked: it called `Expression.starts_with`, which pyarrow does not
 define, so the flag raised `AttributeError` whenever it was used. It shipped that way in #14
