@@ -35,6 +35,7 @@ import pyarrow.dataset as ds
 from agents.entity_resolution import RuleBasedMatcher, canonical_key
 from hospital.facility import ambiguous_locations, resolve_facility
 from reconcile.comparability import ComparableRate
+from storage import Location
 
 #: Columns the comparison needs. Reading only these keeps a 13 million row scan
 #: to a few hundred MB rather than several GB.
@@ -86,12 +87,25 @@ class CuratedFilter:
         return combined
 
 
-def open_curated(root: Path) -> ds.Dataset:
-    """Open the curated hospital_rates dataset."""
-    path = root / "curated" / "hospital_rates" if (root / "curated").exists() else root
-    if not path.exists():
-        raise FileNotFoundError(f"no curated dataset at {path}")
-    return ds.dataset(path, partitioning="hive")
+def open_curated(root: Path, *, location: Location | None = None) -> ds.Dataset:
+    """Open the curated hospital_rates dataset, locally or wherever it lives.
+
+    ``location`` is the ADR 0002 seam. Absent, this behaves exactly as it always
+    has and reads ``root`` from the local filesystem; present, the same
+    ``ds.dataset`` call reads through whatever filesystem it carries. There is
+    deliberately no second implementation -- see :mod:`storage`.
+    """
+    if location is None:
+        path = root / "curated" / "hospital_rates" if (root / "curated").exists() else root
+        if not path.exists():
+            raise FileNotFoundError(f"no curated dataset at {path}")
+        return ds.dataset(path, partitioning="hive")
+
+    nested = location.child("curated", "hospital_rates")
+    target = nested if nested.exists() else location
+    if not target.exists():
+        raise FileNotFoundError(f"no curated dataset at {target.describe()}")
+    return ds.dataset(target.root, filesystem=target.filesystem, partitioning="hive")
 
 
 def aggregate_rates(

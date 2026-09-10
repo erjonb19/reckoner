@@ -191,7 +191,7 @@ named.
 
 ### Engineering
 
-- **764 tests**, all passing. Parser tests are
+- **781 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -201,8 +201,12 @@ named.
 
 Real code, but not yet load-bearing.
 
-- **Storage seam for the cloud.** Designed in ADR 0002, not yet implemented. Every read
-  already funnels through two functions, which is what makes it cheap.
+- **Storage seam for the cloud.** `src/storage/` — implements ADR 0002. `resolve()` returns
+  a root and a `pyarrow.fs` filesystem, defaulting to local with no configuration; both
+  readers take an optional `Location`. Verified transparent on the real lake: 156,484,277
+  hospital rows and 56,784,415 payer rows identical with the seam and without it. Scaffolded
+  rather than built because the ADLS path has never run against a real account — there
+  isn't one yet.
 - **Provenance.** `src/reconcile/provenance.py` attaches vintage spans and caveats to
   reported figures. Wired into the mart; not yet surfaced in every artifact.
 - **Discovery at scale.** The crawler works, but 5 of 8 probed health systems return HTTP
@@ -220,8 +224,11 @@ Real code, but not yet load-bearing.
 - **A3's generative half.** Blocked by evidence, not capability: see above.
 - **A4's agent half.** Blocked by build order, not capability: see above.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
-- **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access. No
-  Fabric-specific code is written, deliberately (ADR 0002).
+- **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access, which is
+  still not resolved. No Fabric-specific code is written, deliberately. The seam above is
+  the thing that keeps that decision cheap — and note it targets **ADLS Gen2**, not Fabric:
+  architecture rule 2 makes ADLS authoritative and Fabric a consumer of it via OneLake
+  shortcuts, so a Fabric workspace on its own is not somewhere this project may write.
 - **README.** Absent.
 
 ---
