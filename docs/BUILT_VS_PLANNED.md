@@ -85,6 +85,28 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   (196 blank billing codes, all Emblem), 0 quarantined. 30 tests, built by damaging a real
   file one column at a time.
 
+### A1 variance triage (deterministic half)
+
+- `src/agents/variance_triage.py` — the residual surviving every deterministic explanation
+  is unworkable as rows: 2,070 on one shard of one system. Grouped by service and carrier it
+  is **718 ranked items**, and the pairs mart reports them.
+- **This is the only agent with a real long tail.** A3 has no non-conforming file and A4 no
+  non-empty diff; A1's residual is 1.8% of 113,718 pairs and genuinely unexplained.
+- **The grouping deliberately does not average.** Only 28% of repeated services hold a ratio
+  spread under 10%, so the repeats are real plan-level variation rather than duplicates.
+  Spread is reported and drives the class: tight across plans is one contract-level fact,
+  wide is a question about plans, single is the weakest evidence there is.
+- **92% of the queue is one carrier**, reported as `largest_carrier_share`, because that
+  changes what the queue is — one relationship to investigate rather than hundreds of
+  findings.
+- Ranking is symmetric in direction (0.5× ranks with 2×) and caps the evidence weight, so
+  the fan-out cannot buy priority through repetition.
+- 15 tests.
+
+Two hypotheses about the residual were tested and **both failed**, which is why neither is a
+rule: ratios do not cluster near integers (8.5% within 5% of one, so not a units multiple),
+and the codes do not concentrate in a few families (top 6 of 90 cover 21.6%).
+
 ### A3 schema adaptation (deterministic half)
 
 - `src/hospital/conformance.py` — when a file yields no curated rows, say *which kind of
@@ -169,7 +191,7 @@ named.
 
 ### Engineering
 
-- **749 tests**, all passing. Parser tests are
+- **764 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -191,9 +213,10 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
-- **A1 variance triage.** Blocked by design, not by capability: CLAUDE.md sets the build
-  order as deterministic first, agent second, once the variance table shows where the long
-  tail is.
+- **A1's LLM triager.** The queue now exists and has real volume; what is missing is the
+  model that proposes *why* an item disagrees, and the labels to score it against. Those
+  labels come from working the queue, so this is the one agent whose block is a matter of
+  effort rather than of evidence.
 - **A3's generative half.** Blocked by evidence, not capability: see above.
 - **A4's agent half.** Blocked by build order, not capability: see above.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
@@ -320,6 +343,14 @@ because `mart_cli` had no tests. Both are fixed in #18, and a sharded run is now
 against an unsharded one — on NYP they agree to full precision on every field.
 
 ---
+
+## Corrections
+
+- `mart_cli --mode pairs` produced **zero pairs from #14 until #26**. It joins on the
+  provider; the hospital side names a facility and the payer side resolves only to a system,
+  and the runner passed no map between them, so every hospital row was excluded as having no
+  counterpart. The mode whose docstring calls it "what produces the refusal profile"
+  produced nothing at all, and nothing noticed because no test covered it against real data.
 
 ## Known-stale claims corrected on 2026-09-09
 
