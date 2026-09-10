@@ -116,10 +116,13 @@ Numbers reproduce via `python -m reconcile.mart_cli --hospital <H> --system <S>
 - **Volume is not coverage.** ~46% of EmblemHealth's rows carry a rate of exactly `$0`,
   refused by name as `ZERO_RATE`. Of ~280 Emblem plan files, 182 contain no target-system
   provider at all.
-- **Cross-source agreement, Mount Sinai:** of 5,690 comparisons against 5 carriers, 5,609
-  were comparable and **70.4% of insurer rates fell inside the range the system's own
-  hospitals published**. Median published range is 1.78× wide, which is itself the point —
-  a "price" for one service at one system is a spread, not a number.
+- **Cross-source agreement varies far more by system than by payer**, and no single figure
+  describes it: Mount Sinai 70.4% of insurer rates inside its hospitals' published range,
+  NYU Langone 16.1%, NYP 14.8%. Quoting the 70.4% alone would be quoting the outlier — see
+  the table below before using any of these numbers.
+- **A published "price" is a spread, not a number.** The median range for one service at one
+  system runs 1.18× to 1.78× wide before any payer is named. This one holds across every
+  system measured.
 
 ### Cross-source coverage is narrower than the totals suggest
 
@@ -130,40 +133,89 @@ Northwell. Only those 4 can be reconciled at all, regardless of row counts.
 | System | Facilities | Comparisons | Inside range | Median range width | Carriers |
 |---|---:|---:|---:|---:|---:|
 | Mount Sinai | 8 | 5,609 | **70.4%** | 1.78× | 5 |
+| Northwell | 24 | 6,897 | **50.9%** | 2.14× | 4 |
+| NYU Langone | 4 | 20,438 | **16.1%** | 1.18× | 5 |
 | NewYork-Presbyterian | 3 | 5,450 | **14.8%** | 1.50× | 4 |
-| NYU Langone | — | — | run does not complete (see below) | — | — |
-| Northwell | — | — | not yet run | — | — |
 
-**Do not read 70.4% against 14.8% as a pricing finding.** The two are not measuring the
-same thing. "Inside range" asks whether an insurer's rate falls between the lowest and
-highest price the system's own hospitals published — so the answer depends on how wide that
-range is, which depends on how many facilities the system discloses. Mount Sinai publishes
-8 facilities spanning 1.78×; NYP publishes 3 spanning 1.50×. A narrower target is harder to
-hit regardless of what anyone negotiated. NYP's misses also split both ways (1,870 below,
-2,771 above), which is the signature of a narrow band rather than of systematically
-underpaying insurers.
+All four reconcilable systems are now measured.
 
-What the comparison can support is the weaker, more useful claim: **a single system's
-published "price" for one service is a spread, not a number** — 1.5× to 1.8× wide at the
-median, before any payer is named.
+**Mount Sinai is the outlier, and 70.4% should not be quoted as the project's headline.**
+Two of the three systems measured sit near 15%. Any claim of the form "the two disclosures
+agree about 70% of the time" rests on the one system that behaves least like the others.
 
-**NYU Langone exhausts memory and cannot currently be run.** The payer-side aggregation
-reached ~58 GB of virtual memory on a 15.6 GB machine and took the terminal down with it
-(Windows Resource-Exhaustion events, 2026-09-09 19:44 and 19:51, 2026-09-10 07:52).
+**Two explanations were proposed and both are dead.** They are recorded because the
+negative results are the durable part; the mechanism is still unknown.
 
-The cause is `aggregate_rates` in `src/payer/curated.py`: it materialises the whole
-filtered payer table with `to_table()`, then takes a DISTINCT over all ten columns via
-`group_by(NEEDED_COLUMNS)`, so Arrow holds every distinct row's key material — including
-wide strings — in one hash table. Rows entering that call, counted without materialising:
+*Range width.* "Inside range" asks whether an insurer's rate falls between the cheapest and
+dearest price a system's hospitals published, so a narrower range is a smaller target and
+should score lower. The widths do not order with the shares: NYU is the **narrowest**
+(1.18×) yet beats NYP (1.50×), and Northwell is the **widest** (2.14×) yet sits 20 points
+below Mount Sinai (1.78×).
 
-| System | Rows into `to_table()` | Outcome |
-|---|---:|---|
-| NYP | 5,165,289 | completes |
-| Mount Sinai | 8,762,681 | completes |
-| Northwell | 9,663,999 | untested, near the limit |
-| NYU Langone | 15,149,291 | exhausts memory |
+*Facility count.* This survived three systems — 8, 4, 3 against 70.4%, 16.1%, 14.8% — and
+Northwell killed it. Northwell discloses **24 facilities, three times Mount Sinai's eight,
+and scores 20 points lower.**
 
-`mart_cli --shard` bounds the *hospital* side only, which is why it does not help here.
+What the four points do show is a **split, not a gradient**: two systems land at 51–70% and
+two at 15–16%, with nothing in between. The split lines up with both disclosure breadth and
+range width, but those two are confounded — more facilities tends to mean a wider range —
+and neither orders the systems *within* the groups. So something separates
+{Mount Sinai, Northwell} from {NYU, NYP} and it is not any single variable measured here.
+**Do not quote any of these four as "the" agreement rate.**
+
+**Northwell is the clearest evidence that volume is not coverage.** It publishes 89M rate
+lines — more than the other three systems combined, and 6.6× NYU's — and yields the fewest
+comparisons per row of data by a wide margin:
+
+| System | Hospital rows | Comparisons | Comparisons per 1M rows |
+|---|---:|---:|---:|
+| Mount Sinai | 1.83M | 5,609 | 3,065 |
+| NewYork-Presbyterian | 2.79M | 5,450 | 1,946 |
+| NYU Langone | 13.46M | 20,438 | 1,514 |
+| **Northwell** | **88.96M** | **6,897** | **77** |
+
+That is a **20–40× lower yield**, and it is the `billing_class` gap made concrete: Northwell
+states it on 1.6% of rows, and a hospital rate with no billing class cannot be matched to an
+insurer's without assuming a facility rate is a professional one. The single largest
+publisher in the state is very nearly unreconcilable, for a reason that has nothing to do
+with how much it publishes. One shard in the run showed it plainly: 79,024 payer rows met
+760 hospital rows and produced zero comparisons.
+
+Two further observations that hold across systems:
+
+- **A published "price" is a spread, not a number** — 1.18× to 1.78× wide at the median for
+  one service at one system, before any payer is named.
+- **Misses skew low.** NYU's insurer rates fall below the hospital range about 1.5× as often
+  as above (10,166 vs 6,991); NYP's split 1,870 below to 2,771 above. Neither is the even
+  split a pure narrow-band artifact would give.
+
+NYU's four facilities carry a `|` in their published names (`NYU Langone|Tisch Hospital`).
+That is how the value arrives in the source and it separates four genuinely distinct
+hospitals, so it is cosmetic rather than a resolution failure.
+
+**NYU ran only after the payer side could be sharded.** Before #18 it reached ~58 GB of
+virtual memory on a 15.6 GB machine and took the terminal down with it three times (Windows
+Resource-Exhaustion events, 2026-09-09 19:44 and 19:51, 2026-09-10 07:52). The cause was
+`aggregate_rates` materialising the whole filtered payer table and then taking a DISTINCT
+over all ten columns, so peak memory scaled with rows entering the call rather than results
+leaving it:
+
+| System | Rows into `to_table()` | Before #18 | With `--all-shards` |
+|---|---:|---|---|
+| NYP | 5,165,289 | completes | completes, ~2 min |
+| Mount Sinai | 8,762,681 | completes | — |
+| Northwell | 9,663,999 | untested | completes, ~5 min |
+| NYU Langone | 15,149,291 | **exhausted memory** | completes, ~15 min |
+
+Peak resident memory across the sharded NYU and Northwell runs was **9,808 MB** on a
+15,600 MB machine — bounded and oscillating per shard, against the unbounded climb to 58 GB
+before. Still 63% of the machine at peak, so the headroom is real but not generous; a system
+materially larger than NYU would want a finer shard than one character.
+
+`--shard` had also never worked: it called `Expression.starts_with`, which pyarrow does not
+define, so the flag raised `AttributeError` whenever it was used. It shipped that way in #14
+because `mart_cli` had no tests. Both are fixed in #18, and a sharded run is now checked
+against an unsharded one — on NYP they agree to full precision on every field.
 
 ---
 
