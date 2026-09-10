@@ -22,6 +22,7 @@ from pathlib import Path
 import httpx
 
 from hospital.codeset import CodeSet
+from hospital.conformance import Observation, diagnose
 from hospital.curate import CurateContext, Reject, curate
 from hospital.landing import (
     RATE_SCHEMA,
@@ -206,7 +207,20 @@ def _ingest_attempt(
         elif audit.rows_out == 0:
             landing.discard(batch_id)
             audit.status = "empty"
-            audit.error = "no curated rows produced"
+            # "no curated rows produced" covers a file we could not read and a
+            # file with nothing in it to read, which need opposite responses.
+            audit.error = diagnose(
+                Observation(
+                    layout=parser.meta.layout,
+                    structure_found=parser.structure_found,
+                    items_seen=parser.items_seen,
+                    rates_yielded=audit.rows_seen,
+                    rows_kept=audit.rows_out,
+                    rows_rejected=audit.rows_rejected,
+                    truncated=parser.truncated,
+                    bytes_read=audit.bytes_read,
+                )
+            ).describe()
         else:
             landing.promote(batch_id, slugify(hospital), audit.file_vintage, url)
             audit.status = "ok"

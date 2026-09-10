@@ -88,8 +88,13 @@ section is the state, and it is the first thing to correct when it drifts.
 Landed: hospital ingest, the Medicare benchmark, the payer TiC reader, the
 comparability and variance layers, the A2 matchers at payer and plan level, and
 A4's deterministic half (`agents/ingest_monitor.py`, wired into the daily
-snapshot). A1 and A3 do not exist yet, and neither does A4's agent half -- that
-one is waiting on a long tail to measure rather than on capability.
+snapshot) and A3's (`hospital/conformance.py`, wired into the ingest). A1 does
+not exist. Neither generative half is built, and in both cases the block is
+evidence rather than capability: every manifest diff so far reports no change,
+and no hospital file in the corpus is non-conforming. Note that a file yielding
+zero rows is usually correct -- Mount Sinai Brooklyn publishes 217,957 charge
+items with no payer rates at all -- so `no_negotiated_rates` is the expected
+verdict there, not a defect.
 
 `docs/BUILT_VS_PLANNED.md` is the detailed built/scaffolded/not-started split and
 the place to check before claiming anything. `docs/adr/` holds the design decisions.
