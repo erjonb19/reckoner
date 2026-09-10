@@ -46,6 +46,7 @@ from pathlib import Path
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
 
+from agents.variance_triage import triage
 from payer.curated import (
     PayerFilter,
     discover_payer_files,
@@ -143,6 +144,10 @@ def run_pairs(
         "excluded_by_reason": dict(sorted(mart.excluded.items(), key=lambda kv: -kv[1])),
         "explanation": dict(sorted(mart.by_explanation().items(), key=lambda kv: -kv[1])),
         "systematic_offsets": [o.describe() for o in offsets],
+        # A1: the residual is what survived every deterministic explanation, and
+        # as rows it is unworkable -- 2,070 on one shard. Grouped by service and
+        # carrier it is a few hundred ranked items.
+        "triage": triage(mart.rows).summary(),
         "caveats": mart.provenance.caveats,
     }
 
@@ -242,15 +247,27 @@ def main(argv: list[str] | None = None) -> int:
     payer_rows = hospital_rows = 0
 
     for shard in shards:
+        hospital_side = load_hospital_side(args.root, args.hospital, code_types, shard)
+
+        # The two sources do not name a provider at the same grain: the hospital
+        # MRF names a facility, the payer file resolves only to a system. `pairs`
+        # joins on the provider, so without a map from system to facilities every
+        # hospital row is excluded as having no counterpart -- which is exactly
+        # what the runner did, silently, from #14 until now.
+        #
+        # `range` needs no map because it compares against the system's range
+        # rather than joining per facility, and passing one would fan each payer
+        # rate across facilities and inflate its counts.
+        facility_map = (
+            {system: sorted({r.hospital for r in hospital_side})} if args.mode == "pairs" else None
+        )
+
         payer_table = aggregate_payer(
             open_payer_dataset(files),
             PayerFilter(systems=(system,), code_types=code_types, code_prefix=shard),
         )
-        payer_side = payer_to_rates(payer_table, files, facilities=None)
-        # Freed before the hospital side is built: holding both peaks is what
-        # this whole mechanism exists to avoid.
+        payer_side = payer_to_rates(payer_table, files, facilities=facility_map)
         del payer_table
-        hospital_side = load_hospital_side(args.root, args.hospital, code_types, shard)
         payer_rows += len(payer_side)
         hospital_rows += len(hospital_side)
         facility_set.update(r.hospital for r in hospital_side)
