@@ -103,4 +103,18 @@ if ($code -ne 0) {
     Add-Content -Path $log -Encoding utf8 -Value "snapshot failed with exit $code"
     exit $code
 }
+
+# A4: the manifest says what moved; this says whether it matters. Same reasoning
+# on the exit code -- a monitor that fails the task on every new payer month
+# gets muted, and a muted monitor is indistinguishable from none.
+Add-Content -Path $log -Encoding utf8 -Value "--- materiality ---"
+$verdict = & $python -m agents.ingest_monitor --snapshot-dir $SnapshotDir
+$verdictCode = $LASTEXITCODE
+$verdict | Add-Content -Path $log -Encoding utf8
+$verdict | Write-Output
+
+if ($verdictCode -ne 0) {
+    Add-Content -Path $log -Encoding utf8 -Value "monitor failed with exit $verdictCode"
+    exit $verdictCode
+}
 exit 0
