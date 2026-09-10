@@ -58,6 +58,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 
 from agents.entity_resolution import CANONICAL_PAYERS, PayerCandidate, RuleBasedMatcher
 from reconcile.comparability import ComparableRate
@@ -92,11 +93,18 @@ DUPLICATE_PAYER_FILES = frozenset({"Cigna_PathwellOAP", "Cigna_PathwellPPO"})
 #: coincidence rather than the same service.
 UNTRANSLATABLE_CODE_TYPES = frozenset({"LOCAL", "CSTM-ALL"})
 
-#: Reporting month of each payer file, from the source URL in the upstream
-#: ``config.PAYER_FILES``. It is declared rather than derived because the
-#: Parquet has no date column and the file's mtime is the parse time, not the
-#: vintage. A stem with no entry gets ``None``, which the comparability layer
-#: treats as an unknown vintage -- a caveat, not a refusal.
+#: Reporting month of each payer file, kept as an override for files whose own
+#: header is missing or wrong. It used to be the only source, because the early
+#: Parquet carried no date column and a file's mtime is the parse time rather
+#: than the vintage. The parser now writes the source's ``last_updated_on``
+#: into every row, so :func:`_file_vintage` reads the vintage off the data and
+#: this map only fills gaps: across the 120 files on hand it agrees with the
+#: header everywhere it has an opinion, and covers 12 of them.
+#:
+#: Keeping the map matters because a hardcoded list silently stops describing
+#: the lake as the lake grows -- Empire, Emblem and UHC were all landing with
+#: ``None`` here, which is exactly the carriers a vintage-aware rule then
+#: cannot reason about.
 PAYER_SOURCE_VINTAGES: dict[str, str] = {
     "Aetna_NY": "2026-06-05",
     "AetnaALIC_Hmo": "2026-08-05",
@@ -177,6 +185,32 @@ class PayerFile:
         return self.stem in DUPLICATE_PAYER_FILES
 
 
+def _file_vintage(path: Path) -> str | None:
+    """The ``last_updated_on`` the payer stamped on this file, if it has one.
+
+    Read from the first row group rather than the whole column: the value is
+    file-level metadata the parser copies onto every row, so row one carries it
+    and a 6.6 million row scan would answer the same question. Verified
+    single-valued across all 120 files on hand.
+
+    Returns ``None`` for a file predating the column, or one whose header the
+    payer left empty -- both fall back to :data:`PAYER_SOURCE_VINTAGES`.
+    """
+    try:
+        pf = pq.ParquetFile(path)
+        if "last_updated_on" not in pf.schema_arrow.names:
+            return None
+        if pf.num_row_groups == 0:
+            return None
+        column = pf.read_row_group(0, columns=["last_updated_on"]).column(0)
+        if column.length() == 0:
+            return None
+        value = column[0].as_py()
+    except (OSError, pa.ArrowInvalid):
+        return None
+    return value or None
+
+
 def discover_payer_files(
     root: Path,
     *,
@@ -202,7 +236,7 @@ def discover_payer_files(
                 stem=stem,
                 carrier=carrier,
                 network=network,
-                vintage=PAYER_SOURCE_VINTAGES.get(stem),
+                vintage=PAYER_SOURCE_VINTAGES.get(stem) or _file_vintage(path),
             )
         )
     if not include_duplicates:
