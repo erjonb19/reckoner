@@ -274,6 +274,15 @@ class PayerFilter:
 
     systems: tuple[str, ...] = ()
     codes: tuple[str, ...] = ()
+    #: Keep only codes beginning with this, so a run can be sharded.
+    #:
+    #: This is the memory bound, not a narrowing of the question.
+    #: :func:`aggregate_rates` materialises the whole filtered table and then
+    #: takes a distinct over every column, so its peak cost scales with rows
+    #: entering it, not rows coming out: NYU Langone sends 15.1M and reached
+    #: 58 GB of virtual memory. Sharded totals equal unsharded ones because
+    #: every join key contains the code, so no pair straddles a shard.
+    code_prefix: str = ""
     code_types: tuple[str, ...] = ()
     #: Drop payer-proprietary code systems that cannot mean anything to a
     #: hospital file. On by default: these are not a refusal to measure, they
@@ -295,6 +304,8 @@ class PayerFilter:
             terms.append(_touches_system(list(self.systems)))
         if self.codes:
             terms.append(ds.field("billing_code").isin(list(self.codes)))
+        if self.code_prefix:
+            terms.append(pc.starts_with(ds.field("billing_code"), self.code_prefix))
         if self.code_types:
             terms.append(ds.field("code_type").isin(list(self.code_types)))
         if self.drop_untranslatable_codes:

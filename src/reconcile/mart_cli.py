@@ -18,6 +18,20 @@ Two modes, and the difference is the grain the payer data can support:
   and should not be read as findings.
 
     python -m reconcile.mart_cli --hospital "Mount Sinai" --payer-root ../mrf_pipeline/payer_parquet
+
+**Large systems must be sharded.** The payer aggregation materialises the whole
+filtered table and then takes a distinct over every column, so its peak memory
+scales with rows going in rather than results coming out. NYU Langone sends 15.1M
+rows into that call, reached 58 GB of virtual memory on a 15.6 GB machine, and
+took the terminal down with it. ``--all-shards`` runs the sweep a shard at a time
+and combines, which is exact because every join key contains the code:
+
+    python -m reconcile.mart_cli --hospital "NYU Langone Health" \\
+        --system "NYU Langone" --payer-root ../mrf_pipeline/payer_parquet --all-shards
+
+It costs one dataset scan per shard, so it is slower than a single pass and worth
+reaching for only when a single pass will not fit. ``range`` mode only: a variance
+mart carries cross-row state and its counts do not combine across shards.
 """
 
 from __future__ import annotations
@@ -29,6 +43,7 @@ import statistics
 import sys
 from pathlib import Path
 
+import pyarrow.compute as pc
 import pyarrow.dataset as ds
 
 from payer.curated import (
@@ -45,7 +60,7 @@ from payer.curated import (
 from reconcile.comparability import ComparableRate
 from reconcile.curated import NEEDED_COLUMNS, open_curated
 from reconcile.curated import to_comparable_rates as hosp_to_rates
-from reconcile.system_range import compare_to_system_range, summarise
+from reconcile.system_range import RangeComparison, compare_to_system_range, summarise
 from reconcile.variance import (
     apply_systematic_offsets,
     cross_source_variance,
@@ -55,6 +70,11 @@ from reconcile.variance import (
 #: APC has no payer counterpart, and a payer's LOCAL code has no meaning outside
 #: its own file.
 SHARED_CODE_TYPES = ("HCPCS", "MS-DRG", "CPT")
+
+#: Leading characters a billing code takes: CPT and MS-DRG are numeric, HCPCS is
+#: a letter followed by four digits. Sharding on this character is what keeps a
+#: large system inside memory, on both sides of the join.
+SHARDS = tuple("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 _HOSPITAL_KEYS = [
     "hospital",
@@ -84,7 +104,7 @@ def load_hospital_side(
     dataset = open_curated(root)
     where = (ds.field("hospital") == hospital) & (ds.field("code_type").isin(list(code_types)))
     if shard:
-        where = where & ds.field("code").cast("string").starts_with(shard)
+        where = where & pc.starts_with(ds.field("code"), shard)
     scanned = dataset.to_table(columns=list(NEEDED_COLUMNS), filter=where)
     if scanned.num_rows == 0:
         return []
@@ -127,10 +147,17 @@ def run_pairs(
     }
 
 
-def run_range(
+def range_rows(
     hospital_side: list[ComparableRate], payer_side: list[ComparableRate]
-) -> dict[str, object]:
-    """The range comparison: does the payer's rate sit inside the hospitals'?"""
+) -> list[RangeComparison]:
+    """The range comparison for one slice: is the payer's rate inside the hospitals'?
+
+    Returns the comparisons rather than a summary so a sharded run can
+    accumulate them and summarise once at the end. That is exact rather than
+    approximate: every key here is ``(code, code_type, carrier)`` and a shard is
+    defined by the code's first character, so no key is split across two shards
+    and no comparison is counted twice.
+    """
     by_facility: dict[tuple[str, str, str], dict[str, list[float]]] = {}
     for rate in hospital_side:
         if rate.rate_kind != "dollar" or not rate.rate_dollar:
@@ -150,10 +177,19 @@ def run_range(
             continue
         payer.setdefault((rate.code, rate.code_type or "", rate.payer), []).append(rate.rate_dollar)
 
-    rows = compare_to_system_range(hospital, payer)
-    out: dict[str, object] = dict(summarise(rows))
-    out["by_carrier"] = dict(collections.Counter(r.payer for r in rows).most_common())
-    out["widest"] = [r.describe() for r in rows[:10]]
+    return compare_to_system_range(hospital, payer)
+
+
+def summarise_range(rows: list[RangeComparison]) -> dict[str, object]:
+    """Headline counts over however many shards were accumulated.
+
+    Re-sorts before taking the widest: each shard arrives sorted within itself,
+    and concatenated shards are not.
+    """
+    ordered = sorted(rows, key=lambda c: (-c.gap, -c.payer_rate))
+    out: dict[str, object] = dict(summarise(ordered))
+    out["by_carrier"] = dict(collections.Counter(r.payer for r in ordered).most_common())
+    out["widest"] = [r.describe() for r in ordered[:10]]
     return out
 
 
@@ -169,32 +205,78 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--code-types", default=",".join(SHARED_CODE_TYPES))
     parser.add_argument("--max-vintage-days", type=int, default=400)
     parser.add_argument("--shard", help="restrict to codes starting with this, to bound memory")
+    parser.add_argument(
+        "--all-shards",
+        action="store_true",
+        help="sweep every shard and combine; the only way to run a system too large for one pass",
+    )
     parser.add_argument("--json", type=Path, help="write the result here as well as printing it")
     args = parser.parse_args(argv)
+
+    if args.all_shards and args.shard:
+        parser.error("--shard and --all-shards are mutually exclusive")
+    if args.all_shards and args.mode != "range":
+        parser.error(
+            "--all-shards supports --mode range only: a variance mart carries "
+            "cross-row state and its counts do not combine across shards"
+        )
 
     code_types = tuple(t.strip() for t in args.code_types.split(",") if t.strip())
     system = args.system or args.hospital
 
     files = discover_payer_files(args.payer_root)
-    payer_table = aggregate_payer(
-        open_payer_dataset(files), PayerFilter(systems=(system,), code_types=code_types)
-    )
-    payer_side = payer_to_rates(payer_table, files, facilities=None)
     print(f"payer files      : {len(files)} ({', '.join(sorted({f.carrier for f in files}))})")
-    print(f"payer rates      : {len(payer_side):,} for {system!r}")
 
-    hospital_side = load_hospital_side(args.root, args.hospital, code_types, args.shard)
-    print(f"hospital rates   : {len(hospital_side):,} for {args.hospital!r}")
-    facilities = sorted({r.hospital for r in hospital_side})
-    print(f"facilities       : {len(facilities)}")
-    if not hospital_side or not payer_side:
-        print("\nnothing to compare: one side is empty")
-        return 1
+    # One pass when unsharded, so the default path is unchanged.
+    shards = SHARDS if args.all_shards else (args.shard or "",)
+    rows: list[RangeComparison] = []
+    facility_set: set[str] = set()
+    payer_rows = hospital_rows = 0
 
-    if args.mode == "range":
-        result = run_range(hospital_side, payer_side)
+    for shard in shards:
+        payer_table = aggregate_payer(
+            open_payer_dataset(files),
+            PayerFilter(systems=(system,), code_types=code_types, code_prefix=shard),
+        )
+        payer_side = payer_to_rates(payer_table, files, facilities=None)
+        # Freed before the hospital side is built: holding both peaks is what
+        # this whole mechanism exists to avoid.
+        del payer_table
+        hospital_side = load_hospital_side(args.root, args.hospital, code_types, shard)
+        payer_rows += len(payer_side)
+        hospital_rows += len(hospital_side)
+        facility_set.update(r.hospital for r in hospital_side)
+
+        if args.mode == "pairs":
+            if not hospital_side or not payer_side:
+                print("\nnothing to compare: one side is empty")
+                return 1
+            print(f"payer rates      : {payer_rows:,} for {system!r}")
+            print(f"hospital rates   : {hospital_rows:,} for {args.hospital!r}")
+            print(f"facilities       : {len(facility_set)}")
+            result = run_pairs(hospital_side, payer_side, args.max_vintage_days)
+            break
+
+        found = range_rows(hospital_side, payer_side)
+        rows.extend(found)
+        if args.all_shards:
+            print(
+                f"  shard {shard}: payer {len(payer_side):,}, hospital "
+                f"{len(hospital_side):,} -> {len(found):,} comparisons "
+                f"({len(rows):,} total)",
+                flush=True,
+            )
+        del payer_side, hospital_side
     else:
-        result = run_pairs(hospital_side, payer_side, args.max_vintage_days)
+        print(f"payer rates      : {payer_rows:,} for {system!r}")
+        print(f"hospital rates   : {hospital_rows:,} for {args.hospital!r}")
+        print(f"facilities       : {len(facility_set)}")
+        if not rows:
+            print("\nnothing to compare: no shard produced a comparison")
+            return 1
+        result = summarise_range(rows)
+
+    facilities = sorted(facility_set)
     result["hospital"] = args.hospital
     result["system"] = system
     result["mode"] = args.mode
