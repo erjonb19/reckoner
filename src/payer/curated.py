@@ -61,6 +61,7 @@ import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
 from agents.entity_resolution import CANONICAL_PAYERS, PayerCandidate, RuleBasedMatcher
+from payer.contract import ContractCheck, Severity, validate_file, validate_schema
 from reconcile.comparability import ComparableRate
 
 #: Columns the curated shape needs. The upstream file has 14; ``description``
@@ -179,10 +180,19 @@ class PayerFile:
     carrier: str
     network: str
     vintage: str | None
+    #: Contract errors found at load time, as rendered strings. Non-empty means
+    #: the file is quarantined: kept visible in the summary, kept out of the
+    #: dataset. Warnings are deliberately absent -- a blank billing code is not
+    #: grounds to drop a file.
+    contract_errors: tuple[str, ...] = ()
 
     @property
     def is_duplicate(self) -> bool:
         return self.stem in DUPLICATE_PAYER_FILES
+
+    @property
+    def is_quarantined(self) -> bool:
+        return bool(self.contract_errors)
 
 
 def _file_vintage(path: Path) -> str | None:
@@ -215,13 +225,28 @@ def discover_payer_files(
     root: Path,
     *,
     include_duplicates: bool = False,
+    include_quarantined: bool = False,
+    validate: ContractCheck = ContractCheck.SCHEMA,
 ) -> list[PayerFile]:
-    """Every completed payer file under ``root``.
+    """Every completed payer file under ``root``, contract-checked on the way in.
 
     Non-recursive by design. ``old_npi_only/`` and ``trial_60tins/`` hold
     superseded output from earlier runs and are not part of the contract; a
     flat glob excludes them without needing to name them. In-flight parses
     exclude themselves by still being ``.part``.
+
+    ``validate`` defaults to :attr:`ContractCheck.SCHEMA`, which reads only the
+    Parquet footer: 0.03 seconds across all 120 files, against roughly two
+    minutes for :attr:`ContractCheck.FULL`. That is the whole reason the gate can
+    be on by default, and the cheap tier covers the failures that would break the
+    read anyway -- a missing column or a wrong type makes the next ``to_table``
+    raise, while a blank code in one row does not.
+
+    A file with contract *errors* is quarantined rather than fatal, per
+    architecture rule 4: it is dropped from the returned list but still reported
+    by :func:`file_summary` with its reason, so a vanished payer is a named
+    exclusion instead of a smaller number nobody questions. Warnings never
+    quarantine.
     """
     if not root.exists():
         raise FileNotFoundError(f"no payer parquet directory at {root}")
@@ -237,11 +262,23 @@ def discover_payer_files(
                 carrier=carrier,
                 network=network,
                 vintage=PAYER_SOURCE_VINTAGES.get(stem) or _file_vintage(path),
+                contract_errors=_contract_errors(path, validate),
             )
         )
     if not include_duplicates:
         files = [f for f in files if not f.is_duplicate]
+    if not include_quarantined:
+        files = [f for f in files if not f.is_quarantined]
     return files
+
+
+def _contract_errors(path: Path, level: ContractCheck) -> tuple[str, ...]:
+    """Contract errors for one file at the requested depth. Warnings are ignored."""
+    if level is ContractCheck.NONE:
+        return ()
+    check = validate_schema if level is ContractCheck.SCHEMA else validate_file
+    violations, _ = check(path)
+    return tuple(v.describe() for v in violations if v.severity is Severity.ERROR)
 
 
 def split_label(stem: str) -> tuple[str, str]:
@@ -613,14 +650,27 @@ def distinct_systems(root: Path) -> dict[str, int]:
     return dict(sorted(counts.items(), key=lambda item: -item[1]))
 
 
+def _skip_reason(payer_file: PayerFile) -> str:
+    """Why a file was left out, in the order the checks apply."""
+    if payer_file.is_duplicate:
+        return "duplicate of a National file"
+    if payer_file.is_quarantined:
+        return f"contract: {payer_file.contract_errors[0]}"
+    return ""
+
+
 def file_summary(root: Path) -> list[dict[str, Any]]:
     """What was read and what was skipped, for the load audit.
 
     Reports in-flight and superseded files explicitly rather than letting a
     glob silently define the dataset, because an absent payer file is ambiguous
     between "not yet parsed" and "parsed, no target rows".
+
+    A file quarantined by the contract is reported here for the same reason:
+    dropping it from the dataset without saying so would turn a broken payer
+    file into a quietly smaller number.
     """
-    completed = discover_payer_files(root, include_duplicates=True)
+    completed = discover_payer_files(root, include_duplicates=True, include_quarantined=True)
     # ``Path.stem`` strips one suffix, leaving "X.parquet" on an "X.parquet.part".
     in_flight = sorted(p.name.removesuffix(".parquet.part") for p in root.glob("*.parquet.part"))
     return [
@@ -629,8 +679,9 @@ def file_summary(root: Path) -> list[dict[str, Any]]:
             "carrier": f.carrier,
             "network": f.network,
             "vintage": f.vintage,
-            "read": not f.is_duplicate,
-            "skipped_reason": "duplicate of a National file" if f.is_duplicate else "",
+            "read": not (f.is_duplicate or f.is_quarantined),
+            "skipped_reason": _skip_reason(f),
+            "contract_errors": list(f.contract_errors),
         }
         for f in completed
     ] + [
@@ -641,6 +692,7 @@ def file_summary(root: Path) -> list[dict[str, Any]]:
             "vintage": PAYER_SOURCE_VINTAGES.get(stem),
             "read": False,
             "skipped_reason": "parse in flight (.part has no footer)",
+            "contract_errors": [],
         }
         for stem in in_flight
     ]

@@ -83,6 +83,19 @@ KNOWN_CODE_TYPES = frozenset(
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+class ContractCheck(StrEnum):
+    """How deeply to check a file on the way in.
+
+    ``SCHEMA`` reads the Parquet footer only and costs 0.03s across 120 files;
+    ``FULL`` reads every column and costs roughly two minutes. The gap is why
+    the load gate defaults to the former and the CLI to the latter.
+    """
+
+    NONE = "none"
+    SCHEMA = "schema"
+    FULL = "full"
+
+
 class Severity(StrEnum):
     """How much a violation should worry the caller.
 
@@ -165,6 +178,12 @@ class ColumnSpec:
     constant_in_file: bool = False
     #: Must parse as YYYY-MM-DD.
     iso_date: bool = False
+    #: The reader projects this column, so its absence makes the read raise.
+    #: Absence of any other column is drift worth reporting but not worth
+    #: dropping a readable file over -- the load gate quarantines on errors, and
+    #: over-strictness there costs real data. Kept in step with
+    #: ``curated.NEEDED_COLUMNS`` by test.
+    required_for_read: bool = False
 
 
 COLUMNS: tuple[ColumnSpec, ...] = (
@@ -172,10 +191,11 @@ COLUMNS: tuple[ColumnSpec, ...] = (
     # hospital side has zero empty codes -- so they are dead weight rather than a
     # correctness risk, and a contract that fails permanently on them is one
     # people learn to ignore.
-    ColumnSpec("billing_code", "string", non_empty=Severity.WARNING),
+    ColumnSpec("billing_code", "string", non_empty=Severity.WARNING, required_for_read=True),
     ColumnSpec(
         "code_type",
         "string",
+        required_for_read=True,
         allowed=KNOWN_CODE_TYPES,
         allowed_is_observation=True,
         non_empty=Severity.ERROR,
@@ -183,17 +203,31 @@ COLUMNS: tuple[ColumnSpec, ...] = (
     ColumnSpec("description", "string"),
     # Zero is legal and load-bearing: 880,612 rows carry it as a placeholder and
     # the comparability layer refuses them by name. Negative is not.
-    ColumnSpec("negotiated_rate", "floating", minimum=0.0),
-    ColumnSpec("rate_type", "string", allowed=TIC_RATE_TYPES, non_empty=Severity.ERROR),
-    ColumnSpec("billing_class", "string", allowed=TIC_BILLING_CLASSES, non_empty=Severity.ERROR),
-    ColumnSpec("service_codes", "string"),
+    ColumnSpec("negotiated_rate", "floating", minimum=0.0, required_for_read=True),
+    ColumnSpec(
+        "rate_type",
+        "string",
+        allowed=TIC_RATE_TYPES,
+        non_empty=Severity.ERROR,
+        required_for_read=True,
+    ),
+    ColumnSpec(
+        "billing_class",
+        "string",
+        allowed=TIC_BILLING_CLASSES,
+        non_empty=Severity.ERROR,
+        required_for_read=True,
+    ),
+    ColumnSpec("service_codes", "string", required_for_read=True),
     ColumnSpec("expiration_date", "string"),
     ColumnSpec("matched_npis", "string"),
     ColumnSpec("matched_tins", "string"),
     # Fan-out width, not a count of anything owned. Runs to 514,491.
-    ColumnSpec("group_tins", "integer", minimum=1),
+    ColumnSpec("group_tins", "integer", minimum=1, required_for_read=True),
     ColumnSpec("network_names", "string"),
-    ColumnSpec("payer", "string", non_empty=Severity.ERROR, constant_in_file=True),
+    ColumnSpec(
+        "payer", "string", non_empty=Severity.ERROR, constant_in_file=True, required_for_read=True
+    ),
     ColumnSpec("reporting_entity_name", "string", constant_in_file=True),
     ColumnSpec(
         "last_updated_on",
@@ -203,9 +237,9 @@ COLUMNS: tuple[ColumnSpec, ...] = (
         iso_date=True,
     ),
     ColumnSpec("schema_version", "string", constant_in_file=True),
-    ColumnSpec("systems", "string", non_empty=Severity.ERROR),
+    ColumnSpec("systems", "string", non_empty=Severity.ERROR, required_for_read=True),
     # A row attributed to no system should not have been written at all.
-    ColumnSpec("system_count", "integer", minimum=1),
+    ColumnSpec("system_count", "integer", minimum=1, required_for_read=True),
 )
 
 
@@ -312,13 +346,17 @@ def _check_column(stem: str, spec: ColumnSpec, column: pa.ChunkedArray) -> list[
     return found
 
 
-def validate_file(path: Path) -> tuple[list[Violation], int]:
-    """Check one payer Parquet file. Returns its violations and its row count.
+def validate_schema(path: Path) -> tuple[list[Violation], int]:
+    """The rules answerable from the Parquet footer alone. Reads no data.
 
-    Columns are read one at a time rather than all eighteen at once. The largest
-    file is 6.6M rows, and eighteen wide string columns of it materialised
-    together is the shape of problem that took a terminal down; one column is
-    bounded and the checks are per-column anyway.
+    Split out from the full check because it is effectively free -- 0.03s across
+    all 120 files, against roughly two minutes to read every column -- and
+    because it covers exactly the failures that break the reader rather than
+    merely dirty it. A missing column or a wrong type means a downstream
+    ``to_table`` raises; a blank code in one row does not.
+
+    That difference is what makes a default-on load gate affordable. See
+    :func:`payer.curated.discover_payer_files`.
     """
     stem = path.stem
     try:
@@ -331,9 +369,9 @@ def validate_file(path: Path) -> tuple[list[Violation], int]:
     found: list[Violation] = []
     for spec in COLUMNS:
         if spec.name not in present:
-            found.append(Violation(stem, spec.name, Rule.MISSING_COLUMN, Severity.ERROR))
+            severity = Severity.ERROR if spec.required_for_read else Severity.WARNING
+            found.append(Violation(stem, spec.name, Rule.MISSING_COLUMN, severity))
             continue
-
         actual = _logical(handle.schema_arrow.field(spec.name).type)
         if actual != spec.logical:
             found.append(
@@ -345,8 +383,29 @@ def validate_file(path: Path) -> tuple[list[Violation], int]:
                     detail=f"expected {spec.logical}, found {actual}",
                 )
             )
-            continue
+    return found, rows
 
+
+def validate_file(path: Path) -> tuple[list[Violation], int]:
+    """Check one payer Parquet file completely. Returns violations and row count.
+
+    Columns are read one at a time rather than all eighteen at once. The largest
+    file is 6.6M rows, and eighteen wide string columns of it materialised
+    together is the shape of problem that took a terminal down; one column is
+    bounded and the checks are per-column anyway.
+    """
+    stem = path.stem
+    found, rows = validate_schema(path)
+    broken = {v.column for v in found}
+    if any(v.rule is Rule.UNREADABLE for v in found):
+        return found, rows
+
+    handle = pq.ParquetFile(path)
+    present = set(handle.schema_arrow.names)
+    for spec in COLUMNS:
+        # A column the schema pass already rejected cannot be read for content.
+        if spec.name in broken or spec.name not in present:
+            continue
         column = pq.read_table(path, columns=[spec.name]).column(spec.name)
         found.extend(_check_column(stem, spec, column))
         del column
