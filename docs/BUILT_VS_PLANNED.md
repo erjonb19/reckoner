@@ -69,9 +69,21 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   mis-join, only fail to match. An empty `billing_class` is an **error**, because that one is
   mis-grouped silently.
 - Reports, never raises — rows are quarantined with a reason, per architecture rule 4.
+- **Enforced at load time.** `discover_payer_files` consults the contract on every call and
+  quarantines a file that would break the read — kept out of the dataset, kept visible in
+  `file_summary` with its reason, per architecture rule 4. It defaults to a footer-only tier
+  costing **0.07s across all 120 files**, against roughly two minutes to read every column;
+  a gate nobody can afford to leave on is not a gate. `ContractCheck.FULL` opts into the
+  thorough one.
+- **The gate quarantines on what breaks the read, and no more.** The contract knows 18
+  columns; the reader projects 10. A file missing one of the 10 is dropped, because the next
+  `to_table` would raise; a file missing one of the other 8 is kept, because it is perfectly
+  readable. Turning the gate on before that distinction existed quarantined every trimmed
+  fixture in the suite — 33 tests — which is what over-strictness costs in real data. A test
+  keeps the contract's required set in step with `NEEDED_COLUMNS`.
 - **Measured against the real lake: 120 files, 59,501,435 rows, 0 errors, 49 warnings**
-  (196 blank billing codes, all Emblem). 20 tests, built by damaging a real file one column
-  at a time.
+  (196 blank billing codes, all Emblem), 0 quarantined. 30 tests, built by damaging a real
+  file one column at a time.
 
 ### Payer file manifest
 
@@ -105,7 +117,7 @@ named.
 
 ### Engineering
 
-- **700 tests**, all passing. Parser tests are
+- **710 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 

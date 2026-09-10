@@ -224,8 +224,16 @@ def main(argv: list[str] | None = None) -> int:
     code_types = tuple(t.strip() for t in args.code_types.split(",") if t.strip())
     system = args.system or args.hospital
 
-    files = discover_payer_files(args.payer_root)
+    # include_quarantined so the gate's exclusions can be reported rather than
+    # silently shrinking the denominator of everything below.
+    everything = discover_payer_files(args.payer_root, include_quarantined=True)
+    files = [f for f in everything if not f.is_quarantined]
+    quarantined = [f for f in everything if f.is_quarantined]
     print(f"payer files      : {len(files)} ({', '.join(sorted({f.carrier for f in files}))})")
+    if quarantined:
+        print(f"quarantined      : {len(quarantined)} failed the contract and were not read")
+        for bad in quarantined[:5]:
+            print(f"    {bad.stem}: {bad.contract_errors[0]}")
 
     # One pass when unsharded, so the default path is unchanged.
     shards = SHARDS if args.all_shards else (args.shard or "",)

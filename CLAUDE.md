@@ -119,8 +119,11 @@ reconciled at all.
   states the boundary `mrf_pipeline` writes and `src/payer/curated.py` reads —
   shape, the federal TiC enums, and the per-file invariants live code assumes.
   Run it with `python -m payer.contract --payer-root ../mrf_pipeline/payer_parquet`;
-  it is clean on all 120 files bar 49 warnings for blank billing codes. What is
-  missing is a gate: nothing calls it before a load, so a drift is found only when
-  someone runs it. `python -m payer.manifest --payer-root ... --against <snapshot>`
-  now names what moved between two runs, but nothing takes a snapshot on a
-  schedule, so there is rarely a previous one to compare against.
+  it is clean on all 120 files bar 49 warnings for blank billing codes.
+  `discover_payer_files` now consults it on every load (footer-only tier, 0.07s
+  across the lake) and quarantines a file that would break the read, reporting it
+  through `file_summary` rather than dropping it silently.
+
+  What remains is the manifest half: `python -m payer.manifest --payer-root ...
+  --against <snapshot>` names what moved between two runs, but nothing takes a
+  snapshot on a schedule, so there is rarely a previous one to compare against.
