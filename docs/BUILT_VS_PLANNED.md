@@ -66,7 +66,14 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
   professional rate is still refused. On NYP that guard fires on 2,020,625 rows.
 - Every assumed pair carries a note into the variance row and A1's queue.
 - **Measured: NewYork-Presbyterian went from 0 pairs to 106,852.**
-- 17 tests, including one Maimonides case that must keep refusing.
+- **Cached per lake state.** `reconcile.eligibility` keys the answer to a fingerprint of the
+  lake's file paths — metadata only, no rows read — and writes it to `_meta/` with the
+  evidence per system (`professional_rows`, `eligible`, `computed_at`). Measured on the real
+  lake: **19.49s cold, 0.01s warm**. A stale fingerprint forces a rescan rather than
+  refreshing in place, because a stale answer would apply the assumption to a system that has
+  since started publishing professional rates — the one case it is plainly wrong for.
+- 29 tests, including one Maimonides case that must keep refusing and one proving a moved
+  lake re-keys the cache.
 
 ### Payer data contract
 
@@ -205,7 +212,7 @@ named.
 
 ### Engineering
 
-- **808 tests**, all passing. Parser tests are
+- **820 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
