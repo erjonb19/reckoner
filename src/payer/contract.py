@@ -58,6 +58,18 @@ CONTRACT_VERSION = 1
 #: separately from the rest: a value outside these is a payer diverging from the
 #: federal schema, not a gap in our observation.
 TIC_BILLING_CLASSES = frozenset({"professional", "institutional"})
+
+#: The hospital template's vocabulary for the same distinction. A payer rate is
+#: mapped onto these words before comparison, so ``institutional`` becomes
+#: ``facility``; see ``payer.curated._BILLING_CLASS_TO_HOSPITAL``.
+#:
+#: The asymmetry matters and is not symmetrical drift: the field is **required**
+#: on the payer side and **optional** on the hospital side, so a hospital may
+#: omit it and remain fully compliant while becoming unreconcilable. Where a
+#: system omits it entirely and publishes no professional rate anywhere, the
+#: comparability layer may read the absence as ``facility`` -- see
+#: ``docs/scope.md`` and ``reconcile.comparability.ASSUMED_FACILITY_NOTE``.
+HOSPITAL_BILLING_CLASSES = frozenset({"professional", "facility"})
 TIC_RATE_TYPES = frozenset({"negotiated", "derived", "fee schedule", "percentage", "per diem"})
 
 #: Code systems seen across the 120 files on hand. Unlike the two above this is

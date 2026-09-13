@@ -143,6 +143,11 @@ class Comparability:
     ok: bool
     reason: str = ""
     detail: str = ""
+    #: Assumptions the verdict rests on. A pair that is comparable only because
+    #: something was assumed is not the same as one that is comparable outright,
+    #: and the difference has to survive into the mart rather than being lost
+    #: at the moment it is made.
+    assumptions: tuple[str, ...] = ()
 
     def __bool__(self) -> bool:
         return self.ok
@@ -155,6 +160,15 @@ def _no(reason: NotComparable, detail: str = "") -> Comparability:
     return Comparability(False, str(reason), detail[:160])
 
 
+#: Note attached to every pair that relied on the unstated-billing-class
+#: assumption. Worded as a claim someone can check, because it reaches A1's
+#: output and a reader there has no other way to know the pair was assumed.
+ASSUMED_FACILITY_NOTE = (
+    "hospital billing class unstated; assumed facility because this system "
+    "publishes no professional rates"
+)
+
+
 def can_compare(
     left: ComparableRate,
     right: ComparableRate,
@@ -162,13 +176,23 @@ def can_compare(
     cross_source: bool = False,
     max_vintage_days: int = COMPARABLE_VINTAGE_DAYS,
     require_same_setting: bool = True,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
 ) -> Comparability:
     """Decide whether two rates may be differenced.
 
     ``cross_source`` switches on the checks that only apply when comparing a
     hospital disclosure against a payer one -- principally that Medicare
     Advantage and Medicaid products have no payer-side counterpart by rule.
+
+    ``assume_facility_when_unstated`` holds the hospital names for which an
+    absent billing class may be read as ``facility``. It is a set rather than a
+    flag because the assumption is only safe for a system that publishes no
+    professional rates at all, and which systems those are is a fact about the
+    data -- see :func:`reconcile.curated.facility_only_hospitals`, which computes
+    it. Passing a system that does publish professional rates would reintroduce
+    exactly the cross-join this refusal exists to prevent.
     """
+    assumptions: tuple[str, ...] = ()
     structural = _structural(left, right, require_same_setting=require_same_setting)
     if not structural:
         return structural
@@ -184,13 +208,55 @@ def can_compare(
 
         unstated = _billing_class_unstated(left, right)
         if unstated:
-            return _no(NotComparable.BILLING_CLASS_UNSTATED, unstated)
+            assumed = _assume_facility(left, right, assume_facility_when_unstated)
+            if assumed is None:
+                return _no(NotComparable.BILLING_CLASS_UNSTATED, unstated)
+            if not assumed:
+                return assumed
+            assumptions = assumed.assumptions
 
     methodological = _methodological(left, right)
     if not methodological:
         return methodological
 
-    return _temporal(left, right, max_vintage_days=max_vintage_days)
+    temporal = _temporal(left, right, max_vintage_days=max_vintage_days)
+    if temporal and assumptions:
+        return Comparability(True, assumptions=assumptions)
+    return temporal
+
+
+def _assume_facility(
+    left: ComparableRate, right: ComparableRate, eligible: frozenset[str]
+) -> Comparability | None:
+    """Resolve an unstated billing class to ``facility``, where that is safe.
+
+    Returns ``None`` when the assumption does not apply, so the caller refuses
+    as before. Otherwise returns a verdict: comparable **with the assumption
+    recorded**, or a refusal when the stated side is professional.
+
+    That second case is the whole point. Reading an absent value as "compatible
+    with anything" is what produced the cross-join this refusal was built for --
+    one hospital rate meeting both the payer's professional and its institutional
+    rate, measured at 96.4% landing against professional. Reading it as
+    *facility specifically* meets institutional only, which is a narrower and
+    checkable claim rather than a shrug.
+    """
+    unstated = [r for r in (left, right) if not r.billing_class]
+    stated = [r for r in (left, right) if r.billing_class]
+    # Only ever one side: a payer file always states it, so the silent side is
+    # the hospital. Anything else is a shape this rule was not written for.
+    if len(unstated) != 1 or len(stated) != 1:
+        return None
+    silent, speaking = unstated[0], stated[0]
+    if silent.hospital not in eligible:
+        return None
+
+    if _differs("facility", speaking.billing_class):
+        return _no(
+            NotComparable.DIFFERENT_BILLING_CLASS,
+            f"assumed facility vs {speaking.billing_class}",
+        )
+    return Comparability(True, assumptions=(ASSUMED_FACILITY_NOTE,))
 
 
 def _structural(

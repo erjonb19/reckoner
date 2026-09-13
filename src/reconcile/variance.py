@@ -313,6 +313,7 @@ def cross_source_variance(
     payer_side: list[ComparableRate],
     *,
     max_vintage_days: int = 400,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
 ) -> VarianceMart:
     """Compare the two federal disclosures of the same negotiated rate.
 
@@ -340,11 +341,21 @@ def cross_source_variance(
             mart.exclude("no payer-side counterpart")
             continue
         for right in candidates:
-            verdict = can_compare(left, right, cross_source=True, max_vintage_days=max_vintage_days)
+            verdict = can_compare(
+                left,
+                right,
+                cross_source=True,
+                max_vintage_days=max_vintage_days,
+                assume_facility_when_unstated=assume_facility_when_unstated,
+            )
             if not verdict:
                 mart.exclude(verdict.reason)
                 continue
             explanation, notes = explain(left, right)
+            # An assumed pair must not read like an observed one. The note rides
+            # with the row into A1's queue, where a reader has no other way to
+            # tell that the billing class was inferred rather than published.
+            notes = verdict.assumptions + notes
             mart.rows.append(
                 Variance(
                     code=left.code,
