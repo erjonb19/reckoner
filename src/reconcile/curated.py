@@ -87,6 +87,45 @@ class CuratedFilter:
         return combined
 
 
+#: Code systems a hospital and a payer both publish. The professional check is
+#: scoped to these because a hospital's chargemaster carries no billing class at
+#: all and would make every system look facility-only.
+_SHARED_CODE_TYPES = ("CPT", "HCPCS", "MS-DRG")
+
+
+def facility_only_hospitals(dataset: ds.Dataset) -> frozenset[str]:
+    """Hospitals that publish no professional rate anywhere on shared code types.
+
+    This is what makes ``assume_facility_when_unstated`` safe to switch on: for
+    a system that never says ``professional``, reading an absent billing class as
+    ``facility`` asserts nothing the data contradicts. For a system that does, it
+    would be plainly wrong.
+
+    Computed rather than listed, because a hardcoded set is a claim about the
+    data that stops being true the moment the lake changes -- and the lake gains
+    a system roughly every time someone runs the ingest. On the corpus as it
+    stands, two systems are excluded by this: Maimonides Medical Center publishes
+    121,119 professional rows and Upstate University Hospital 6,418.
+
+    The scan is one projection of two columns; on 156M rows it is seconds.
+    """
+    table = dataset.to_table(
+        columns=["hospital", "billing_class"],
+        filter=ds.field("code_type").isin(list(_SHARED_CODE_TYPES)),
+    )
+    everyone: set[str] = set()
+    professional: set[str] = set()
+    hospitals = table.column("hospital").to_pylist()
+    classes = table.column("billing_class").to_pylist()
+    for name, billing_class in zip(hospitals, classes, strict=True):
+        if not name:
+            continue
+        everyone.add(name)
+        if (billing_class or "").strip().casefold() == "professional":
+            professional.add(name)
+    return frozenset(everyone - professional)
+
+
 def open_curated(root: Path, *, location: Location | None = None) -> ds.Dataset:
     """Open the curated hospital_rates dataset, locally or wherever it lives.
 

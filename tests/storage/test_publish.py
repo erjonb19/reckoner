@@ -130,3 +130,49 @@ class TestThePublishedCopyIsUsable:
 
         written = ds.dataset(out.root, filesystem=out.filesystem, partitioning="hive")
         assert written.to_table(columns=["file_vintage"]).column(0).to_pylist() == ["1/15/2026"]
+
+
+class TestSilverConformsCase:
+    def test_billing_class_is_lowercased(self, tmp_path):
+        """The lake holds both 'Facility' and 'facility'; silver holds one."""
+        target = tmp_path / "lake" / "curated" / "hospital_rates"
+        target.mkdir(parents=True)
+        pq.write_table(
+            pa.table(
+                {
+                    "hospital": pa.array(["A", "A"], pa.string()),
+                    "file_vintage": pa.array(["2026-01-01", "2026-01-01"], pa.string()),
+                    "billing_class": pa.array(["Facility", "facility"], pa.string()),
+                }
+            ),
+            target / "part.parquet",
+        )
+        out = storage.local(tmp_path / "out")
+
+        publish_hospital(tmp_path / "lake", "A", out)
+
+        written = ds.dataset(out.root, filesystem=out.filesystem, partitioning="hive")
+        assert set(written.to_table(columns=["billing_class"]).column(0).to_pylist()) == {
+            "facility"
+        }
+
+    def test_an_empty_billing_class_becomes_null_not_blank(self, tmp_path):
+        """Blank and null are the same absence; two spellings of it is one too many."""
+        target = tmp_path / "lake" / "curated" / "hospital_rates"
+        target.mkdir(parents=True)
+        pq.write_table(
+            pa.table(
+                {
+                    "hospital": pa.array(["A"], pa.string()),
+                    "file_vintage": pa.array(["2026-01-01"], pa.string()),
+                    "billing_class": pa.array(["   "], pa.string()),
+                }
+            ),
+            target / "part.parquet",
+        )
+        out = storage.local(tmp_path / "out")
+
+        publish_hospital(tmp_path / "lake", "A", out)
+
+        written = ds.dataset(out.root, filesystem=out.filesystem, partitioning="hive")
+        assert written.to_table(columns=["billing_class"]).column(0).to_pylist() == [None]

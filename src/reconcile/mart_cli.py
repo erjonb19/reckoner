@@ -59,7 +59,7 @@ from payer.curated import (
     to_comparable_rates as payer_to_rates,
 )
 from reconcile.comparability import ComparableRate
-from reconcile.curated import NEEDED_COLUMNS, open_curated
+from reconcile.curated import NEEDED_COLUMNS, facility_only_hospitals, open_curated
 from reconcile.curated import to_comparable_rates as hosp_to_rates
 from reconcile.system_range import RangeComparison, compare_to_system_range, summarise
 from reconcile.variance import (
@@ -124,6 +124,7 @@ def run_pairs(
     hospital_side: list[ComparableRate],
     payer_side: list[ComparableRate],
     max_vintage_days: int,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
 ) -> dict[str, object]:
     """The pairwise mart: what the comparability layer refuses, and why.
 
@@ -132,7 +133,12 @@ def run_pairs(
     afterwards, because a constant ratio repeated across hundreds of services is
     one fact about two base rates and reporting it per code buries the question.
     """
-    mart = cross_source_variance(hospital_side, payer_side, max_vintage_days=max_vintage_days)
+    mart = cross_source_variance(
+        hospital_side,
+        payer_side,
+        max_vintage_days=max_vintage_days,
+        assume_facility_when_unstated=assume_facility_when_unstated,
+    )
     offsets = apply_systematic_offsets(mart)
     return {
         "hospital_rates": len(hospital_side),
@@ -215,6 +221,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="sweep every shard and combine; the only way to run a system too large for one pass",
     )
+    parser.add_argument(
+        "--assume-facility-when-unstated",
+        action="store_true",
+        help="read an absent hospital billing class as facility, for systems that "
+        "publish no professional rate at all; every pair it touches is annotated",
+    )
     parser.add_argument("--json", type=Path, help="write the result here as well as printing it")
     args = parser.parse_args(argv)
 
@@ -279,7 +291,28 @@ def main(argv: list[str] | None = None) -> int:
             print(f"payer rates      : {payer_rows:,} for {system!r}")
             print(f"hospital rates   : {hospital_rows:,} for {args.hospital!r}")
             print(f"facilities       : {len(facility_set)}")
-            result = run_pairs(hospital_side, payer_side, args.max_vintage_days)
+            # Two different identities. facility_only_hospitals answers at the
+            # system grain, because that is what the lake's `hospital` column
+            # holds; a ComparableRate carries the resolved *facility*. So the
+            # system-level fact is expanded onto this system's facilities --
+            # sound because a system with no professional row anywhere has no
+            # facility with one either. Getting this wrong is why the option
+            # appeared to do nothing on its first run.
+            eligible: frozenset[str] = frozenset()
+            if args.assume_facility_when_unstated:
+                systems = facility_only_hospitals(open_curated(args.root))
+                if args.hospital in systems:
+                    eligible = frozenset({r.hospital for r in hospital_side})
+                    print(
+                        f"assumed facility  : {args.hospital} publishes no professional "
+                        f"rate, so {len(eligible)} facilities are eligible"
+                    )
+                else:
+                    print(
+                        f"assumed facility  : NOT applied -- {args.hospital} publishes "
+                        "professional rates"
+                    )
+            result = run_pairs(hospital_side, payer_side, args.max_vintage_days, eligible)
             break
 
         found = range_rows(hospital_side, payer_side)

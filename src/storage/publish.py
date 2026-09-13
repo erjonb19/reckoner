@@ -86,10 +86,28 @@ def _slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "unknown"
 
 
+#: Columns normalised to lower case on the way into silver. The lake carries
+#: both ``Facility`` (5,528,886 rows, NYC Health + Hospitals) and ``facility``
+#: (5,049,845, everyone else) for the same thing. The comparability layer
+#: casefolds so this is not a correctness bug there, but anything doing an exact
+#: match -- a Spark ``GROUP BY``, a Power BI slicer -- would split one value in
+#: two. Bronze keeps what the hospital published; silver is the conformed copy,
+#: and this is what conformed means.
+_LOWERCASED = ("billing_class",)
+
+
 def _with_clean_partition(batch: pa.RecordBatch, slug: str) -> pa.RecordBatch:
-    """Attach the partition columns, recomputing vintage from the raw value."""
+    """Attach the partition columns, recomputing vintage and conforming case."""
     vintages = [partition_vintage(v) for v in batch.column("file_vintage").to_pylist()]
     table = pa.Table.from_batches([batch])
+    for name in _LOWERCASED:
+        if name in table.schema.names:
+            index = table.schema.get_field_index(name)
+            folded = [
+                (v.strip().casefold() or None) if isinstance(v, str) else v
+                for v in table.column(name).to_pylist()
+            ]
+            table = table.set_column(index, name, pa.array(folded, pa.string()))
     table = table.append_column("hospital_slug", pa.array([slug] * batch.num_rows, pa.string()))
     table = table.append_column("vintage", pa.array(vintages, pa.string()))
     return table

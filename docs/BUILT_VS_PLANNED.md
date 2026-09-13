@@ -54,6 +54,20 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 - **A committed runner** — `src/reconcile/mart_cli.py`. Before it, every real-data figure
   came from throwaway scripts and no number in any write-up could be re-derived.
 
+### Cross-source reconciliation scope
+
+- `docs/scope.md` — four systems are in reconciliation scope; the other eight are hospital-side
+  only **by design**, having never been payer-side targets. Not a gap.
+- **`--assume-facility-when-unstated`** reads an absent hospital `billing_class` as `facility`,
+  scoped by `reconcile.curated.facility_only_hospitals` — computed from the data, so a system
+  that publishes any professional row is excluded automatically. Excludes exactly Maimonides
+  (121,119 professional rows) and Upstate (6,418) today.
+- It resolves to `facility` **specifically**, not to "compatible with anything", so a payer
+  professional rate is still refused. On NYP that guard fires on 2,020,625 rows.
+- Every assumed pair carries a note into the variance row and A1's queue.
+- **Measured: NewYork-Presbyterian went from 0 pairs to 106,852.**
+- 17 tests, including one Maimonides case that must keep refusing.
+
 ### Payer data contract
 
 - `src/payer/contract.py` — the boundary `mrf_pipeline` writes and `payer/curated.py` reads,
@@ -191,7 +205,7 @@ named.
 
 ### Engineering
 
-- **789 tests**, all passing. Parser tests are
+- **808 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -242,6 +256,10 @@ Real code, but not yet load-bearing.
   the thing that keeps that decision cheap — and note it targets **ADLS Gen2**, not Fabric:
   architecture rule 2 makes ADLS authoritative and Fabric a consumer of it via OneLake
   shortcuts, so a Fabric workspace on its own is not somewhere this project may write.
+- **Hospital-side files for WMC and White Plains, and possibly Montefiore.** All three are
+  parsed on the payer side and absent from the hospital lake, so their payer rows cannot
+  reconcile. Adding their MRFs would take the reconciliation from four systems to six or
+  seven. **Not in scope for Phase 2** — see [scope.md](scope.md).
 - **README.** Absent.
 
 ---
