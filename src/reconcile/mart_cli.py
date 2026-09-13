@@ -59,8 +59,9 @@ from payer.curated import (
     to_comparable_rates as payer_to_rates,
 )
 from reconcile.comparability import ComparableRate
-from reconcile.curated import NEEDED_COLUMNS, facility_only_hospitals, open_curated
+from reconcile.curated import NEEDED_COLUMNS, open_curated
 from reconcile.curated import to_comparable_rates as hosp_to_rates
+from reconcile.eligibility import default_cache_path, facility_only_hospitals
 from reconcile.system_range import RangeComparison, compare_to_system_range, summarise
 from reconcile.variance import (
     apply_systematic_offsets,
@@ -300,7 +301,9 @@ def main(argv: list[str] | None = None) -> int:
             # appeared to do nothing on its first run.
             eligible: frozenset[str] = frozenset()
             if args.assume_facility_when_unstated:
-                systems = facility_only_hospitals(open_curated(args.root))
+                systems = facility_only_hospitals(
+                    open_curated(args.root), cache_path=default_cache_path(args.root)
+                )
                 if args.hospital in systems:
                     eligible = frozenset({r.hospital for r in hospital_side})
                     print(
