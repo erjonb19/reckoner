@@ -30,6 +30,11 @@ nypt-discover = "discovery.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+# The job entrypoint is a top-level module, not a package, so packages.find does
+# not see it. Without this the image builds cleanly and then dies at run time
+# with ModuleNotFoundError -- caught by inspecting the wheel rather than by
+# trusting the build to have done the obvious thing.
+py-modules = ["reckoner_job"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

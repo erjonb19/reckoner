@@ -1,0 +1,18 @@
+# Everything the image does not need. data/ is 3.5 GB and out/ is generated;
+# either one in the build context would dwarf the image itself.
+data/
+out/
+notebooks/
+evals/
+tests/
+docs/
+deploy/
+.venv/
+.git/
+.github/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+**/__pycache__/
+*.parquet
+*.log
