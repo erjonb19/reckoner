@@ -48,17 +48,51 @@ Acceptance: I approve the ADR and module layout.
 
 Acceptance: one full carrier drop parsed end to end on this PC, NY-filtered Parquet on disk, contracts validated, tests green, row counts and wall time recorded in docs/BUILT_VS_PLANNED.md.
 
-## Phase 2 — Fabric lakehouse and scheduled loads
+## Phase 2 — Azure-native lakehouse and scheduled loads
 
-- Fabric Lakehouse with bronze (raw Parquet as landed), silver (conformed rates, providers, plans, with surrogate keys and contract enforcement), gold (benchmark marts plus the reconciliation table below).
-- Reconciliation: join payer-published negotiated rates to the hospital-published rates already in Reckoner on NPI, billing code and code type, and plan, producing a variance table (dollar and percent, methodology mismatch flags). This is the deliverable that makes "reconciled" true.
-- Incremental, idempotent loads keyed on file hash and ETag. A rerun with no new files is a no-op. A rerun with one new file touches only that file's partitions.
-- Orchestration inside Fabric (pipeline or scheduled notebook) with a documented run schedule, plus a `reckoner backfill --from <date>` command that replays from bronze.
-- `FabricBackend` implements the same interface as the local DuckDB backend so the payment engine and benchmarks can run against either.
-- Every run writes a row to `ops.pipeline_runs` (run id, stage, start/end, rows in/out, bytes, status, error) and every contract check writes to `ops.dq_results`.
-- Export all notebook and pipeline definitions to the repo as code so nothing lives only in the Fabric UI.
+**Rewritten 2026-09-13.** The original called for a Fabric lakehouse. Fabric is out:
+the Montefiore tenant blocks workspace creation, the trial refused to activate in a
+personal tenant, and the paid F2 fallback failed on a zero regional quota in East US.
+Set against $0.36/hour for 4 GB of data, the replacement is better rather than merely
+cheaper. See ADR 0003.
 
-Acceptance: two consecutive scheduled runs visible in run history, second run correctly skips unchanged files, reconciliation table populated for at least one plan, backfill command demonstrated, definitions committed.
+- **ADLS Gen2 is the store**, unchanged and authoritative. Medallion layout already
+  agreed: `bronze/payer_tic/ingest_date=…/carrier=…`, `silver/hospital_rates/
+  hospital_slug=…/code_type=…/vintage=…`, `silver/payer_rates/carrier=…`, `_meta/`.
+- **DuckDB and Polars are the everyday engine**, reading Arrow datasets *through the
+  existing storage seam* rather than opening their own connection to ADLS. One
+  authentication path, one code path.
+- **Databricks Free Edition is the escape hatch** for a step that genuinely needs
+  Spark, and needing it is a signal worth investigating first: on this project an
+  unbounded operation has been the cause every time.
+- Reconciliation is unchanged as the deliverable that makes "reconciled" true, and is
+  already built — `reconcile.mart_cli`, range and pairs modes, with the facility
+  assumption and its cache.
+- **Incremental and idempotent loads** keyed on file hash and vintage. The manifest
+  and its diff already do this; a rerun with no new files is a no-op, and the
+  contract's load gate quarantines anything that would break the read.
+- **Azure Container Apps Jobs** for scheduling — scale-to-zero, billed per run, which
+  matches payer files updating monthly and hospital files annually. A standing
+  capacity billing hourly to serve a monthly job is the wrong shape.
+- **Key Vault** for secrets, consistent with "secrets via environment, never in code".
+  Nothing in the repo holds a credential today and nothing should.
+- **Azure Monitor** for telemetry: run id, stage, start and end, rows in and out,
+  bytes, status, error — the `ops.pipeline_runs` and `ops.dq_results` of the original,
+  feeding Phase 4.
+- Job definitions and the container image live in the repo as code. This was the point
+  of the original's "export all notebook definitions" line, and is easier to honour
+  when there is no UI to export from.
+
+Acceptance: two consecutive scheduled runs visible in Azure Monitor, the second
+correctly skipping unchanged files, the reconciliation mart populated for at least one
+system, `--from <date>` replay from bronze demonstrated, and the image and job
+definition committed.
+
+**What is dropped, and what survives.** Dropped: OneLake shortcuts, the lakehouse,
+Fabric notebooks, the capacity — none of which was built. Survives untouched: the
+storage seam, the publisher, the manifest, the contract and its load gate, and 820
+tests. ADR 0002 declined to write Fabric-specific code on the grounds that it kept
+Fabric cheap to adopt; the same decision made it cheap to abandon.
 
 ## Phase 3 — AI components inside the pipeline
 

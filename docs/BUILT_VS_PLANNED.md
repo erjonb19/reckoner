@@ -258,11 +258,15 @@ Real code, but not yet load-bearing.
 - **A3's generative half.** Blocked by evidence, not capability: see above.
 - **A4's agent half.** Blocked by build order, not capability: see above.
 - **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
-- **Fabric lakehouse, scheduled loads, backfill command.** Gated on tenant access, which is
-  still not resolved. No Fabric-specific code is written, deliberately. The seam above is
-  the thing that keeps that decision cheap — and note it targets **ADLS Gen2**, not Fabric:
-  architecture rule 2 makes ADLS authoritative and Fabric a consumer of it via OneLake
-  shortcuts, so a Fabric workspace on its own is not somewhere this project may write.
+- **Scheduled loads, backfill command, telemetry.** Phase 2 is now Azure-native rather than
+  Fabric — ADLS Gen2 as the store, DuckDB/Polars as the engine, Container Apps Jobs for
+  scheduling, Key Vault for secrets, Azure Monitor for telemetry. See ADR 0003. None of the
+  scheduling, secrets or telemetry layer is built yet.
+- **Fabric is dropped, not deferred.** The Montefiore tenant blocks workspace creation, the
+  trial refused to activate in a personal tenant, and the paid F2 fallback failed on a zero
+  regional quota in East US. ADR 0002's decision to write no Fabric-specific code meant this
+  cost nothing to reverse: the seam, the publisher, the manifest, the contract and its load
+  gate all target ADLS and are unaffected.
 - **Hospital-side files for WMC and White Plains, and possibly Montefiore.** All three are
   parsed on the payer side and absent from the hospital lake, so their payer rows cannot
   reconcile. Adding their MRFs would take the reconciliation from four systems to six or
