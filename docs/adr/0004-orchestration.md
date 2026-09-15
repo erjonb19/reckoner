@@ -61,6 +61,28 @@ reject the choice, but it is a constraint to design against rather than discover
   8 GiB has usually been unbounded rather than large, so hitting the ceiling is a
   signal worth reading before it is a limit worth raising.
 
+## The management meter, and why it does not apply
+
+The retail rates list an **Environment Management Hour at $0.10/hour**. Left
+running that is about $73 a month, which would exhaust the $5 subscription budget
+on its own, so it is worth stating why it is not charged here rather than
+assuming.
+
+That meter applies only to an environment with a **dedicated workload profile**,
+a **private endpoint**, or **planned maintenance** enabled. Verified against the
+live environment on 2026-09-15:
+
+| condition | checked | result |
+|---|---|---|
+| workload profiles | `containerapp env show` | **`Consumption` only** — one profile, type `Consumption` |
+| private endpoint | `network private-endpoint list` on the resource group | **none** |
+| VNet integration | `properties.vnetConfiguration` | `null` |
+| zone redundancy | `properties.zoneRedundant` | `false` |
+
+So the environment itself is free and only job executions bill. If a dedicated
+profile or a private endpoint is ever added, this meter starts and the budget
+alert at 50% of $5 is the thing that will notice.
+
 ## Consequences
 
 - Jobs are defined as code in the repo, image and job definition together. There is no

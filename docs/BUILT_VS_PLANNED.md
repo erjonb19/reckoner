@@ -218,6 +218,25 @@ named.
 
 ---
 
+### Scheduled pipeline on Azure (Phase 2)
+
+- **ADLS Gen2 `reckonerlake0914`** (East US, HNS on) holds bronze: 118 files, 56,784,415 rows,
+  559,607,543 bytes, verified by reading back through `storage.resolve()` rather than trusting
+  the upload log.
+- **Container Apps Job `reckoner-pipeline`** — schedule `0 6 1 * *`, 2 vCPU / 4 GiB, image from
+  ghcr.io, authenticating with a user-assigned managed identity. One green run on demand;
+  the first scheduled firing is 1 October.
+- **Startup memory check.** Every execution logs the cgroup-reported ceiling against the
+  stage's measured peak. Confirmed against a live container: `memory_ceiling_mib: 4096`,
+  matching the job definition.
+- **Log Analytics `reckoner-logs`** — 0.5 GB/day cap, 31-day retention.
+- **Cost, measured:** a 36-second execution consumed 72 vCPU-s and 144 GiB-s = **$0.00216 at
+  list price, $0.00 after the monthly free grant** (0.04% of it). The $0.10/hour environment
+  management meter does **not** apply — verified Consumption-only profile, no private
+  endpoint, no VNet (ADR 0004).
+- **Not built:** the stages themselves. `reckoner_job` logs `stage_not_implemented` and exits
+  0; wiring the manifest, contract, publish and verify stages to real work is the next step.
+
 ## Scaffolded
 
 Real code, but not yet load-bearing.
