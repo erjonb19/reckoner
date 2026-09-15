@@ -153,6 +153,7 @@ def run_manifest() -> int:
         return 1
     layers.append(manifest_check.bronze_payer(ingest_date))
     layers.append(manifest_check.SILVER_HOSPITAL)
+    layers.append(manifest_check.SILVER_PAYER)
 
     failed = []
     for layer in layers:

@@ -226,7 +226,12 @@ named.
   - **silver/hospital_rates** — 93 files, 156,484,277 rows, 3,749 MB, partitioned
     `hospital_slug/code_type/vintage` (73 partitions, median 56,016 rows), every system's row
     count checked against the source before the manifest was written.
-  - Total 4.309 GB; 4.868 GB once payer silver lands, against a 5 GB free tier.
+  - **silver/payer_rates** — 14 files, 56,784,415 rows, 438 MB, partitioned `carrier/vintage`,
+    derived from bronze rather than from the parser a second time. Compaction falls out of the
+    key: EmblemHealth's 98 files, one per plan, share a carrier and a vintage and become one.
+    118 files in, 14 out, and 22% smaller than bronze on the same rows.
+  - **Total 4.747 GB of a 5 GB free tier**, 229 files. The layout ADR 0003 describes is
+    complete; nothing further is planned against that allowance.
 - **Container Apps Job `reckoner-pipeline`** — schedule `0 6 1 * *`, 2 vCPU / 4 GiB, image from
   ghcr.io, authenticating with a user-assigned managed identity. One green run on demand;
   the first scheduled firing is 1 October.
@@ -238,8 +243,8 @@ named.
   list price, $0.00 after the monthly free grant** (0.04% of it). The $0.10/hour environment
   management meter does **not** apply — verified Consumption-only profile, no private
   endpoint, no VNet (ADR 0004).
-- **Stage 1 (`--stage manifest`) is wired.** It diffs both layers against the manifests that
-  described them — files, rows and bytes per carrier and per hospital — and emits one
+- **Stage 1 (`--stage manifest`) is wired.** It diffs all three layers against the manifests
+  that described them — files, rows and bytes per carrier and per hospital — and emits one
   `manifest_group` record per group plus a `manifest_summary`, carrying the Log Analytics cap
   status so a capped day is visible rather than silent. Row counts come from the Parquet
   footers, not the blob listing: a file can be the right size and the wrong content. **A

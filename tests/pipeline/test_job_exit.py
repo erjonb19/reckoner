@@ -55,12 +55,16 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, dict[str, object
     return emitted
 
 
-def both(bronze_ok: bool, silver_ok: bool) -> Callable[[object, Layer], ManifestDiff]:
+def both(
+    bronze_ok: bool, silver_ok: bool, payer_ok: bool = True
+) -> Callable[[object, Layer], ManifestDiff]:
     """Stand in for compare(), answering per layer."""
 
     def fake(location: object, layer: Layer) -> ManifestDiff:
         if layer.name.startswith("bronze"):
             return diff(layer.name, matches=bronze_ok)
+        if layer.name == "silver/payer_rates":
+            return diff(layer.name, matches=payer_ok, group_key="carrier", group="Emblem")
         return diff(layer.name, matches=silver_ok, group_key="hospital_slug", group="crouse-health")
 
     return fake
@@ -83,6 +87,12 @@ class TestTheExitCode:
 
         assert reckoner_job.run_manifest() == 1
 
+    def test_a_payer_silver_mismatch_exits_non_zero(self, stubbed, monkeypatch):
+        """The third layer is checked on equal terms with the other two."""
+        monkeypatch.setattr(manifest_check, "compare", both(True, True, False))
+
+        assert reckoner_job.run_manifest() == 1
+
     def test_no_baseline_at_all_exits_non_zero(self, stubbed, monkeypatch):
         """Nothing to compare against is a broken check, not a passing one."""
         monkeypatch.setattr(manifest_check, "latest_ingest_date", lambda location: None)
@@ -99,7 +109,7 @@ class TestTheExitCode:
         monkeypatch.setattr(manifest_check, "compare", boom)
 
         assert reckoner_job.run_manifest() == 1
-        assert [e for e, _ in stubbed].count("manifest_unreadable") == 2
+        assert [e for e, _ in stubbed].count("manifest_unreadable") == 3
 
     def test_the_stage_wrapper_propagates_it(self, stubbed, monkeypatch):
         monkeypatch.setattr(manifest_check, "compare", both(False, True))
@@ -118,6 +128,7 @@ class TestWhatItEmits:
         layers = [f.get("layer") for _, f in stubbed if f.get("event") != "stage_end"]
         assert "bronze/payer_tic" in layers
         assert "silver/hospital_rates" in layers
+        assert "silver/payer_rates" in layers
 
     def test_a_failing_bronze_does_not_silence_silver(self, stubbed, monkeypatch):
         """The whole point of not stopping at the first failure."""
@@ -126,15 +137,23 @@ class TestWhatItEmits:
         reckoner_job.run_manifest()
 
         summaries = {f["layer"]: f["matches"] for e, f in stubbed if e == "manifest_summary"}
-        assert summaries == {"bronze/payer_tic": False, "silver/hospital_rates": True}
+        assert summaries == {
+            "bronze/payer_tic": False,
+            "silver/hospital_rates": True,
+            "silver/payer_rates": True,
+        }
 
     def test_a_failure_names_the_layers_that_failed(self, stubbed, monkeypatch):
-        monkeypatch.setattr(manifest_check, "compare", both(False, False))
+        monkeypatch.setattr(manifest_check, "compare", both(False, False, False))
 
         reckoner_job.run_manifest()
 
         failed = next(f for e, f in stubbed if e == "manifest_failed")
-        assert failed["layers"] == ["bronze/payer_tic", "silver/hospital_rates"]
+        assert failed["layers"] == [
+            "bronze/payer_tic",
+            "silver/hospital_rates",
+            "silver/payer_rates",
+        ]
 
     def test_a_dry_run_does_no_work(self, stubbed, monkeypatch):
         def fail(*args: object) -> None:
