@@ -89,7 +89,9 @@ BATCH_ROWS = 100_000
 class PublishResult:
     """What was written, and whether reading it back agrees."""
 
-    hospital: str
+    #: What was published -- a health system for hospital silver, a carrier for
+    #: payer silver. Named for the role rather than one of its two occupants.
+    subject: str
     destination: str
     rows_read: int
     rows_written: int
@@ -102,7 +104,7 @@ class PublishResult:
     def describe(self) -> str:
         state = "verified" if self.verified else "MISMATCH"
         return (
-            f"{self.hospital} -> {self.destination}: {self.rows_written:,} rows "
+            f"{self.subject} -> {self.destination}: {self.rows_written:,} rows "
             f"across {self.partitions} partitions ({state})"
         )
 
@@ -216,7 +218,7 @@ def publish_hospital(
         {str(f).rsplit("/", 1)[0] for f in written.files if f"hospital_slug={slug}/" in str(f)}
     )
     return PublishResult(
-        hospital=hospital,
+        subject=hospital,
         destination=f"{target.describe()}/hospital_slug={slug}",
         rows_read=rows_read,
         rows_written=rows_written,
@@ -226,10 +228,15 @@ def publish_hospital(
 
 #: Where the silver manifest lives, mirroring the data path it describes.
 SILVER_MANIFEST = ("_meta", "silver", "hospital_rates", "upload_manifest.json")
+SILVER_PAYER_MANIFEST = ("_meta", "silver", "payer_rates", "upload_manifest.json")
 
 
 def build_manifest(
-    destination: Location, results: list[PublishResult], *, layer: str
+    destination: Location,
+    results: list[PublishResult],
+    *,
+    layer: str,
+    group_key: str = "hospital_slug",
 ) -> dict[str, Any]:
     """Describe what landed, one entry per file.
 
@@ -250,9 +257,9 @@ def build_manifest(
         uploads.append(
             {
                 "destination": path,
-                "hospital_slug": parts.get("hospital_slug", "?"),
-                "code_type": parts.get("code_type", "?"),
-                "vintage": parts.get("vintage", "?"),
+                # Every partition value the path carries, so a manifest entry is
+                # readable without knowing which layer wrote it.
+                **{key: value for key, value in parts.items()},
                 "rows": ds.dataset(
                     path, filesystem=destination.filesystem, format="parquet"
                 ).count_rows(),
@@ -262,16 +269,16 @@ def build_manifest(
 
     rows_landed = sum(u["rows"] for u in uploads)
     rows_from_source = sum(r.rows_read for r in results)
-    by_slug: dict[str, int] = {}
+    by_group: dict[str, int] = {}
     for upload in uploads:
-        key = str(upload["hospital_slug"])
-        by_slug[key] = by_slug.get(key, 0) + 1
+        key = str(upload.get(group_key, "?"))
+        by_group[key] = by_group.get(key, 0) + 1
 
     return {
         "layer": layer,
         # Named so a reader of the manifest knows which partition column groups
         # its entries, rather than the checker having to guess per layer.
-        "group_key": "hospital_slug",
+        "group_key": group_key,
         "data_root": destination.root,
         "published_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "files": len(uploads),
@@ -281,22 +288,24 @@ def build_manifest(
         # above were read back, but this says they agree with what was asked for.
         "verified": rows_landed == rows_from_source,
         "megabytes": round(sum(u["bytes"] for u in uploads) / 1e6, 1),
-        "by_hospital_slug": dict(sorted(by_slug.items())),
+        f"by_{group_key}": dict(sorted(by_group.items())),
         "uploads": uploads,
     }
 
 
-def write_manifest(root: Location, manifest: dict[str, Any]) -> str:
+def write_manifest(
+    root: Location, manifest: dict[str, Any], *, path: tuple[str, ...] = SILVER_MANIFEST
+) -> str:
     """Write the manifest under ``_meta``, which is keyed off the lake root.
 
     ``root`` is the lake, not the destination: ``_meta`` sits beside ``silver/``
     rather than inside it, so that one place lists everything published.
     """
-    target = root.child(*SILVER_MANIFEST)
+    target = root.child(*path)
     # open_output_stream does not create the parents. ADLS with a hierarchical
     # namespace needs the directories to exist, and a local filesystem raises
     # outright -- which is how this was found.
-    root.filesystem.create_dir(root.child(*SILVER_MANIFEST[:-1]).root, recursive=True)
+    root.filesystem.create_dir(root.child(*path[:-1]).root, recursive=True)
     with root.filesystem.open_output_stream(target.root) as handle:
         handle.write(json.dumps(manifest, indent=1).encode("utf-8"))
     return target.root
@@ -319,12 +328,13 @@ SILVER_HOSPITAL_ROOT = ("silver", "hospital_rates")
 FREE_TIER_BYTES = 5_000_000_000
 OVERAGE_PER_GB_MONTH = 0.02
 
-#: Payer silver is not built yet, but its footprint is knowable now: it is the
-#: conformed copy of payer bronze, which is 559,607,543 bytes across 118 files.
-#: Conforming does not add rows, and compacting EmblemHealth's 98 files (20.6 MB
-#: between them) into one improves the compression rather than worsening it, so
-#: bronze's size is a ceiling for it rather than a guess.
-PLANNED_PAYER_SILVER_BYTES = 559_607_543
+#: Work still planned but not yet landed, counted against the free tier so a
+#: projection describes the endpoint rather than today. Payer silver used to sit
+#: here at 559,607,543 bytes -- bronze's size, offered as a ceiling rather than a
+#: guess. It has since landed at 438.4 MB, so the ceiling held and the estimate
+#: is replaced by a measurement. Nothing further is planned; the next layer to be
+#: added should put its estimate here before it is written, not after.
+PLANNED_BYTES = 0
 
 
 def measure(location: Location) -> tuple[int, int]:
@@ -349,14 +359,14 @@ def project_footprint(destination_root: Location, incoming: int) -> dict[str, An
     """
     files, current = measure(destination_root)
     after = current + incoming
-    eventual = after + PLANNED_PAYER_SILVER_BYTES
+    eventual = after + PLANNED_BYTES
     over = max(0, eventual - FREE_TIER_BYTES)
     return {
         "current_files": files,
         "current_bytes": current,
         "incoming_bytes": incoming,
         "after_this_write_bytes": after,
-        "planned_payer_silver_bytes": PLANNED_PAYER_SILVER_BYTES,
+        "planned_bytes": PLANNED_BYTES,
         "eventual_bytes": eventual,
         "free_tier_bytes": FREE_TIER_BYTES,
         "eventual_over_free_tier_bytes": over,
@@ -392,12 +402,133 @@ def publish_all(
     return results, manifest
 
 
+#: Where payer silver lands, and what it is derived from. Silver is built from
+#: bronze rather than from the parser's output a second time: bronze is the
+#: authoritative landing per architecture rule 2, and deriving silver from the
+#: same source twice would let the two drift apart with nothing to detect it.
+SILVER_PAYER_ROOT = ("silver", "payer_rates")
+BRONZE_PAYER_ROOT = ("bronze", "payer_tic")
+
+#: Payer silver is keyed by carrier then vintage. There is no code_type key here
+#: even though the column exists: the payer lake is 56.8M rows against the
+#: hospital lake's 156M, and its code types are not the lopsided distribution
+#: that made the hospital key worth having.
+PAYER_PARTITION_KEYS = ("carrier", "vintage")
+
+
+def publish_payer(
+    lake: Location, ingest_date: str, *, destination: Location | None = None
+) -> tuple[list[PublishResult], dict[str, Any]]:
+    """Conform payer bronze into silver: one carrier at a time, compacted.
+
+    **Compaction is a consequence of the partitioning, not a separate pass.**
+    EmblemHealth landed as 98 files averaging 210 KB, because that is how the
+    TiC files arrive -- one per plan. All 98 share a carrier and a vintage, so
+    they become one partition and ``write_dataset`` writes one file. Nothing
+    concatenates anything; the key does the work.
+    """
+    source_root = lake.child(*BRONZE_PAYER_ROOT, f"ingest_date={ingest_date}")
+    target = destination or lake.child(*SILVER_PAYER_ROOT)
+    dataset = ds.dataset(source_root.root, filesystem=source_root.filesystem, partitioning="hive")
+
+    carriers = sorted(
+        {c for c in dataset.to_table(columns=["carrier"]).column("carrier").to_pylist() if c}
+    )
+    results = []
+    for carrier in carriers:
+        results.append(_publish_one_carrier(dataset, carrier, target))
+        print(f"  {results[-1].describe()}", flush=True)
+        if not results[-1].verified:
+            raise RuntimeError(f"row count mismatch publishing {carrier!r}; stopping")
+
+    manifest = build_manifest(target, results, layer="silver/payer_rates", group_key="carrier")
+    return results, manifest
+
+
+def _publish_one_carrier(dataset: ds.Dataset, carrier: str, target: Location) -> PublishResult:
+    """Write one carrier's rows to silver and verify the count by reading back."""
+    where = ds.field("carrier") == carrier
+    rows_read = dataset.count_rows(filter=where)
+    if rows_read == 0:
+        raise ValueError(f"no bronze rows for carrier {carrier!r}; nothing to publish")
+
+    # `carrier` is re-attached per batch from the partition value, and `vintage`
+    # is derived from last_updated_on -- the column the reader ignored for
+    # months in favour of a hardcoded date map (ADR 0001). Deriving the key from
+    # it here is what makes that column load-bearing rather than decorative.
+    columns = [n for n in dataset.schema.names if n not in PAYER_PARTITION_KEYS]
+    scanner = dataset.scanner(columns=columns, filter=where, batch_size=BATCH_ROWS)
+    schema = scanner.projected_schema.append(pa.field("carrier", pa.string())).append(
+        pa.field("vintage", pa.string())
+    )
+
+    absent = [key for key in PAYER_PARTITION_KEYS if key not in schema.names]
+    if absent:
+        raise ValueError(
+            f"cannot partition {carrier!r} on {absent}: column(s) missing; "
+            "publishing would silently land a shallower tree"
+        )
+
+    ds.write_dataset(
+        _payer_batches(scanner, carrier),
+        base_dir=target.root,
+        filesystem=target.filesystem,
+        format="parquet",
+        partitioning=ds.partitioning(
+            pa.schema([("carrier", pa.string()), ("vintage", pa.string())]), flavor="hive"
+        ),
+        schema=schema,
+        file_options=ds.ParquetFileFormat().make_write_options(compression=COMPRESSION),
+        max_rows_per_file=MAX_ROWS_PER_FILE,
+        basename_template="part-{i}.parquet",
+        existing_data_behavior="overwrite_or_ignore",
+    )
+
+    written = ds.dataset(target.root, filesystem=target.filesystem, partitioning="hive")
+    mine = ds.field("carrier") == carrier
+    rows_written = written.count_rows(filter=mine)
+    partitions = len(
+        {str(f).rsplit("/", 1)[0] for f in written.files if f"carrier={carrier}/" in str(f)}
+    )
+    return PublishResult(
+        subject=carrier,
+        destination=f"{target.describe()}/carrier={carrier}",
+        rows_read=rows_read,
+        rows_written=rows_written,
+        partitions=partitions,
+    )
+
+
+def _payer_batches(scanner: ds.Scanner, carrier: str) -> object:
+    """Scanner batches with the partition columns attached and case conformed."""
+    for batch in scanner.to_batches():
+        table = pa.Table.from_batches([batch])
+        for name in _LOWERCASED:
+            if name in table.schema.names:
+                index = table.schema.get_field_index(name)
+                folded = [
+                    (v.strip().casefold() or None) if isinstance(v, str) else v
+                    for v in table.column(name).to_pylist()
+                ]
+                table = table.set_column(index, name, pa.array(folded, pa.string()))
+        vintages = [partition_vintage(v) for v in table.column("last_updated_on").to_pylist()]
+        table = table.append_column("carrier", pa.array([carrier] * table.num_rows, pa.string()))
+        table = table.append_column("vintage", pa.array(vintages, pa.string()))
+        yield from table.to_batches()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=Path("data/lake"))
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--hospital", help="health system, exact name")
     group.add_argument("--all", action="store_true", help="every system, then write the manifest")
+    group.add_argument(
+        "--payer", action="store_true", help="conform payer bronze into silver, then the manifest"
+    )
+    parser.add_argument(
+        "--ingest-date", default="2026-09-13", help="the bronze ingest date to conform (--payer)"
+    )
     parser.add_argument(
         "--to", type=Path, help="local destination; omit to use the configured storage"
     )
@@ -422,6 +553,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         ok = bool(manifest["verified"]) and all(r.verified for r in results)
         print(f"\n{len(results)} systems, {manifest['files']} files, {manifest['rows']:,} rows")
+        return 0 if ok else 1
+
+    if args.payer:
+        results, manifest = publish_payer(destination, args.ingest_date)
+        where = write_manifest(destination, manifest, path=SILVER_PAYER_MANIFEST)
+        print(f"\nmanifest         : {where}")
+        print(
+            json.dumps({k: v for k, v in manifest.items() if k != "uploads"}, indent=1, default=str)
+        )
+        ok = bool(manifest["verified"]) and all(r.verified for r in results)
+        print(f"\n{len(results)} carriers, {manifest['files']} files, {manifest['rows']:,} rows")
         return 0 if ok else 1
 
     result = publish_hospital(args.root, args.hospital, destination.child(*SILVER_HOSPITAL_ROOT))

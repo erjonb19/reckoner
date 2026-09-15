@@ -74,6 +74,16 @@ SILVER_HOSPITAL = Layer(
     group_key="hospital_slug",
 )
 
+#: Payer rates, conformed and compacted. Keyed by carrier rather than ingest
+#: date: bronze keeps a dated copy of each landing, silver keeps the current
+#: conformed one, so there is a single tree to check rather than a series.
+SILVER_PAYER = Layer(
+    name="silver/payer_rates",
+    manifest_path=("_meta", "silver", "payer_rates", "upload_manifest.json"),
+    data_root=("silver", "payer_rates"),
+    group_key="carrier",
+)
+
 
 @dataclass
 class Observation:
@@ -300,6 +310,7 @@ def counted(records: list[dict[str, Any]]) -> Counter[str]:
 __all__ = [
     "OVER_QUOTA",
     "SILVER_HOSPITAL",
+    "SILVER_PAYER",
     "CapProbe",
     "Layer",
     "ManifestDiff",
