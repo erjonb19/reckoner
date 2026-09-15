@@ -28,6 +28,8 @@ import sys
 import time
 from datetime import UTC, datetime
 
+import pyarrow
+
 #: Peak resident memory each stage has actually been measured at, in MiB.
 #: Measured, not estimated -- every figure here came off a real run, and the
 #: ones that are absent are absent because nobody has measured them yet.
@@ -181,6 +183,10 @@ def main(argv: list[str] | None = None) -> int:
         storage=os.environ.get("RECKONER_STORAGE", "local"),
         account=os.environ.get("RECKONER_ADLS_ACCOUNT", ""),
         python=sys.version.split()[0],
+        # The cloud authentication path lives in pyarrow's bundled Azure SDK, so
+        # which pyarrow the image resolved is a question a failed run will ask.
+        pyarrow=pyarrow.__version__,
+        identity=os.environ.get("AZURE_CLIENT_ID", "") or "default credential chain",
     )
     preflight(args.stage)
     code = run(args.stage, dry_run=args.dry_run)

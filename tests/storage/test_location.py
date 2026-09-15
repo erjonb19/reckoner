@@ -21,9 +21,22 @@ import pyarrow.parquet as pq
 import pytest
 
 import storage
-from storage import ADLS, ADLS_ACCOUNT, ADLS_ROOT, LOCAL, STORAGE_MODE, StorageConfigError, resolve
+from storage import (
+    ADLS,
+    ADLS_ACCOUNT,
+    ADLS_ROOT,
+    AZURE_CLIENT_ID,
+    LOCAL,
+    STORAGE_MODE,
+    StorageConfigError,
+    resolve,
+)
 
 REAL = Path(__file__).parent.parent / "fixtures" / "payer_parquet" / "Emblem_HIPHOSH00687.parquet"
+
+#: Stands in for a constructed AzureFileSystem when the test is about the
+#: arguments it was given, not about reaching a storage account.
+FAKE_FS = pafs.LocalFileSystem()
 
 
 class TestTheSeamIsTransparent:
@@ -88,6 +101,44 @@ class TestAdlsIsConstructedWithoutASecret:
         )
 
         assert location.root == "lake"
+
+    def test_a_named_identity_is_passed_through_to_the_filesystem(self, monkeypatch):
+        """In a Container Apps job the default chain shells out to `az` and fails.
+
+        Naming the user-assigned identity selects ManagedIdentityCredential
+        instead, which is what is actually meant. Captured rather than asserted
+        against a live account, because the failure mode is a constructor
+        argument that silently is not passed.
+        """
+        seen: dict[str, str] = {}
+        monkeypatch.setattr(
+            pafs, "AzureFileSystem", lambda **kwargs: seen.update(kwargs) or FAKE_FS
+        )
+
+        resolve(
+            env={
+                STORAGE_MODE: ADLS,
+                ADLS_ACCOUNT: "acct",
+                ADLS_ROOT: "lake",
+                AZURE_CLIENT_ID: "837e436d-ac40-4ce9-a281-8644933a00d1",
+            }
+        )
+
+        assert seen == {
+            "account_name": "acct",
+            "client_id": "837e436d-ac40-4ce9-a281-8644933a00d1",
+        }
+
+    def test_without_one_the_default_chain_is_left_alone(self, monkeypatch):
+        """On a laptop that chain finds the CLI login, so it must not be narrowed."""
+        seen: dict[str, str] = {}
+        monkeypatch.setattr(
+            pafs, "AzureFileSystem", lambda **kwargs: seen.update(kwargs) or FAKE_FS
+        )
+
+        resolve(env={STORAGE_MODE: ADLS, ADLS_ACCOUNT: "acct", ADLS_ROOT: "lake"})
+
+        assert seen == {"account_name": "acct"}, "client_id must be absent, not empty"
 
     def test_this_module_reads_no_credential(self):
         """A guard, not a formality: nothing here may learn a key or a token.
