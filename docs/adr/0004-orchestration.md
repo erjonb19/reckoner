@@ -83,6 +83,38 @@ So the environment itself is free and only job executions bill. If a dedicated
 profile or a private endpoint is ever added, this meter starts and the budget
 alert at 50% of $5 is the thing that will notice.
 
+**Confirmed against billing, not just configuration.** The table above is a
+prediction from the environment's settings; this is the invoice. Cost Management
+(`Microsoft.CostManagement/query`, 2026-09-01 to 2026-09-16, grouped by
+`MeterCategory`/`Meter` and again by `ServiceName`/`ResourceId`) returns **no
+Container Apps meter of any kind** — no environment management hour, no vCPU-second,
+no GiB-second — across roughly two days of a live environment and four job
+executions. Zero-cost meters do appear in that output (`Standard Data Transfer In`,
+`Analytics Logs Data Ingestion`), so absence here is absence, not a filtered zero.
+
+The whole subscription bills **$0.033** for the period:
+
+| meter category | meter | cost |
+|---|---|---|
+| Storage | Hot LRS Write Operations | $0.010218 |
+| Storage | Hot LRS Other Operations | $0.002837 |
+| Storage | Hot LRS Read Operations | $0.001727 |
+| Storage | Hot Iterative Read Operations | $0.000371 |
+| Storage | Hot LRS Data Stored | $0.000178 |
+| Storage | Hot Other Operations | $0.000008 |
+| Log Analytics | Analytics Logs Data Ingestion | $0.000000 |
+| Bandwidth | Standard Data Transfer In / Out - Free | $0.000000 |
+| Microsoft Fabric | Compute Pool Capacity Usage CU | **$0.017706** |
+
+The storage line is dominated by write operations — hospital silver was published
+twice, once with the wrong codec (`docs/silent-failures.md`, entry 6).
+
+The Fabric line is not a running cost. It is two F2 capacities created in
+`westus2` and `centralus` as a quota probe and deleted within a minute, before
+ADR 0003 dropped Fabric entirely. A read-only quota check was available and was the
+right tool; this is what using `create` to ask a question costs. Both are gone, the
+meter is closed, and it is recorded here rather than netted out of a total.
+
 ## Consequences
 
 - Jobs are defined as code in the repo, image and job definition together. There is no
