@@ -126,20 +126,47 @@ def preflight(stage: str) -> bool:
     return bool(fits) if fits is not None else True
 
 
+def run_manifest() -> int:
+    """Stage 1: does ADLS still match the manifest that described it?
+
+    Exits non-zero on any mismatch. A job reporting success with a bad diff in
+    its logs is worse than one that fails: logs get read when something already
+    looks wrong, and the execution status is what gets noticed first.
+    """
+    from pipeline import cap, manifest_check
+    from storage import resolve
+
+    location = resolve()
+    ingest_date = manifest_check.latest_ingest_date(location)
+    if ingest_date is None:
+        log("manifest_no_baseline", detail="no ingest_date= under _meta; nothing to compare")
+        return 1
+
+    diff = manifest_check.compare(location, ingest_date)
+    status = cap.ingestion_status()
+    for record in manifest_check.telemetry(diff, status):
+        log(record.pop("event"), **record)
+    return 0 if diff.matches else 1
+
+
 def run(stage: str, *, dry_run: bool) -> int:
     started = time.monotonic()
     log("stage_start", stage=stage, dry_run=dry_run)
+    code = 0
     if dry_run:
         log("stage_skipped", stage=stage, reason="dry run")
-    else:  # pragma: no cover - the real stages land in a later change
+    elif stage == "manifest":
+        code = run_manifest()
+    else:  # pragma: no cover - the remaining stages land in a later change
         log("stage_not_implemented", stage=stage)
     log(
         "stage_end",
         stage=stage,
         seconds=round(time.monotonic() - started, 2),
         peak_rss_mib=peak_rss_mib(),
+        exit_code=code,
     )
-    return 0
+    return code
 
 
 def main(argv: list[str] | None = None) -> int:

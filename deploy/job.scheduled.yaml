@@ -55,3 +55,15 @@ properties:
           # from this. No secret exists in the image, the repo or this file.
           - name: AZURE_CLIENT_ID
             value: PLACEHOLDER_IDENTITY_CLIENT_ID
+          # Where to ask whether Log Analytics is still accepting data. Read
+          # through ARM with the same identity, which holds Reader on the
+          # workspace; a subscription id is an identifier, not a credential, but
+          # it is templated like the others so nothing environment-specific is
+          # committed. Absent these, the job still runs and reports the cap
+          # status as unknown with the reason attached -- never as "not capped".
+          - name: RECKONER_SUBSCRIPTION_ID
+            value: PLACEHOLDER_SUBSCRIPTION_ID
+          - name: RECKONER_RESOURCE_GROUP
+            value: rg-reckoner
+          - name: RECKONER_LOG_WORKSPACE
+            value: reckoner-logs

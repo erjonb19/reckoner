@@ -16,7 +16,7 @@ WORKDIR /app
 # Dependencies before source, so a code change does not re-resolve the wheels.
 COPY pyproject.toml ./
 COPY src/ ./src/
-RUN pip install --no-cache-dir . azure-identity>=1.17
+RUN pip install --no-cache-dir .
 
 # Unprivileged: the job reads ADLS and writes nothing to the filesystem it
 # cannot afford to lose.
