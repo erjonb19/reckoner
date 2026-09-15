@@ -8,6 +8,11 @@ version = "0.1.0"
 description = "Hospital contract and reimbursement modeling for New York: APR-DRG payment calculation, rate benchmarking, and price transparency reconciliation."
 requires-python = ">=3.11"
 dependencies = [
+    # The storage seam reaches ADLS through pyarrow.fs, which resolves
+    # credentials via DefaultAzureCredential. Declared here rather than pinned
+    # in the Dockerfile so the image and the package cannot drift apart, and so
+    # the tests that cover the cloud paths actually run in CI.
+    "azure-identity>=1.17",
     "httpx>=0.27",
     "ijson>=3.2",
     "pyarrow>=16.0",
@@ -63,8 +68,21 @@ known-first-party = ["agents", "benchmark", "discovery", "hospital", "model", "p
 python_version = "3.11"
 strict = true
 mypy_path = "src"
-packages = ["agents", "benchmark", "discovery", "hospital", "model", "payer", "reconcile"]
+packages = [
+    "agents",
+    "benchmark",
+    "discovery",
+    "hospital",
+    "model",
+    "payer",
+    "pipeline",
+    "reconcile",
+    "storage",
+]
 
+# Third parties without type stubs. azure-identity is the newest of these; the
+# list is explicit rather than a blanket ignore so a genuinely missing import
+# elsewhere still fails the build.
 [[tool.mypy.overrides]]
-module = ["ijson.*", "openpyxl.*", "pyarrow.*"]
+module = ["azure.*", "ijson.*", "openpyxl.*", "pyarrow.*"]
 ignore_missing_imports = true
