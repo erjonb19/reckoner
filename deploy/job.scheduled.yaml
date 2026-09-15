@@ -1,0 +1,57 @@
+# Scheduled Container Apps Job, applied with:
+#   az containerapp job create --name reckoner-pipeline --resource-group rg-reckoner \
+#       --environment reckoner-env --yaml deploy/job.scheduled.yaml
+#
+# YAML rather than the CLI's --args form, deliberately. `az containerapp job
+# create --args="--stage manifest --dry-run"` accepts the string and stores it as
+# a SINGLE argument, which argparse then rejects at run time; `job update --args`
+# refuses multiple values outright. Both failures are silent until an execution
+# runs. The list form below is unambiguous.
+# The identity is NOT set here, and cannot be. Two ways of trying fail quietly:
+# passing --mi-user-assigned alongside --yaml is ignored with a warning, and an
+# `identity:` block in the YAML is rejected by `job update` with "Request
+# requires identities to be assigned". Both leave a job that reports Succeeded
+# with identityType None -- which would first surface as an auth failure against
+# ADLS on the 1st of the month, with nothing before it to notice.
+#
+# So it is a separate, verified step:
+#   az containerapp job identity assign --name reckoner-pipeline #       --resource-group rg-reckoner --user-assigned <identity resource id>
+#   az containerapp job show ... --query identity.type    # must be UserAssigned
+properties:
+  environmentId: PLACEHOLDER_ENVIRONMENT_ID
+  configuration:
+    triggerType: Schedule
+    replicaTimeout: 3600
+    replicaRetryLimit: 1
+    scheduleTriggerConfig:
+      # 06:00 UTC on the 1st. Payer files update monthly and hospital files
+      # annually, so anything more frequent is polling for news that has not
+      # happened -- and the manifest diff makes a no-change run a no-op anyway.
+      cronExpression: "0 6 1 * *"
+      parallelism: 1
+      replicaCompletionCount: 1
+  template:
+    containers:
+      - name: pipeline
+        image: ghcr.io/erjonb19/reckoner/reckoner-job:latest
+        args:
+          - "--stage"
+          - "manifest"
+        resources:
+          # 2 vCPU / 4 GiB. Consumption allows 4/8, but this pipeline has peaked
+          # at 9,808 MiB, so 8 GiB would not rescue the stage that needs it while
+          # doubling the consumption of every stage that does not. The entrypoint
+          # logs the ceiling against each stage's measured peak on startup.
+          cpu: 2.0
+          memory: 4Gi
+        env:
+          - name: RECKONER_STORAGE
+            value: adls
+          - name: RECKONER_ADLS_ACCOUNT
+            value: reckonerlake0914
+          - name: RECKONER_ADLS_ROOT
+            value: lake
+          # DefaultAzureCredential resolves the user-assigned managed identity
+          # from this. No secret exists in the image, the repo or this file.
+          - name: AZURE_CLIENT_ID
+            value: PLACEHOLDER_IDENTITY_CLIENT_ID
