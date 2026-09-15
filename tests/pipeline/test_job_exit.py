@@ -155,6 +155,25 @@ class TestWhatItEmits:
             "silver/payer_rates",
         ]
 
+    def test_the_run_states_which_layers_it_covered(self, stubbed, monkeypatch):
+        """A two-layer run and a three-layer run both look like success.
+
+        The difference is only visible if the run says so. Written after a
+        manual execution reported Succeeded having checked two of three layers,
+        because it was running an image built before the third existed.
+        """
+        monkeypatch.setattr(manifest_check, "compare", both(True, True))
+
+        reckoner_job.run_manifest()
+
+        stated = next(f for e, f in stubbed if e == "manifest_layers")
+        assert stated["count"] == 3
+        assert stated["layers"] == [
+            "bronze/payer_tic",
+            "silver/hospital_rates",
+            "silver/payer_rates",
+        ]
+
     def test_a_dry_run_does_no_work(self, stubbed, monkeypatch):
         def fail(*args: object) -> None:
             raise AssertionError("a dry run must not read the container")

@@ -155,6 +155,11 @@ def run_manifest() -> int:
     layers.append(manifest_check.SILVER_HOSPITAL)
     layers.append(manifest_check.SILVER_PAYER)
 
+    # Stated up front rather than left to be inferred from which records turned
+    # up. A run that checked two layers and a run that checked three both look
+    # like success; the difference is only visible if the run says so.
+    log("manifest_layers", layers=[layer.name for layer in layers], count=len(layers))
+
     failed = []
     for layer in layers:
         try:
@@ -212,6 +217,10 @@ def main(argv: list[str] | None = None) -> int:
         # which pyarrow the image resolved is a question a failed run will ask.
         pyarrow=pyarrow.__version__,
         identity=os.environ.get("AZURE_CLIENT_ID", "") or "default credential chain",
+        # Baked into the image at build time. An execution that cannot say which
+        # commit it is running cannot be told apart from one running a stale
+        # image, and a stale image reports Succeeded while doing less.
+        build_sha=os.environ.get("RECKONER_BUILD_SHA", "unknown"),
     )
     preflight(args.stage)
     code = run(args.stage, dry_run=args.dry_run)

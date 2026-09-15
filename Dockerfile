@@ -18,6 +18,14 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 RUN pip install --no-cache-dir .
 
+# Which commit this image was built from, baked in at build time and logged on
+# every execution. Without it an execution cannot say what code it is running,
+# and a job that ran a stale `latest` reports Succeeded having quietly done less
+# than the current code would -- which is exactly what happened when a manual run
+# started 43 seconds before its own image finished pushing.
+ARG BUILD_SHA=unknown
+ENV RECKONER_BUILD_SHA=$BUILD_SHA
+
 # Unprivileged: the job reads ADLS and writes nothing to the filesystem it
 # cannot afford to lose.
 RUN useradd --create-home --uid 10001 reckoner
