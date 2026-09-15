@@ -156,6 +156,41 @@ to break the thing it monitors.
 
 ---
 
+## 8. A job ran a stale image and reported success having checked less
+
+**Symptom.** A manual execution finished `Succeeded`, exit code 0, every record
+`matches=True`. It had checked **two of three layers**. The third — payer silver,
+merged minutes earlier — was simply absent from the telemetry, and nothing in the
+run said so.
+
+**Cause.** Two failures stacked.
+
+The process one: `gh run list --workflow=image.yml --limit 1` immediately after a
+merge returns the *previous* build, because the new workflow run does not exist yet.
+Watching it succeed and starting the job produced an execution at 12:24:20Z against
+an image that finished pushing at 12:25:03Z — the job started 43 seconds before its
+own code existed, and faithfully ran what `:latest` pointed at.
+
+The design one, which is the real defect: **the job could not say what code it was
+running.** `job_start` logged the Python and pyarrow versions but nothing about the
+image, so a stale build was indistinguishable from a current one. The discrepancy was
+only found by noticing a missing record twenty minutes later.
+
+**Why it is the worst shape in this file.** Every other entry is caught by a check
+that now exists. This one could silently defeat those checks: the guards are in the
+image, so an execution running an older image runs an older set of guards while
+reporting the same green.
+
+**Caught by.** The commit SHA is baked into the image at build time
+(`ARG BUILD_SHA` / `RECKONER_BUILD_SHA`, passed from `github.sha`) and logged on
+`job_start`, so every execution names the code it ran. The stage also logs
+`manifest_layers` with the layer names and count before checking any of them, so
+coverage is stated rather than inferred from which records turned up
+(`test_the_run_states_which_layers_it_covered`). And an image build is now waited on
+by matching `headSha` to the merge commit, not by taking the newest run.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
