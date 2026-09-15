@@ -1,11 +1,14 @@
-"""Diffing the manifest against what is actually in the container.
+"""Diffing a manifest against what is actually in the container.
 
-The manifest records what a publish intended. Between that publish and this
-check, a file can be deleted, republished, or truncated, and none of those
-announce themselves -- they surface later as a number that is quietly wrong.
+A manifest records what a publish intended. Between that publish and this check,
+a file can be deleted, republished, or truncated, and none of those announce
+themselves -- they surface later as a number that is quietly wrong.
 
-The test that earns this module is ``test_row_drift_is_caught_when_bytes_match``.
-Checking sizes proves bytes arrived; only the Parquet footer proves data did.
+Two tests earn this module. ``test_row_drift_is_caught_when_bytes_match``:
+checking sizes proves bytes arrived, only the Parquet footer proves data did.
+And ``test_two_partitions_sharing_a_basename_are_told_apart``: silver names every
+partition's first file ``part-0.parquet``, so identifying files by name would
+collapse 73 partitions into one entry and hide a deleted partition entirely.
 """
 
 from __future__ import annotations
@@ -18,6 +21,8 @@ import pyarrow.parquet as pq
 
 from pipeline.cap import OVER_QUOTA, RESPECT_QUOTA, CapProbe
 from pipeline.manifest_check import (
+    SILVER_HOSPITAL,
+    bronze_payer,
     compare,
     latest_ingest_date,
     observe,
@@ -27,6 +32,7 @@ from pipeline.manifest_check import (
 from storage import local
 
 DATE = "2026-09-13"
+BRONZE = bronze_payer(DATE)
 
 
 def write_parquet(path: Path, rows: int) -> int:
@@ -69,11 +75,47 @@ def lake(
     return tmp_path
 
 
+def silver(
+    tmp_path: Path,
+    partitions: dict[tuple[str, str], int],
+    *,
+    claim_rows: dict[tuple[str, str], int] | None = None,
+    withhold: tuple[str, str] | None = None,
+) -> Path:
+    """A silver tree keyed slug/code_type/vintage, where every file is part-0."""
+    root = tmp_path / "silver" / "hospital_rates"
+    uploads = []
+    for (slug, code_type), rows in partitions.items():
+        relative = f"hospital_slug={slug}/code_type={code_type}/vintage=2026-04/part-0.parquet"
+        size = write_parquet(root / relative, rows)
+        if withhold == (slug, code_type):
+            (root / relative).unlink()
+        uploads.append(
+            {
+                "destination": f"silver/hospital_rates/{relative}",
+                "hospital_slug": slug,
+                "code_type": code_type,
+                "vintage": "2026-04",
+                "rows": (claim_rows or {}).get((slug, code_type), rows),
+                "bytes": size,
+            }
+        )
+    meta = tmp_path / "_meta" / "silver" / "hospital_rates"
+    meta.mkdir(parents=True, exist_ok=True)
+    (meta / "upload_manifest.json").write_text(
+        json.dumps(
+            {"group_key": "hospital_slug", "published_at": "2026-09-15", "uploads": uploads}
+        ),
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
 class TestAMatchingLake:
     def test_it_matches(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10, "UHC": 7})
 
-        diff = compare(local(root), DATE)
+        diff = compare(local(root), BRONZE)
 
         assert diff.matches
         assert diff.observed.rows == 17
@@ -83,12 +125,14 @@ class TestAMatchingLake:
     def test_every_carrier_gets_a_record_plus_one_summary(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10, "Cigna": 4, "UHC": 7})
 
-        records = telemetry(compare(local(root), DATE), CapProbe(RESPECT_QUOTA))
+        records = telemetry(compare(local(root), BRONZE), CapProbe(RESPECT_QUOTA))
 
-        assert [r["event"] for r in records] == ["manifest_carrier"] * 3 + ["manifest_summary"]
-        assert {r["carrier"] for r in records[:3]} == {"Aetna", "Cigna", "UHC"}
+        assert [r["event"] for r in records] == ["manifest_group"] * 3 + ["manifest_summary"]
+        assert {r["group"] for r in records[:3]} == {"Aetna", "Cigna", "UHC"}
+        assert {r["group_key"] for r in records} == {"carrier"}
+        assert {r["layer"] for r in records} == {"bronze/payer_tic"}
         assert records[-1]["matches"] is True
-        assert records[-1]["carriers_mismatched"] == []
+        assert records[-1]["groups_mismatched"] == []
 
 
 class TestDrift:
@@ -100,10 +144,10 @@ class TestDrift:
         """
         root = lake(tmp_path, {"Aetna": 10}, claim_rows={"Aetna": 999})
 
-        diff = compare(local(root), DATE)
+        diff = compare(local(root), BRONZE)
 
         assert not diff.matches
-        row = diff.per_carrier[0]
+        row = diff.per_group[0]
         assert row["expected_bytes"] == row["observed_bytes"], "the size check would have passed"
         assert (row["expected_rows"], row["observed_rows"]) == (999, 10)
         assert row["matches"] is False
@@ -111,28 +155,78 @@ class TestDrift:
     def test_a_deleted_file_is_named(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10, "UHC": 7}, withhold="UHC")
 
-        diff = compare(local(root), DATE)
+        diff = compare(local(root), BRONZE)
 
         assert not diff.matches
-        assert diff.missing == ["uhc.parquet"]
+        assert diff.missing == ["carrier=UHC/uhc.parquet"]
         assert diff.observed.files == 1
 
     def test_an_unexpected_file_is_named(self, tmp_path):
         """Something published without going through the manifest."""
         root = lake(tmp_path, {"Aetna": 10}, extra_file="Rogue")
 
-        diff = compare(local(root), DATE)
+        diff = compare(local(root), BRONZE)
 
         assert not diff.matches
-        assert diff.unexpected == ["surprise.parquet"]
+        assert diff.unexpected == ["carrier=Rogue/surprise.parquet"]
 
     def test_the_summary_names_which_carrier_drifted(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10, "UHC": 7}, claim_rows={"UHC": 1})
 
-        summary = telemetry(compare(local(root), DATE), CapProbe(RESPECT_QUOTA))[-1]
+        summary = telemetry(compare(local(root), BRONZE), CapProbe(RESPECT_QUOTA))[-1]
 
         assert summary["matches"] is False
-        assert summary["carriers_mismatched"] == ["UHC"]
+        assert summary["groups_mismatched"] == ["UHC"]
+
+
+class TestSilver:
+    def test_a_matching_silver_tree_matches(self, tmp_path):
+        root = silver(tmp_path, {("crouse-health", "CPT"): 10, ("crouse-health", "MS-DRG"): 4})
+
+        diff = compare(local(root), SILVER_HOSPITAL)
+
+        assert diff.matches
+        assert diff.group_key == "hospital_slug"
+        assert diff.observed.rows == 14
+
+    def test_two_partitions_sharing_a_basename_are_told_apart(self, tmp_path):
+        """Every silver file is part-0.parquet; identity has to be the path.
+
+        Keyed on basenames these two collapse to one entry, the counts still
+        add up, and a deleted partition reports no drift at all.
+        """
+        root = silver(
+            tmp_path,
+            {("northwell-health", "CPT"): 10, ("northwell-health", "CDM"): 20},
+            withhold=("northwell-health", "CDM"),
+        )
+
+        diff = compare(local(root), SILVER_HOSPITAL)
+
+        assert not diff.matches
+        assert diff.missing == [
+            "hospital_slug=northwell-health/code_type=CDM/vintage=2026-04/part-0.parquet"
+        ]
+
+    def test_it_groups_by_hospital_not_carrier(self, tmp_path):
+        root = silver(tmp_path, {("a-health", "CPT"): 3, ("b-health", "CPT"): 5})
+
+        records = telemetry(compare(local(root), SILVER_HOSPITAL), CapProbe(RESPECT_QUOTA))
+
+        assert [r["group"] for r in records[:-1]] == ["a-health", "b-health"]
+        assert {r["group_key"] for r in records} == {"hospital_slug"}
+        assert {r["layer"] for r in records} == {"silver/hospital_rates"}
+
+    def test_one_hospitals_drift_does_not_implicate_another(self, tmp_path):
+        root = silver(
+            tmp_path,
+            {("a-health", "CPT"): 3, ("b-health", "CPT"): 5},
+            claim_rows={("b-health", "CPT"): 99},
+        )
+
+        summary = telemetry(compare(local(root), SILVER_HOSPITAL), CapProbe(RESPECT_QUOTA))[-1]
+
+        assert summary["groups_mismatched"] == ["b-health"]
 
 
 class TestTheCapSignal:
@@ -140,7 +234,7 @@ class TestTheCapSignal:
         """Carried beside the result it might have truncated, not inferred later."""
         root = lake(tmp_path, {"Aetna": 10})
 
-        summary = telemetry(compare(local(root), DATE), CapProbe(OVER_QUOTA))[-1]
+        summary = telemetry(compare(local(root), BRONZE), CapProbe(OVER_QUOTA))[-1]
 
         assert summary["log_ingestion_status"] == OVER_QUOTA
         assert summary["log_cap_hit"] is True
@@ -148,7 +242,7 @@ class TestTheCapSignal:
     def test_an_unknown_status_says_why(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10})
 
-        summary = telemetry(compare(local(root), DATE), CapProbe(None, "http 403"))[-1]
+        summary = telemetry(compare(local(root), BRONZE), CapProbe(None, "http 403"))[-1]
 
         assert summary["log_ingestion_status"] == "unknown"
         assert summary["log_cap_hit"] is False
@@ -165,6 +259,13 @@ class TestFindingTheBaseline:
     def test_no_meta_at_all_is_none_not_a_crash(self, tmp_path):
         assert latest_ingest_date(local(tmp_path)) is None
 
+    def test_the_silver_manifest_directory_is_not_read_as_a_date(self, tmp_path):
+        """`_meta/silver/` sits beside the dated directories and is not one."""
+        (tmp_path / "_meta" / "silver" / "hospital_rates").mkdir(parents=True)
+        (tmp_path / "_meta" / "ingest_date=2026-09-13").mkdir(parents=True)
+
+        assert latest_ingest_date(local(tmp_path)) == "2026-09-13"
+
 
 class TestReadingTheManifest:
     def test_a_bom_does_not_break_it(self, tmp_path):
@@ -175,12 +276,12 @@ class TestReadingTheManifest:
             b"\xef\xbb\xbf" + json.dumps({"uploads": []}).encode()
         )
 
-        assert read_manifest(local(tmp_path), DATE) == {"uploads": []}
+        assert read_manifest(local(tmp_path), BRONZE) == {"uploads": []}
 
-    def test_observation_counts_per_carrier(self, tmp_path):
+    def test_observation_counts_per_group(self, tmp_path):
         root = lake(tmp_path, {"Aetna": 10, "UHC": 7})
 
-        total, detail = observe(local(root), DATE)
+        total, detail = observe(local(root), BRONZE)
 
         assert total.rows == 17
-        assert {c: o.rows for c, o in detail["per_carrier"].items()} == {"Aetna": 10, "UHC": 7}
+        assert {c: o.rows for c, o in detail["per_group"].items()} == {"Aetna": 10, "UHC": 7}

@@ -129,26 +129,50 @@ def preflight(stage: str) -> bool:
 
 
 def run_manifest() -> int:
-    """Stage 1: does ADLS still match the manifest that described it?
+    """Stage 1: does ADLS still match the manifests that described it?
 
-    Exits non-zero on any mismatch. A job reporting success with a bad diff in
-    its logs is worse than one that fails: logs get read when something already
-    looks wrong, and the execution status is what gets noticed first.
+    Both layers are checked in one execution, and a failure in one does not stop
+    the other: "bronze drifted" and "bronze and silver both drifted" are
+    different situations, and stopping at the first would report them the same
+    way. The exit code is non-zero if either fails.
+
+    A job reporting success with a bad diff in its logs is worse than one that
+    fails: logs get read once something already looks wrong, and the execution
+    status is what gets noticed first.
     """
     from pipeline import cap, manifest_check
     from storage import resolve
 
     location = resolve()
+    status = cap.ingestion_status()
+
+    layers = []
     ingest_date = manifest_check.latest_ingest_date(location)
     if ingest_date is None:
-        log("manifest_no_baseline", detail="no ingest_date= under _meta; nothing to compare")
+        log("manifest_no_baseline", layer="bronze/payer_tic", detail="no ingest_date= under _meta")
         return 1
+    layers.append(manifest_check.bronze_payer(ingest_date))
+    layers.append(manifest_check.SILVER_HOSPITAL)
 
-    diff = manifest_check.compare(location, ingest_date)
-    status = cap.ingestion_status()
-    for record in manifest_check.telemetry(diff, status):
-        log(record.pop("event"), **record)
-    return 0 if diff.matches else 1
+    failed = []
+    for layer in layers:
+        try:
+            diff = manifest_check.compare(location, layer)
+        except Exception as exc:
+            # An unreadable layer is a failure of the check, not an absence of
+            # drift, and must not be reported as a clean run.
+            log("manifest_unreadable", layer=layer.name, error=f"{type(exc).__name__}: {exc}")
+            failed.append(layer.name)
+            continue
+        for record in manifest_check.telemetry(diff, status):
+            log(record.pop("event"), **record)
+        if not diff.matches:
+            failed.append(layer.name)
+
+    if failed:
+        log("manifest_failed", layers=failed)
+        return 1
+    return 0
 
 
 def run(stage: str, *, dry_run: bool) -> int:

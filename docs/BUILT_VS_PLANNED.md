@@ -212,7 +212,7 @@ named.
 
 ### Engineering
 
-- **820 tests**, all passing. Parser tests are
+- **867 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
@@ -220,9 +220,13 @@ named.
 
 ### Scheduled pipeline on Azure (Phase 2)
 
-- **ADLS Gen2 `reckonerlake0914`** (East US, HNS on) holds bronze: 118 files, 56,784,415 rows,
-  559,607,543 bytes, verified by reading back through `storage.resolve()` rather than trusting
-  the upload log.
+- **ADLS Gen2 `reckonerlake0914`** (East US, HNS on) holds two layers, both verified by
+  reading back through `storage.resolve()` rather than trusting the upload log:
+  - **bronze/payer_tic** — 118 files, 56,784,415 rows, 559,607,543 bytes.
+  - **silver/hospital_rates** — 93 files, 156,484,277 rows, 3,749 MB, partitioned
+    `hospital_slug/code_type/vintage` (73 partitions, median 56,016 rows), every system's row
+    count checked against the source before the manifest was written.
+  - Total 4.309 GB; 4.868 GB once payer silver lands, against a 5 GB free tier.
 - **Container Apps Job `reckoner-pipeline`** — schedule `0 6 1 * *`, 2 vCPU / 4 GiB, image from
   ghcr.io, authenticating with a user-assigned managed identity. One green run on demand;
   the first scheduled firing is 1 October.
@@ -234,8 +238,14 @@ named.
   list price, $0.00 after the monthly free grant** (0.04% of it). The $0.10/hour environment
   management meter does **not** apply — verified Consumption-only profile, no private
   endpoint, no VNet (ADR 0004).
-- **Not built:** the stages themselves. `reckoner_job` logs `stage_not_implemented` and exits
-  0; wiring the manifest, contract, publish and verify stages to real work is the next step.
+- **Stage 1 (`--stage manifest`) is wired.** It diffs both layers against the manifests that
+  described them — files, rows and bytes per carrier and per hospital — and emits one
+  `manifest_group` record per group plus a `manifest_summary`, carrying the Log Analytics cap
+  status so a capped day is visible rather than silent. Row counts come from the Parquet
+  footers, not the blob listing: a file can be the right size and the wrong content. **A
+  mismatch exits non-zero**, so the execution reports Failed rather than Succeeded with a bad
+  diff buried in the logs.
+- **Not built:** the contract, publish and verify stages still log `stage_not_implemented`.
 
 ## Scaffolded
 
@@ -244,9 +254,9 @@ Real code, but not yet load-bearing.
 - **Storage seam for the cloud.** `src/storage/` — implements ADR 0002. `resolve()` returns
   a root and a `pyarrow.fs` filesystem, defaulting to local with no configuration; both
   readers take an optional `Location`. Verified transparent on the real lake: 156,484,277
-  hospital rows and 56,784,415 payer rows identical with the seam and without it. Scaffolded
-  rather than built because the ADLS path has never run against a real account — there
-  isn't one yet.
+  hospital rows and 56,784,415 payer rows identical with the seam and without it. **No longer
+  scaffolded** — the ADLS path has published 156M rows to a real account and been read back
+  from a container job.
 - `src/storage/publish.py` — the "cloud load" half of ADR 0001's "local parse then cloud
   load", which nothing implemented before: the seam could only read. Streams via
   `write_dataset` so an 89M-row system never materialises, and **verifies by reading back**
