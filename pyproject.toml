@@ -15,7 +15,11 @@ dependencies = [
     "azure-identity>=1.17",
     "httpx>=0.27",
     "ijson>=3.2",
-    "pyarrow>=16.0",
+    # 25.0 is the floor this is verified against, and the constructor argument
+    # that matters is AzureFileSystem(client_id=...), which selects
+    # ManagedIdentityCredential. An older pyarrow that does not accept it would
+    # fall back to a credential chain that cannot authenticate in a container.
+    "pyarrow>=25.0",
     "openpyxl>=3.1",
     "PyYAML>=6.0",
 ]

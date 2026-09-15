@@ -11,18 +11,31 @@ because the two would differ only in the filesystem object they hand to the same
 ``ds.dataset`` call, and only one of them could ever be exercised without cloud
 credentials. One code path stays under test; the other would have been hoped for.
 
-**No credential passes through this module.** ``AzureFileSystem`` falls back to
-``DefaultAzureCredential`` when constructed with only an account name, so
-authentication comes from the Azure CLI login, a managed identity, or the
+**No credential passes through this module.** ``AzureFileSystem`` resolves
+authentication itself -- from the Azure CLI login, a managed identity, or the
 environment -- outside this process and outside this repository. The account name
-is a public identifier, not a secret. Nothing here reads a key, a token or a
-connection string, and nothing should be added that does.
+and the identity's client id are public identifiers, not secrets. Nothing here
+reads a key, a token or a connection string, and nothing should be added that
+does; ``test_this_module_reads_no_credential`` enforces that.
+
+**Why the identity is named rather than discovered.** Constructed with only an
+account name, ``AzureFileSystem`` uses the Azure C++ SDK's
+``DefaultAzureCredential``, whose chain in a Container Apps job tried the
+environment, then shelled out to the Azure CLI -- ``/bin/sh: 1: az: not found``
+-- and then failed outright, with the managed identity never producing a token.
+Passing ``client_id`` selects ``ManagedIdentityCredential`` for that specific
+user-assigned identity instead, which is both what is meant and one request
+rather than a sequence of failing probes. Locally the variable is unset and the
+default chain, which finds the CLI login, still applies.
 
 Configuration, all optional, all defaulting to local:
 
 * ``RECKONER_STORAGE`` -- ``local`` (default) or ``adls``.
 * ``RECKONER_ADLS_ACCOUNT`` -- storage account name, required when ``adls``.
 * ``RECKONER_ADLS_ROOT`` -- container and prefix, e.g. ``lake/curated``.
+* ``AZURE_CLIENT_ID`` -- user-assigned managed identity to authenticate as, when
+  running somewhere that has one. Read here rather than renamed because the
+  Azure SDKs already define it, and two names for one identity is one too many.
 
 Fabric is deliberately absent from all of it. Per architecture rule 2, ADLS Gen2
 is the authoritative store and Fabric reads it through OneLake shortcuts, so
@@ -42,6 +55,8 @@ import pyarrow.fs as pafs
 STORAGE_MODE = "RECKONER_STORAGE"
 ADLS_ACCOUNT = "RECKONER_ADLS_ACCOUNT"
 ADLS_ROOT = "RECKONER_ADLS_ROOT"
+#: Azure's own name for it; see the module docstring on why it is not renamed.
+AZURE_CLIENT_ID = "AZURE_CLIENT_ID"
 
 LOCAL = "local"
 ADLS = "adls"
@@ -114,15 +129,21 @@ def resolve(root: Path | str | None = None, *, env: dict[str, str] | None = None
             f"{STORAGE_MODE}={ADLS} requires {ADLS_ROOT}, the container and prefix to read"
         )
 
-    # Constructed with the account name only, so authentication is
-    # DefaultAzureCredential's problem and no secret is read here.
-    return Location(root=prefix, filesystem=pafs.AzureFileSystem(account_name=account))
+    # A client id names a user-assigned managed identity and selects
+    # ManagedIdentityCredential; without one the default chain applies. Either
+    # way authentication happens inside the SDK and no secret is read here.
+    client_id = (environ.get(AZURE_CLIENT_ID) or "").strip()
+    options = {"account_name": account}
+    if client_id:
+        options["client_id"] = client_id
+    return Location(root=prefix, filesystem=pafs.AzureFileSystem(**options))
 
 
 __all__ = [
     "ADLS",
     "ADLS_ACCOUNT",
     "ADLS_ROOT",
+    "AZURE_CLIENT_ID",
     "LOCAL",
     "STORAGE_MODE",
     "Location",
