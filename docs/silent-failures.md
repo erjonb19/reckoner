@@ -1,0 +1,185 @@
+# Silent failures
+
+Every entry here is something that **reported success and was wrong**. That is the
+only kind of bug this file collects. A crash announces itself and gets fixed in an
+hour; a green run with bad output gets believed, built on, and found weeks later by
+someone reconciling a number that will not reconcile.
+
+The pattern is consistent enough to be worth naming: a tool accepts input it cannot
+honour, does something adjacent to what was asked, and returns zero. Nothing in the
+exit code, the logs, or the output distinguishes it from the correct outcome.
+
+Each entry ends with **the check that now catches it**, because a postmortem without
+one is just a story.
+
+---
+
+## 1. `--args` collapses a command line into a single argument
+
+**Symptom.** `az containerapp job create --args="--stage manifest --dry-run"` was
+accepted, the job was created, and `az containerapp job show` reported it healthy.
+The first execution failed inside the container on an argparse error about an
+unrecognised argument — one long string where four were meant.
+
+**Cause.** The CLI stores the value as one element. `job update --args` is worse: it
+refuses multiple values outright. Neither failure appears until a replica runs.
+
+**Caught by.** `deploy/job.scheduled.yaml` declares `args` as a YAML list, and the
+job is created from the file rather than from flags. The file is committed, so the
+form is reviewable instead of living in one person's shell history.
+
+---
+
+## 2. A managed identity cannot be assigned from the job YAML
+
+**Symptom.** A job created from YAML with an `identity:` block, or with
+`--mi-user-assigned` passed alongside `--yaml`, reports `Succeeded`. Its
+`identity.type` is `None`.
+
+**Cause.** The flag is ignored with a warning when `--yaml` is present; the YAML
+block is rejected by `job update` with "Request requires identities to be assigned".
+Both leave a job that looks complete. The failure would first surface as an auth
+error against ADLS on the 1st of the month, with nothing before it to notice.
+
+**Caught by.** Identity assignment is a separate, verified step, documented in the
+header of `deploy/job.scheduled.yaml`:
+`az containerapp job show ... --query identity.type` must read `UserAssigned`.
+
+---
+
+## 3. pyarrow's Azure credential chain shells out to a CLI the container lacks
+
+**Symptom.** The first execution that actually read ADLS failed with
+`Failed to get token from DefaultAzureCredential`, preceded by
+`/bin/sh: 1: az: not found`. Everything was configured correctly: identity attached,
+`AZURE_CLIENT_ID` matching, **Storage Blob Data Contributor** granted.
+
+**The silent half.** The execution before it reported `Succeeded` — because the stage
+was still a `stage_not_implemented` placeholder. Nothing had ever authenticated, so a
+green run proved only that the container started.
+
+**Cause.** `AzureFileSystem` built with an account name alone uses the Azure **C++**
+SDK's `DefaultAzureCredential` — bundled inside pyarrow, not the Python
+`azure-identity` in the image. Its chain tries the environment, then the Azure CLI,
+then gives up.
+
+**Caught by.** `storage.resolve()` passes `client_id`, selecting
+`ManagedIdentityCredential` explicitly.
+`test_a_named_identity_is_passed_through_to_the_filesystem` captures the constructor
+kwargs — the failure mode is an argument that silently is not passed, so asserting on
+a live account would not have caught it — and its pair asserts `client_id` is
+**absent**, not empty, when unset, so the laptop path is not narrowed.
+
+---
+
+## 4. `write_dataset` drops a partition field the schema does not have
+
+**Symptom.** Publishing with `partitioning=[hospital_slug, code_type, vintage]`
+against data lacking `code_type` produced a two-level tree and returned normally.
+Row counts verified. The layout was simply not the one requested.
+
+**Cause.** pyarrow does not object to a partition field absent from the write schema.
+It writes what it can.
+
+**Why it matters.** A silver copy keyed on two of three columns is not a smaller
+mistake than a failed write. It is the same wrong layout with nothing to say so, and
+every query written against it would return correct-looking answers over the wrong
+partitions.
+
+**Caught by.** `publish_hospital` checks `PARTITION_KEYS` against the write schema
+and raises before writing.
+`test_a_missing_partition_column_raises_rather_than_flattening`.
+
+---
+
+## 5. `str.replace` returns the string unchanged when nothing matches
+
+**Symptom.** A `--all` flag was added to `storage.publish`. Running it called
+`publish_hospital(None)` and died with "no curated rows for None". The `--all` branch
+had never been inserted — the edit that was supposed to add it did nothing.
+
+**Cause.** Python's `str.replace` is not an assertion. When the pattern is absent it
+returns the original, the script exits 0, and the linter and type checker both pass
+because the file is still valid code. Every gate was green over an edit that had not
+happened.
+
+**Why it is in this file.** This one is about the tooling used to write the other
+fixes, which makes it the most expensive kind: it can silently undo any of them.
+
+**Caught by.** Scripted edits now `assert` the anchor is present before replacing, so
+a stale pattern fails loudly. And the behaviour itself has tests: `TestTheCommandLine`
+covers `--all`, `--hospital`, and neither, including that the free-tier check prints
+*before* the first write.
+
+---
+
+## 6. `write_dataset` defaults to snappy against a zstd source
+
+**Symptom.** Hospital silver published, verified, every row count matching — at
+**6.2 GB from a 3.5 GB source**. Nothing was wrong with the data.
+
+**Cause.** The curated lake is zstd. `write_dataset`'s default is snappy. Same rows,
+same layout, weaker codec.
+
+**Why it counts as silent.** A verified write with correct row counts is exactly what
+a correct run looks like. The only signal was a number in a manifest that nobody had
+a reason to compare against the source's size — and the pre-write projection, which
+was computed from local file sizes and so described the source rather than the
+destination.
+
+**Caught by.** `COMPRESSION = "zstd"` in `storage/publish.py`, pinned by
+`test_it_is_written_with_the_codec_the_source_uses`. Re-publishing recovered 2.45 GB.
+
+---
+
+## 7. A bare `except` made every diagnostic failure look identical
+
+**Symptom.** The Log Analytics cap probe reported `"log_ingestion_status": "unknown"`
+on a run that was otherwise correct, with no indication why.
+
+**Cause.** `except Exception: return None` collapsed a missing library, a refused
+token, a network error, and a workspace with no cap configured into one word. In this
+case it was `azure-identity` missing from the venv — which was itself a second silent
+failure, since the package was pinned only in the Dockerfile, so the image and the
+package could drift and every test covering a cloud path would skip in CI while
+passing on a laptop that happened to have it.
+
+**Why it matters.** `log_cap_hit` would have read `false` forever. The signal that
+exists to stop a capped day looking like a quiet day would itself have failed
+quietly.
+
+**Caught by.** `CapProbe` carries a `detail` alongside the status, surfaced as
+`log_probe_detail` on every summary record. `azure-identity` is a declared
+dependency. `tests/pipeline/test_cap.py` covers each failure path by name, and the
+probe still never raises — a diagnostic about the telemetry channel must not be able
+to break the thing it monitors.
+
+---
+
+## Earlier, same family
+
+Two from before this file existed, kept because they are the same shape:
+
+- **The wheel omitted the job entrypoint.** `reckoner_job.py` is a top-level module,
+  not a package, so `packages.find` did not see it. The image built cleanly and would
+  have died at run time with `ModuleNotFoundError`. Found by building the wheel and
+  inspecting its contents rather than trusting the build. Fixed with
+  `py-modules = ["reckoner_job"]` in `pyproject.toml`, which carries the reason.
+
+- **`--mode pairs` produced zero pairs for four merged PRs.** A refactor left
+  `facilities=None`, removing the system→facility bridge. The command ran, exited 0,
+  and printed an empty mart — which is also what a legitimately empty result looks
+  like, so nothing distinguished them.
+
+---
+
+## The rule this file argues for
+
+When a tool can accept input it cannot honour, assume it will, and check the outcome
+rather than the return code. Concretely, in this repo:
+
+- Verify **what landed**, not what was sent — row counts from Parquet footers, tree
+  shape from the paths, identity from `az ... --query identity.type`.
+- A diagnostic that cannot answer must say **why**, never just "unknown".
+- A check that could not run has **not** found the data clean; it fails.
+- An exit code is the signal people notice first, so put the verdict in it.

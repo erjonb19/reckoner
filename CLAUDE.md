@@ -23,8 +23,8 @@ There are **two separate rules**. Do not conflate them.
 ## Architecture rules
 
 1. **Parse once, land curated.** Read large files a single time, write a filtered slice to ADLS Gen2. Never rescan raw files.
-2. **ADLS Gen2 is authoritative.** Fabric reads via OneLake shortcuts. Fabric is compute and presentation, never the only copy of the data.
-3. **Logic in code, in git.** Notebooks and SQL. Do NOT use Dataflow Gen2 or GUI pipeline definitions — they do not port when the Fabric trial ends.
+2. **ADLS Gen2 is authoritative.** Everything else — DuckDB, Polars, Power BI Desktop, a notebook — is a *reader* of it. No engine ever holds the only copy. Fabric is not part of this: ADR 0003 dropped it (no capacity quota, and $262/month for 4.3 GB of data), so there is no OneLake shortcut and no workspace this project writes to.
+3. **Logic in code, in git.** Python and SQL, run from `src/`. No GUI-defined pipelines or dataflows: a definition that exists only in a portal cannot be reviewed, tested, or moved.
 4. **Quarantine, never hard-fail.** Rows failing validation go to `_rejects` with a reason code. Alert on reject-rate thresholds.
 5. **Every load is audited.** `LOAD_AUDIT`: batch id, source URL, file vintage, rows in, rows out, checksum. Loads must be idempotent and re-runnable.
 
@@ -74,8 +74,11 @@ Four agents, all doing work **inside** the pipeline. NL-to-SQL over the marts is
 │   ├── payer/         # reader over the already-parsed TiC parquet
 │   ├── benchmark/     # CMS fee schedule loaders
 │   ├── reconcile/     # comparability rules, variance mart, system-range compare
-│   └── agents/        # A2 (payer + plan matchers) and their eval harnesses
-├── notebooks/         # Fabric notebooks, exported
+│   ├── agents/        # A2 (payer + plan matchers) and their eval harnesses
+│   ├── storage/       # the seam (ADR 0002) and the cloud publisher
+│   ├── pipeline/      # the scheduled job's stages: manifest diff, cap probe
+│   └── reckoner_job.py  # container entrypoint, one stage per execution
+├── deploy/            # the Container Apps Job definition, as YAML
 ├── tests/
 └── evals/             # labeled sets, scoring, results history
 ```
@@ -120,16 +123,39 @@ lake holds 12 systems and the payer target list holds 7; four appear in both —
 Mount Sinai, NYU Langone, NewYork-Presbyterian, Northwell. Only those four can be
 reconciled at all.
 
+**Deployed (Phase 2, Azure-native per ADR 0003; orchestration per ADR 0004).**
+All East US, all in `rg-reckoner`:
+
+- **ADLS Gen2 `reckonerlake0914`** (hierarchical namespace on) is the
+  authoritative store, holding `bronze/payer_tic` (118 files, 56,784,415 rows)
+  and `silver/hospital_rates` (93 files, 156,484,277 rows, partitioned
+  `hospital_slug/code_type/vintage`). Both written with zstd, matching the
+  curated lake; taking `write_dataset`'s snappy default once cost 2.45 GB.
+- **Container Apps Job `reckoner-pipeline`** — Consumption profile, 2 vCPU /
+  4 GiB, cron `0 6 1 * *`, image from ghcr.io (no ACR: ~$5/month would trip the
+  budget). One stage per execution; `--stage manifest` is wired, the rest log
+  `stage_not_implemented`.
+- **Authentication is a user-assigned managed identity**, named explicitly via
+  `AZURE_CLIENT_ID`. Not left to `DefaultAzureCredential`: pyarrow's bundled
+  Azure C++ chain shells out to the Azure CLI, which no container has. No key,
+  SAS token or connection string exists in the repo or the image.
+- **Log Analytics `reckoner-logs`** — 0.5 GB/day cap, 31-day retention. The job
+  reads its own `dataIngestionStatus` through ARM and carries it on every
+  summary record, so a capped day is visible rather than silent.
+- **Cost target: the free tier.** 5 GB of hot LRS blob (4.87 GB projected once
+  payer silver lands) and the monthly Container Apps grant of 180,000 vCPU-s /
+  360,000 GiB-s, of which a run uses ~0.04%. The $0.10/hour environment
+  management meter does not apply — Consumption-only, no private endpoint, no
+  VNet. Anything that would cost money beyond this is a question for the human,
+  not a decision to make.
+
 **Open gates:**
 
-- Fabric trial activation depends on tenant access, still unresolved. Do not
-  write Fabric-specific code yet. The seam is now built (`src/storage/`), so
-  adopting the cloud is a matter of configuration rather than code: set
-  `RECKONER_STORAGE=adls`, `RECKONER_ADLS_ACCOUNT` and `RECKONER_ADLS_ROOT`.
-  Authentication is `DefaultAzureCredential`'s job and no secret is read in
-  code. Note the target is **ADLS Gen2, not Fabric** -- rule 2 makes ADLS
-  authoritative and Fabric a consumer via OneLake shortcuts, so a workspace on
-  its own is not a place this project may write.
+- **Fabric is closed, not open.** ADR 0003 dropped it: the trial would not
+  activate, the subscription carries zero Fabric capacity units in East US, and
+  an F2 is $0.36/hour — $262/month to serve 4.3 GB. Phase 2 is Azure-native
+  instead, and the seam (ADR 0002) made that a configuration change rather than
+  a rewrite. Do not reintroduce Fabric-specific code.
 - **The payer contract is declared but not enforced.** `src/payer/contract.py`
   states the boundary `mrf_pipeline` writes and `src/payer/curated.py` reads —
   shape, the federal TiC enums, and the per-file invariants live code assumes.
