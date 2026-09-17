@@ -81,3 +81,13 @@ properties:
             value: rg-reckoner
           - name: RECKONER_LOG_WORKSPACE
             value: reckoner-logs
+          # Arrow's default allocator (jemalloc on Linux) keeps freed pages
+          # rather than returning them, which is right for a long-lived query
+          # engine and wrong for a loop that allocates and frees a large table
+          # per slice. Profiling put Arrow's true high-water for a slice at
+          # 0.523 GB against 7.1 GB resident, so roughly six gigabytes was
+          # freed-but-retained. The system allocator gives pages back sooner.
+          # Read by pyarrow at import time; the job logs backend_name on start
+          # so a variable that silently did nothing is visible as such.
+          - name: ARROW_DEFAULT_MEMORY_POOL
+            value: system
