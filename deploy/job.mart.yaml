@@ -91,3 +91,14 @@ properties:
           # so a variable that silently did nothing is visible as such.
           - name: ARROW_DEFAULT_MEMORY_POOL
             value: system
+          # With the system pool the allocator is glibc malloc, so jemalloc's
+          # MALLOC_CONF decay settings do not apply -- these are the glibc
+          # equivalents. Arrow runs a thread pool, and glibc gives each thread
+          # its own arena that it grows and never shares; capping the arena
+          # count is the standard fix for the resulting RSS bloat in a
+          # container. The trim threshold makes free() return the top of the
+          # heap sooner instead of holding it for the next allocation.
+          - name: MALLOC_ARENA_MAX
+            value: "2"
+          - name: MALLOC_TRIM_THRESHOLD_
+            value: "131072"
