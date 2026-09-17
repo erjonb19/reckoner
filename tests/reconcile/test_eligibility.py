@@ -141,6 +141,54 @@ class TestTheCache:
         assert facility_only_hospitals(d) == frozenset({"A"})
 
 
+class TestItDoesNotMaterialiseTheLake:
+    def test_compute_never_calls_to_table(self, tmp_path):
+        """The whole lake as one table is several GB, and stage 2 has 4.
+
+        Not a style preference: this ran first in the mart stage and killed the
+        container 50 seconds in with no traceback. A guard rather than a comment,
+        because the batched and unbatched versions return the same answer and
+        nothing else would notice the difference until it ran in production.
+        """
+        d = lake(tmp_path / "l", [("A", "facility", "CPT")] * 100)
+
+        class NoToTable:
+            """Everything a dataset offers except the one call that would OOM."""
+
+            def __init__(self, inner: ds.Dataset) -> None:
+                self._inner = inner
+                self.files = inner.files
+
+            def scanner(self, **kwargs: object) -> object:
+                return self._inner.scanner(**kwargs)
+
+            def to_table(self, **kwargs: object) -> object:
+                raise AssertionError(
+                    "compute() must stream; to_table holds the whole lake in memory"
+                )
+
+        assert compute(NoToTable(d)).eligible == frozenset({"A"})
+
+    def test_batching_gives_the_same_answer_as_one_pass(self, tmp_path):
+        import reconcile.eligibility as module
+
+        rows = [("A", "facility", "CPT")] * 50 + [("B", "professional", "CPT")] * 10
+        d = lake(tmp_path / "l", rows)
+
+        whole = compute(d)
+        original = module.SCAN_BATCH
+        try:
+            module.SCAN_BATCH = 7
+            tiny = compute(d)
+        finally:
+            module.SCAN_BATCH = original
+
+        assert tiny.eligible == whole.eligible == frozenset({"A"})
+        assert {s.system: s.professional_rows for s in tiny.systems} == {
+            s.system: s.professional_rows for s in whole.systems
+        }
+
+
 class TestTheFingerprint:
     def test_it_reads_no_rows(self, tmp_path):
         """It guards a 156M-row scan, so it must be cheaper than one."""

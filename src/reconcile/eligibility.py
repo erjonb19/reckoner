@@ -35,6 +35,10 @@ SHARED_CODE_TYPES = ("CPT", "HCPCS", "MS-DRG")
 
 CACHE_VERSION = 1
 
+#: Rows per batch when scanning for eligibility. Small enough that a batch is
+#: cheap to hold, large enough that 38 million rows is not a million round trips.
+SCAN_BATCH = 200_000
+
 
 @dataclass(frozen=True)
 class SystemEligibility:
@@ -96,21 +100,31 @@ def lake_vintage(dataset: ds.Dataset) -> str:
 
 
 def compute(dataset: ds.Dataset) -> EligibilityCache:
-    """Scan the lake and answer for every system in it."""
-    table = dataset.to_table(
+    """Scan the lake and answer for every system in it.
+
+    **Batched, not materialised.** Two string columns over the shared code types
+    is roughly 38 million rows, which as one table is several gigabytes. That is
+    unremarkable on a laptop and fatal in a 4 GiB container: this function was
+    the first thing stage 2 called, and the container died 50 seconds in with no
+    traceback -- the silent kill the startup check exists to make legible. The
+    answer is a handful of counters, so nothing needs to be held at once.
+    """
+    scanner = dataset.scanner(
         columns=["hospital", "billing_class"],
         filter=ds.field("code_type").isin(list(SHARED_CODE_TYPES)),
+        batch_size=SCAN_BATCH,
     )
     counts: dict[str, int] = {}
-    for name, billing_class in zip(
-        table.column("hospital").to_pylist(),
-        table.column("billing_class").to_pylist(),
-        strict=True,
-    ):
-        if not name:
-            continue
-        professional = (billing_class or "").strip().casefold() == "professional"
-        counts[name] = counts.get(name, 0) + (1 if professional else 0)
+    for batch in scanner.to_batches():
+        for name, billing_class in zip(
+            batch.column("hospital").to_pylist(),
+            batch.column("billing_class").to_pylist(),
+            strict=True,
+        ):
+            if not name:
+                continue
+            professional = (billing_class or "").strip().casefold() == "professional"
+            counts[name] = counts.get(name, 0) + (1 if professional else 0)
     return EligibilityCache(
         vintage=lake_vintage(dataset),
         computed_at=datetime.now(UTC).isoformat(timespec="seconds"),
