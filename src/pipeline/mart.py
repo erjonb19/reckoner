@@ -194,6 +194,13 @@ def _reconcile_facility(
     if on_shard is not None:
         on_shard(spec, f"{shard}:{facility}", len(left), len(right), len(mart.rows))
     del right, mart
+    # Collected per slice, not per shard. Splitting the fan-out by facility
+    # bounded what is live at once but not what is *garbage* at once: eight
+    # slices each build and discard their own copy of the shard's payer rates,
+    # so collecting only at the end of the loop let the same 3.16 million
+    # objects pile up unreferenced. The run died on a slice of 2,787 rates,
+    # which is the tell -- by then the size of the slice had stopped mattering.
+    gc.collect()
     gc.collect()
 
 
