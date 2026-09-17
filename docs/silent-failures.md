@@ -191,6 +191,48 @@ by matching `headSha` to the merge commit, not by taking the newest run.
 
 ---
 
+## 9. A tested feature the caller never switched on
+
+**Symptom.** The first full run of stage 2 reported success. Four systems
+reconciled, gold was written, the manifest verified. **Two of the four had
+produced nothing at all** — NYU Langone and NewYork-Presbyterian, zero pairs
+each, and the run was green.
+
+**Cause.** Neither publishes a billing class. The comparability layer refuses an
+unstated class rather than treating it as compatible with anything, so every
+candidate was excluded: **136,259,228** of them for NYU Langone on that one
+reason, 2,289,594 for NYP.
+
+The relaxation for exactly this case already existed. It had been designed,
+scoped mechanically from the data, given a note on every pair it touches, and
+covered by tests including one holding that Maimonides must still be refused
+because it publishes 121,119 professional rows. All of that was correct. It is
+opt-in, and the new stage simply never opted in.
+
+**Why it is the hardest kind to see.** Every other entry here is something
+behaving differently from how it reads. This one behaved exactly as written. No
+exception, no warning, no degraded exit code — two systems reported zero, which
+is a number a reconciliation can legitimately produce, and nothing distinguished
+"nothing to compare" from "never asked". It was found only by reading the
+per-system figures and noticing that two of them were implausible.
+
+A feature that is tested but unwired is worth nothing, and it looks from the
+inside exactly like a feature that is wired and finding nothing.
+
+**Caught by.** The stage computes eligibility from the lake once per run and
+applies the assumption where the data says it may. `coverage` carries
+`assumed_facility_when_unstated` per system, so a reader can see which numbers
+depend on it rather than inferring it from their size, and
+`test_coverage_records_whether_the_facility_assumption_applied` pins that the
+flag travels with the figures.
+
+Mount Sinai is the control that makes the flag trustworthy: eligible, assumption
+applied, numbers **unchanged** at 3,370,446 pairs — because it had no
+`billing_class_unstated` refusals to relax. A flag that changed every system's
+numbers would not have told us whether it was doing the right thing.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
