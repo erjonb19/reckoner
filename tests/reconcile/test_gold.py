@@ -244,6 +244,146 @@ class TestTheAccounting:
         )
 
 
+class TestTheSummaryGrain:
+    """The grain every filter in the report acts on.
+
+    A page that filters by carrier against a table counted per system answers
+    with the system's numbers and looks like it filtered, which is the failure
+    this grain exists to prevent.
+    """
+
+    def test_outcomes_are_keyed_by_carrier_code_type_and_explanation(self):
+        left, right = a_contract_with_a_constant_offset()
+        left.append(hospital("70001", 200.0))
+        right.append(payer("70001", 900.0))
+
+        rows = build_sharded(left, right).outcome_rows()
+
+        assert {r["carrier"] for r in rows} == {"Aetna"}
+        assert {r["code_type"] for r in rows} == {"CPT"}
+        assert {r["explanation"] for r in rows} == {"systematic_offset", "unexplained"}
+        assert sum(r["pairs"] for r in rows) == 31
+
+    def test_outcome_counts_follow_the_offset_reclassification(self):
+        """The counts must move when close() moves them, or the page disagrees
+        with the funnel it sits next to."""
+        left, right = a_contract_with_a_constant_offset()
+
+        rows = {r["explanation"]: r["pairs"] for r in build_sharded(left, right).outcome_rows()}
+
+        assert rows == {"systematic_offset": 30}
+
+    def test_outcomes_sum_to_the_explanation_breakdown(self):
+        left, right = a_contract_with_a_constant_offset()
+        left.append(hospital("70001", 200.0))
+        right.append(payer("70001", 900.0))
+        run = build_sharded(left, right)
+
+        by_explanation: dict[str, int] = {}
+        for row in run.outcome_rows():
+            by_explanation[row["explanation"]] = (
+                by_explanation.get(row["explanation"], 0) + row["pairs"]
+            )
+
+        assert by_explanation == {
+            k: v for k, v in run.explanation.items() if not k.startswith("_") and v
+        }
+
+    def test_an_immaterial_unexplained_pair_is_reclassified_at_grain_too(self):
+        """It never reaches the residual, so its carrier is only remembered here."""
+        left, right = a_contract_with_a_constant_offset()
+        # Inside the 1.4x band, so the offset explains it, but under the 5%
+        # materiality threshold relative to the offset it is not a finding.
+        left.append(hospital("70002", 100.0))
+        right.append(payer("70002", 140.7))
+
+        run = build_sharded(left, right)
+        rows = {r["explanation"]: r["pairs"] for r in run.outcome_rows()}
+
+        assert run.residual == []
+        assert rows.get("unexplained", 0) == 0
+        assert rows["systematic_offset"] == 31
+
+
+class TestTheSummaryTables:
+    def test_coverage_is_one_row_with_the_whole_funnel(self):
+        left, right = a_contract_with_a_constant_offset()
+        left.append(hospital("70001", 200.0))
+        right.append(payer("70001", 900.0))
+
+        row = build_sharded(left, right).coverage_row()
+
+        assert row["pairs_formed"] == 31
+        assert row["unexplained_and_material"] == 1
+        assert row["systematic_offsets"] == 1
+        assert row["carriers"] == 1
+        assert row["candidates"] >= row["pairs_formed"]
+
+    def test_magnitude_sizes_the_residual_rather_than_counting_it(self):
+        left, right = a_contract_with_a_constant_offset()
+        left.append(hospital("70001", 200.0))
+        right.append(payer("70001", 900.0))
+
+        rows = build_sharded(left, right).magnitude_rows()
+
+        assert len(rows) == 1
+        assert rows[0]["residual_pairs"] == 1
+        assert rows[0]["median_relative_difference"] == pytest.approx(3.5)
+        assert rows[0]["median_abs_difference_usd"] == pytest.approx(700.0)
+
+    def test_exemplars_are_capped_per_carrier(self):
+        """Bounded on purpose: it is the one row-level table in the dataset."""
+        left, right = a_contract_with_a_constant_offset()
+        for i in range(40):
+            left.append(hospital(f"9{i:04d}", 100.0))
+            right.append(payer(f"9{i:04d}", 100.0 * (5 + i)))
+
+        rows = build_sharded(left, right).exemplar_rows(per_carrier=25)
+
+        assert len(rows) == 25
+        widest = [r["relative_difference"] for r in rows]
+        assert widest == sorted(widest, reverse=True), "the widest disagreements first"
+
+    def test_refusals_are_reported_at_system_grain(self):
+        left, right = a_contract_with_a_constant_offset(codes=20)
+        left.append(hospital("80001", 50.0))
+        right.append(
+            ComparableRate(
+                source="payer",
+                hospital=FACILITY,
+                code="80001",
+                code_type="CPT",
+                payer="Aetna",
+                plan="Commercial PPO",
+                product_class="commercial",
+                billing_class="professional",
+                rate_dollar=60.0,
+                vintage="2026-04-01",
+            )
+        )
+
+        rows = build_sharded(left, right).refusal_rows()
+
+        assert rows, "a refused candidate must be reported, not dropped"
+        assert set(rows[0]) == {"hospital_slug", "system", "reason", "candidates"}
+        assert "carrier" not in rows[0], "system grain; the page must say the filter is inactive"
+
+    def test_every_table_refuses_to_report_before_close(self):
+        run = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="mount-sinai")
+        left, right = a_contract_with_a_constant_offset()
+        run.add_shard("1", reconcile_shard(left, right))
+
+        for reader in (
+            run.outcome_rows,
+            run.magnitude_rows,
+            run.exemplar_rows,
+            run.coverage_row,
+            run.refusal_rows,
+        ):
+            with pytest.raises(RuntimeError, match="close"):
+                reader()
+
+
 class TestTheGuards:
     def test_a_shard_cannot_be_added_after_close(self):
         """The offsets are fixed at close; a late shard would not be in them."""

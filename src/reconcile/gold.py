@@ -112,10 +112,13 @@ class _Contract:
 
     ratios: array[float] = field(default_factory=lambda: array("d"))
     codes: list[str] = field(default_factory=list)
-    #: Ratios of pairs that are unexplained but *not* material. They cannot enter
-    #: the residual, but an offset still reclassifies them, and the explanation
-    #: counts have to move with it or the breakdown stops summing to the total.
-    immaterial_unexplained: array[float] = field(default_factory=lambda: array("d"))
+    #: Pairs that are unexplained but *not* material. They never reach the
+    #: residual, but an offset still reclassifies them, and the counts have to
+    #: move with it or the breakdown stops summing to the total. The code type
+    #: rides along because the outcome counts are keyed by it and this is the
+    #: only place these pairs are still remembered.
+    immaterial_ratios: array[float] = field(default_factory=lambda: array("d"))
+    immaterial_code_types: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -137,6 +140,11 @@ class Reconciliation:
 
     residual: list[ResidualRow] = field(default_factory=list)
     offsets: list[SystematicOffset] = field(default_factory=list)
+    #: Pairs and material pairs keyed (carrier, code_type, explanation). This is
+    #: the grain every filter in the report acts on -- a page that filters by
+    #: carrier against a table counted per system would answer with the system's
+    #: numbers and look like it had filtered.
+    outcomes: dict[tuple[str, str, str], list[int]] = field(default_factory=dict)
     _contracts: dict[ContractKey, _Contract] = field(default_factory=dict)
     _closed: bool = False
 
@@ -180,6 +188,12 @@ class Reconciliation:
                 self.explanation["_material"] = self.explanation.get("_material", 0) + 1
             self.facilities.add(row.left.hospital)
 
+            bucket = self.outcomes.setdefault(
+                (row.payer, row.code_type or "", row.explanation), [0, 0]
+            )
+            bucket[0] += 1
+            bucket[1] += 1 if row.is_material else 0
+
             key: ContractKey = (row.left.hospital, row.payer, row.left.plan, row.right.plan)
             contract = self._contracts.setdefault(key, _Contract())
             if row.ratio > 0:
@@ -195,7 +209,8 @@ class Reconciliation:
                     _as_residual(row, self.hospital, self.system, self.hospital_slug)
                 )
             elif row.ratio > 0:
-                contract.immaterial_unexplained.append(row.ratio)
+                contract.immaterial_ratios.append(row.ratio)
+                contract.immaterial_code_types.append(sys.intern(row.code_type or ""))
 
     def close(
         self,
@@ -223,6 +238,7 @@ class Reconciliation:
             offset = by_key.get(row.contract)
             if offset is not None and _in_band(row.ratio, offset.ratio, tolerance):
                 moved += 1
+                self._reclassify(row.carrier, row.code_type, material=True)
                 continue
             kept.append(row)
         self.residual = kept
@@ -234,17 +250,134 @@ class Reconciliation:
             offset = by_key.get(key)
             if offset is None:
                 continue
-            moved += sum(
-                1
-                for ratio in contract.immaterial_unexplained
-                if _in_band(ratio, offset.ratio, tolerance)
-            )
+            for ratio, code_type in zip(
+                contract.immaterial_ratios, contract.immaterial_code_types, strict=True
+            ):
+                if _in_band(ratio, offset.ratio, tolerance):
+                    moved += 1
+                    self._reclassify(key[1], code_type, material=False)
 
         if moved:
             self.explanation[UNEXPLAINED] = self.explanation.get(UNEXPLAINED, 0) - moved
             self.explanation[SYSTEMATIC_OFFSET] = self.explanation.get(SYSTEMATIC_OFFSET, 0) + moved
         self._contracts.clear()
         self._closed = True
+
+    def _reclassify(self, carrier: str, code_type: str, *, material: bool) -> None:
+        """Move one pair from unexplained to systematic_offset at outcome grain."""
+        source = self.outcomes.get((carrier, code_type, UNEXPLAINED))
+        if source is not None:
+            source[0] -= 1
+            source[1] -= 1 if material else 0
+        target = self.outcomes.setdefault((carrier, code_type, SYSTEMATIC_OFFSET), [0, 0])
+        target[0] += 1
+        target[1] += 1 if material else 0
+
+    def outcome_rows(self) -> list[dict[str, Any]]:
+        """Pairs by carrier, code type and explanation -- what the filters act on."""
+        self._require_closed("outcome_rows")
+        return [
+            {
+                "hospital_slug": self.hospital_slug,
+                "system": self.system,
+                "carrier": carrier,
+                "code_type": code_type,
+                "explanation": explanation,
+                "pairs": pairs,
+                "material_pairs": material,
+            }
+            for (carrier, code_type, explanation), (pairs, material) in sorted(
+                self.outcomes.items()
+            )
+            if pairs
+        ]
+
+    def magnitude_rows(self) -> list[dict[str, Any]]:
+        """How big the surviving disagreements are, per carrier and code type.
+
+        Computed from the residual rather than accumulated, which costs nothing:
+        the residual is already in memory and is small. A page that counts pairs
+        without sizing them cannot answer the question the project is about.
+        """
+        self._require_closed("magnitude_rows")
+        grouped: dict[tuple[str, str], list[ResidualRow]] = {}
+        for row in self.residual:
+            grouped.setdefault((row.carrier, row.code_type), []).append(row)
+        rows = []
+        for (carrier, code_type), members in sorted(grouped.items()):
+            relative = sorted(r.relative_difference for r in members)
+            absolute = sorted(abs(r.difference) for r in members)
+            rows.append(
+                {
+                    "hospital_slug": self.hospital_slug,
+                    "system": self.system,
+                    "carrier": carrier,
+                    "code_type": code_type,
+                    "residual_pairs": len(members),
+                    "median_relative_difference": round(median(relative), 6),
+                    "p90_relative_difference": round(_percentile(relative, 0.9), 6),
+                    "median_abs_difference_usd": round(median(absolute), 2),
+                    "implausible_pairs": sum(1 for r in members if r.is_implausible),
+                }
+            )
+        return rows
+
+    def exemplar_rows(self, per_carrier: int = 25) -> list[dict[str, Any]]:
+        """The widest residual disagreements, capped per carrier.
+
+        Row-level and therefore bounded on purpose: without a few real examples
+        a report can show that disagreements exist and never show one.
+        """
+        self._require_closed("exemplar_rows")
+        by_carrier: dict[str, list[ResidualRow]] = {}
+        for row in self.residual:
+            by_carrier.setdefault(row.carrier, []).append(row)
+        chosen: list[ResidualRow] = []
+        for carrier in sorted(by_carrier):
+            ranked = sorted(by_carrier[carrier], key=lambda r: (-r.relative_difference, r.code))
+            chosen.extend(ranked[:per_carrier])
+        return as_records(chosen)
+
+    def coverage_row(self) -> dict[str, Any]:
+        """One row: the funnel from rows read to findings that survived."""
+        self._require_closed("coverage_row")
+        return {
+            "hospital_slug": self.hospital_slug,
+            "system": self.system,
+            "hospital_rates": self.hospital_rates,
+            "payer_rates": self.payer_rates,
+            "candidates": self.pairs_formed + sum(self.excluded.values()),
+            "pairs_formed": self.pairs_formed,
+            "comparable_share": round(self.comparable_share, 6),
+            "material": self.material,
+            "unexplained_and_material": len(self.residual),
+            "facilities": len(self.facilities),
+            "carriers": len({carrier for carrier, _, _ in self.outcomes}),
+            "systematic_offsets": len(self.offsets),
+        }
+
+    def refusal_rows(self) -> list[dict[str, Any]]:
+        """Why candidates never became pairs.
+
+        System grain, because the comparability layer counts a refusal without
+        keeping the refused candidate's carrier or code type. Anything reading
+        this has to say the finer filters do not apply to it rather than appear
+        to honour them.
+        """
+        self._require_closed("refusal_rows")
+        return [
+            {
+                "hospital_slug": self.hospital_slug,
+                "system": self.system,
+                "reason": reason,
+                "candidates": count,
+            }
+            for reason, count in sorted(self.excluded.items(), key=lambda kv: -kv[1])
+        ]
+
+    def _require_closed(self, what: str) -> None:
+        if not self._closed:
+            raise RuntimeError(f"call close() before {what}; the offsets are not yet applied")
 
     def measures(self) -> list[dict[str, Any]]:
         """The funnel, long-format: one row per measured quantity.
@@ -253,8 +386,7 @@ class Reconciliation:
         explanation) have no fixed column set, and a table that grows a column
         whenever a new reason appears is one a report has to be edited to read.
         """
-        if not self._closed:
-            raise RuntimeError("call close() before reading measures; offsets are not yet applied")
+        self._require_closed("measures")
         rows = [
             ("headline", "hospital_rates", float(self.hospital_rates)),
             ("headline", "payer_rates", float(self.payer_rates)),
@@ -289,6 +421,14 @@ class Reconciliation:
             }
             for measure, key, value in rows
         ]
+
+
+def _percentile(ordered: list[float], q: float) -> float:
+    """Nearest-rank percentile over an already sorted list."""
+    if not ordered:
+        return 0.0
+    index = min(len(ordered) - 1, max(0, round(q * len(ordered)) - 1))
+    return ordered[index]
 
 
 def _in_band(ratio: float, centre: float, tolerance: float) -> bool:
