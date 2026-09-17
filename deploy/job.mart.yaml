@@ -1,3 +1,19 @@
+# MANUAL TRIGGER ONLY. The schedule was `0 8 1 * *`, two hours after the
+# manifest check, and is removed until the stage can finish in a container. It
+# cannot today: four executions were OOM-killed at the Consumption ceiling. A
+# monthly job that reliably fails is a false alarm, and a false alarm every
+# month teaches whoever reads it to ignore the real one.
+#
+# Gold is currently published from a local run, which does complete. See
+# docs/BUILT_VS_PLANNED.md and the tracking issue.
+#
+# To restore the schedule once an execution is green, put back:
+#     triggerType: Schedule
+#     scheduleTriggerConfig:
+#       cronExpression: "0 8 1 * *"   # two hours after reckoner-pipeline
+#       parallelism: 1
+#       replicaCompletionCount: 1
+#
 # Scheduled Container Apps Job, applied with:
 #   az containerapp job create --name reckoner-pipeline --resource-group rg-reckoner \
 #       --environment reckoner-env --yaml deploy/job.scheduled.yaml
@@ -20,16 +36,10 @@
 properties:
   environmentId: PLACEHOLDER_ENVIRONMENT_ID
   configuration:
-    triggerType: Schedule
+    triggerType: Manual
     replicaTimeout: 7200
     replicaRetryLimit: 1
-    scheduleTriggerConfig:
-      # 08:00 UTC on the 1st, two hours after the manifest check. Not an
-      # ordering guarantee -- Container Apps offers none between jobs -- but a
-      # gap wide enough that the drift check has finished and its result is in
-      # Log Analytics before the mart reads the same layers. If the manifest
-      # check failed, the mart's own numbers will be read next to that failure.
-      cronExpression: "0 8 1 * *"
+    manualTriggerConfig:
       parallelism: 1
       replicaCompletionCount: 1
   template:

@@ -250,6 +250,20 @@ named.
   footers, not the blob listing: a file can be the right size and the wrong content. **A
   mismatch exits non-zero**, so the execution reports Failed rather than Succeeded with a bad
   diff buried in the logs.
+- **Stage 2 (`--stage mart`) reconciles silver into gold.** Four systems, sharded by leading
+  code character and then by facility, writing five tables under `gold/` with the same
+  manifest-and-verify shape as the silver layers. 262,860 residual findings across
+  3,370,446 / 4,552,693 / 6,539,353 / 106,852 pairs. Mount Sinai's figures match the
+  unsharded `mart_cli` run exactly, which is the shard-invariance property holding on real
+  data rather than on a fixture.
+- **Gold is published from a local run, not from the cloud job.** This is the one place where
+  what is deployed and what produced the data differ, so it is stated rather than implied.
+  `reckoner-mart` exists (4 vCPU / 8 GiB) but is **manual-trigger only**: four container
+  executions were OOM-killed, at 4 GiB and again at 8 GiB, which is the Consumption ceiling.
+  A single slice of 395,462 payer rates reaches 7.1 GB, which those objects cannot account
+  for, and the cause is not yet known. The schedule is removed rather than left to fail
+  monthly. Tracked in issue #47; the next step is a `tracemalloc` profile, not another
+  structural guess.
 - **Not built:** the contract, publish and verify stages still log `stage_not_implemented`.
 
 ## Scaffolded
