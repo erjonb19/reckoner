@@ -152,9 +152,28 @@ def reconcile_system(
         del base, by_facility
         gc.collect()
         pa.default_memory_pool().release_unused()
+        _trim_heap()
         continue
     run.close()
     return run
+
+
+def _trim_heap() -> None:
+    """Ask glibc to hand the top of the heap back, where that is a thing.
+
+    ``gc.collect()`` and Arrow's ``release_unused()`` free memory; neither
+    returns it to the operating system, and RSS is what the container is killed
+    for. glibc only trims on free when the top chunk exceeds a threshold, so a
+    loop that frees in one order and allocates in another can hold pages
+    indefinitely. No-op on anything without glibc, which includes the laptop
+    this is written on.
+    """
+    try:
+        import ctypes
+
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        return
 
 
 def _reconcile_facility(
