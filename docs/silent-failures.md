@@ -233,6 +233,51 @@ numbers would not have told us whether it was doing the right thing.
 
 ---
 
+## 10. A gauge that read zero, correctly, about the wrong thing
+
+**Symptom.** Every slice of the mart stage logged `arrow_pool_mib: 0` while the
+container's resident memory climbed to 7.1 GB and was killed. The obvious reading
+— Arrow is not involved, the memory must be Python's — was wrong, and it steered
+**four** structural changes that each moved the number without fixing anything.
+
+**Cause.** The gauge called `pyarrow.total_allocated_bytes()`, which returns what
+Arrow holds **at that instant**. It was sampled at the end of each slice, after
+every table had been released. It was never going to return anything but zero.
+
+The number was correct. It answered a question nobody had asked. Arrow's peak
+during the slice was over a gigabyte, and the call that reports it is
+`pool.max_memory()` — a high-water mark, which is what "did this use a lot of
+memory" means when the thing being measured is transient.
+
+**Why it is the most expensive entry here.** The other nine describe something
+behaving differently from how it reads. This one describes an instrument working
+exactly as designed and being believed about a claim it was never making. It is
+worse than having no instrument, because no instrument would have prompted a
+profile on day one. A wrong reading from a working gauge does not look like
+missing information; it looks like an answer.
+
+Three of the four changes it prompted were kept, because they turned out to be
+correct for other reasons — the carrier and facility splits are exact and were
+verified row-for-row. That is luck, not vindication. They were made to fix
+something they had nothing to do with.
+
+**Caught by.** `arrow_memory()` returns live bytes, the high-water mark, **and**
+the allocator's backend name, and the slice record logs all of them. The backend
+name is there for the same class of reason: `ARROW_DEFAULT_MEMORY_POOL` is read at
+import and ignored in silence when the backend is not compiled in, so a
+configuration change that did nothing would otherwise be indistinguishable from
+one that worked.
+
+The profile that settled it is kept as `scripts/profile_mart_slice.py` and
+`scripts/profile_mart_load.py`, so the next memory question starts with a
+measurement rather than four guesses.
+
+**The rule.** A gauge reading zero is a claim about the instrument as much as
+about the system. Before believing it, ask what it measures and when it was
+sampled — and prefer the high-water mark for anything transient.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
