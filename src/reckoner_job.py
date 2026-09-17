@@ -76,6 +76,21 @@ def memory_ceiling_mib() -> int | None:
     return None
 
 
+def arrow_pool_mib() -> int | None:
+    """What Arrow is holding right now, as opposed to the high-water mark.
+
+    Read separately because the two answer different questions: RSS says how
+    close the container came to being killed, this says whether anything was
+    released afterwards.
+    """
+    try:
+        import pyarrow as pa
+
+        return int(pa.total_allocated_bytes() / (1024 * 1024))
+    except Exception:
+        return None
+
+
 def peak_rss_mib() -> int | None:
     """Peak resident memory so far, or ``None`` where the platform cannot say.
 
@@ -204,6 +219,9 @@ def run_mart() -> int:
             payer_rates=right,
             pairs=pairs,
             peak_rss_mib=peak_rss_mib(),
+            # Peak RSS is a high-water mark and never falls, so on its own it
+            # cannot say whether memory came back between shards. This does.
+            arrow_pool_mib=arrow_pool_mib(),
         )
 
     def system_done(run: Reconciliation) -> None:

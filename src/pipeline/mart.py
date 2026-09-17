@@ -18,6 +18,7 @@ in both. That is a fact about name overlap, not about coverage, and
 
 from __future__ import annotations
 
+import gc
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, TypeAlias
@@ -133,6 +134,14 @@ def reconcile_system(
         if on_shard is not None:
             on_shard(spec, shard, len(left), len(right), len(mart.rows))
         del left, right, mart
+        # Dropping the references is not enough. Peak RSS is a high-water mark,
+        # so every shard starts from the tallest point the last one reached: the
+        # container died on shard 2 having touched 3,439 MiB on shard 1, not
+        # because shard 2 was large but because nothing had come back. Arrow
+        # holds freed buffers in its pool by design, and CPython will not return
+        # an arena still holding one live object, so both are asked explicitly.
+        gc.collect()
+        pa.default_memory_pool().release_unused()
     run.close()
     return run
 
