@@ -162,14 +162,36 @@ def payer_shard(
     shard: str = "",
     *,
     facilities: dict[str, list[str]] | None = None,
+    carriers: tuple[str, ...] = (),
 ) -> list[ComparableRate]:
-    """Aggregated payer rates for one system and one code shard."""
-    table = aggregate_payer(
-        dataset,
-        PayerFilter(systems=(system,), code_types=code_types, code_prefix=shard),
-    )
-    rates = payer_to_rates(table, files, facilities=facilities)
-    del table
+    """Aggregated payer rates for one system and one code shard.
+
+    **Aggregated one carrier at a time.** ``aggregate_rates`` takes a DISTINCT
+    over every column before the median per key, which is the same shape that
+    once turned a mart run into 58 GB. A single leading-character shard of payer
+    silver is still millions of rows and shards are not evenly sized: in a 4 GiB
+    container this peaked at 4,063 MiB on shard ``1`` and was killed on shard 2.
+
+    Splitting by carrier is exact, not an approximation. Every group-by key
+    includes ``payer``, the config label that was the filename stem, and a stem
+    belongs to exactly one carrier -- so no group and no duplicate row can
+    straddle two carriers, and aggregating them separately gives the same rows
+    as aggregating them together. It also lets Arrow skip whole partitions,
+    since payer silver is keyed on carrier.
+    """
+    wanted = carriers or tuple(sorted({f.carrier for f in files}))
+    rates: list[ComparableRate] = []
+    for carrier in wanted:
+        # Narrowed on the dataset rather than through PayerFilter, which has no
+        # carrier field and should not grow one for this: carrier is a partition
+        # column, so this is a directory skip and never reaches a row.
+        table = aggregate_payer(
+            dataset.filter(ds.field("carrier") == carrier),
+            PayerFilter(systems=(system,), code_types=code_types, code_prefix=shard),
+        )
+        if table.num_rows:
+            rates.extend(payer_to_rates(table, files, facilities=facilities))
+        del table
     return rates
 
 
