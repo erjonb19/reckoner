@@ -76,19 +76,33 @@ def memory_ceiling_mib() -> int | None:
     return None
 
 
-def arrow_pool_mib() -> int | None:
-    """What Arrow is holding right now, as opposed to the high-water mark.
+def arrow_memory() -> tuple[int | None, int | None, str]:
+    """Arrow's live bytes, its high-water mark, and which allocator is in use.
 
-    Read separately because the two answer different questions: RSS says how
-    close the container came to being killed, this says whether anything was
-    released afterwards.
+    Both numbers, because one of them alone misled this project through four
+    changes. ``total_allocated_bytes`` is what Arrow holds *at this instant*,
+    so sampling it between slices -- when everything has been released -- reads
+    0 however much passed through in between. A true answer to a question
+    nobody was asking. ``max_memory`` is the pool's high-water mark, and is
+    what "did Arrow use a lot of memory" actually means.
+
+    The backend name rides along because the reason for reading these is to
+    tell whether an allocator change took effect, and ARROW_DEFAULT_MEMORY_POOL
+    is ignored silently when the backend is not compiled in -- so a variable
+    that did nothing would otherwise look exactly like one that worked.
     """
     try:
         import pyarrow as pa
 
-        return int(pa.total_allocated_bytes() / (1024 * 1024))
+        pool = pa.default_memory_pool()
+        mib = 1024 * 1024
+        return (
+            int(pa.total_allocated_bytes() / mib),
+            int(pool.max_memory() / mib),
+            str(pool.backend_name),
+        )
     except Exception:
-        return None
+        return (None, None, "unknown")
 
 
 def peak_rss_mib() -> int | None:
@@ -211,6 +225,7 @@ def run_mart() -> int:
     location = resolve()
 
     def shard_done(spec: mart.SystemSpec, shard: str, left: int, right: int, pairs: int) -> None:
+        arrow_live, arrow_peak, _ = arrow_memory()
         log(
             "mart_shard",
             system=spec.system,
@@ -219,9 +234,11 @@ def run_mart() -> int:
             payer_rates=right,
             pairs=pairs,
             peak_rss_mib=peak_rss_mib(),
-            # Peak RSS is a high-water mark and never falls, so on its own it
-            # cannot say whether memory came back between shards. This does.
-            arrow_pool_mib=arrow_pool_mib(),
+            # Live and high-water side by side. Live alone reads 0 between
+            # slices however much was allocated in between; high-water alone
+            # cannot show whether any of it came back.
+            arrow_live_mib=arrow_live,
+            arrow_peak_mib=arrow_peak,
         )
 
     def system_done(run: Reconciliation) -> None:
@@ -324,6 +341,9 @@ def main(argv: list[str] | None = None) -> int:
         # commit it is running cannot be told apart from one running a stale
         # image, and a stale image reports Succeeded while doing less.
         build_sha=os.environ.get("RECKONER_BUILD_SHA", "unknown"),
+        # Which allocator pyarrow actually chose, so a variable that silently
+        # did nothing is distinguishable from one that worked.
+        arrow_allocator=arrow_memory()[2],
     )
     preflight(args.stage)
     code = run(args.stage, dry_run=args.dry_run)
