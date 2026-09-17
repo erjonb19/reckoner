@@ -219,6 +219,10 @@ def run_mart() -> int:
             unexplained_and_material=len(run.residual),
             systematic_offsets=len(run.offsets),
             facilities=len(run.facilities),
+            # Recorded per system: without it two of the four reconcilable
+            # systems refuse every candidate, so a reader comparing runs needs
+            # to know which ones it was applied to.
+            assumed_facility_when_unstated=run.assumed_facility_when_unstated,
             peak_rss_mib=peak_rss_mib(),
         )
 

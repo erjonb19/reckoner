@@ -306,6 +306,25 @@ class TestTheSummaryGrain:
 
 
 class TestTheSummaryTables:
+    def test_coverage_records_whether_the_facility_assumption_applied(self):
+        """It changes the numbers materially, so it sits beside them.
+
+        Without it NYU Langone refuses 136,259,228 candidates as
+        billing_class_unstated and produces nothing at all.
+        """
+        left, right = a_contract_with_a_constant_offset()
+        run = Reconciliation(
+            hospital=SYSTEM,
+            system=SYSTEM,
+            hospital_slug="mount-sinai",
+            assumed_facility_when_unstated=True,
+        )
+        run.add_shard("1", reconcile_shard(left, right))
+        run.close()
+
+        assert run.coverage_row()["assumed_facility_when_unstated"] is True
+        assert build_sharded(left, right).coverage_row()["assumed_facility_when_unstated"] is False
+
     def test_coverage_is_one_row_with_the_whole_funnel(self):
         left, right = a_contract_with_a_constant_offset()
         left.append(hospital("70001", 200.0))

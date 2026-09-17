@@ -129,6 +129,11 @@ class Reconciliation:
     system: str
     hospital_slug: str
 
+    #: Whether an absent hospital billing class was read as ``facility`` for this
+    #: system. It changes the numbers materially -- without it NYU Langone
+    #: refuses 136,259,228 candidates and produces nothing -- so it is recorded
+    #: beside them rather than inferred from their size.
+    assumed_facility_when_unstated: bool = False
     hospital_rates: int = 0
     payer_rates: int = 0
     pairs_formed: int = 0
@@ -354,6 +359,7 @@ class Reconciliation:
             "facilities": len(self.facilities),
             "carriers": len({carrier for carrier, _, _ in self.outcomes}),
             "systematic_offsets": len(self.offsets),
+            "assumed_facility_when_unstated": self.assumed_facility_when_unstated,
         }
 
     def refusal_rows(self) -> list[dict[str, Any]]:

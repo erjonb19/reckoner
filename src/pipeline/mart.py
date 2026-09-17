@@ -26,6 +26,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 
 from payer.curated import PayerFile
+from reconcile.eligibility import facility_only_hospitals
 from reconcile.gold import Reconciliation, reconcile_shard
 from reconcile.silver import (
     hospital_shard,
@@ -89,13 +90,19 @@ def reconcile_system(
     max_vintage_days: int = 400,
     shards: tuple[str, ...] = SHARDS,
     on_shard: ShardHook | None = None,
+    assume_facility: bool = False,
 ) -> Reconciliation:
     """Reconcile one system across every shard, then close it once.
 
     ``close()`` is called here and only here: it fixes the systematic offsets
     over the whole system, which is the thing sharding would otherwise break.
     """
-    run = Reconciliation(hospital=spec.hospital, system=spec.system, hospital_slug=spec.slug)
+    run = Reconciliation(
+        hospital=spec.hospital,
+        system=spec.system,
+        hospital_slug=spec.slug,
+        assumed_facility_when_unstated=assume_facility,
+    )
     for shard in shards:
         left = hospital_shard(hospital_dataset, spec.hospital, code_types, shard)
         if not left:
@@ -110,7 +117,18 @@ def reconcile_system(
         if not right:
             del left
             continue
-        mart = reconcile_shard(left, right, max_vintage_days=max_vintage_days)
+        # The eligibility answer is at system grain, because that is what the
+        # lake's `hospital` column holds, but a ComparableRate carries the
+        # resolved facility. Expanding here is sound -- a system with no
+        # professional row anywhere has no facility with one -- and getting it
+        # wrong is why the option appeared to do nothing on its first run.
+        eligible = frozenset(facilities[spec.system]) if assume_facility else frozenset()
+        mart = reconcile_shard(
+            left,
+            right,
+            max_vintage_days=max_vintage_days,
+            assume_facility_when_unstated=eligible,
+        )
         run.add_shard(shard, mart, hospital_rates=len(left), payer_rates=len(right))
         if on_shard is not None:
             on_shard(spec, shard, len(left), len(right), len(mart.rows))
@@ -130,10 +148,20 @@ def build(
     payer_dataset = open_payer_silver(lake)
     payer_files = payer_files_from_silver(payer_dataset)
 
+    # Computed from the lake, not listed: a hardcoded set stops being true the
+    # moment the lake gains a system. Once per run, because it is a two-column
+    # scan and the answer is the same for every system in it.
+    facility_only = facility_only_hospitals(hospital_dataset)
+
     runs = []
     for spec in RECONCILABLE:
         run = reconcile_system(
-            hospital_dataset, payer_dataset, payer_files, spec, on_shard=on_shard
+            hospital_dataset,
+            payer_dataset,
+            payer_files,
+            spec,
+            on_shard=on_shard,
+            assume_facility=spec.hospital in facility_only,
         )
         runs.append(run)
         if on_system is not None:
