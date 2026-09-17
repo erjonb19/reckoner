@@ -45,7 +45,7 @@ OBSERVED_PEAK_MIB: dict[str, int] = {
     "mart": 9808,
 }
 
-STAGES = ("manifest", "contract", "verify", "publish", "eligibility")
+STAGES = ("manifest", "mart", "contract", "verify", "publish", "eligibility")
 
 
 def memory_ceiling_mib() -> int | None:
@@ -154,6 +154,7 @@ def run_manifest() -> int:
     layers.append(manifest_check.bronze_payer(ingest_date))
     layers.append(manifest_check.SILVER_HOSPITAL)
     layers.append(manifest_check.SILVER_PAYER)
+    layers.append(manifest_check.GOLD)
 
     # Stated up front rather than left to be inferred from which records turned
     # up. A run that checked two layers and a run that checked three both look
@@ -181,6 +182,84 @@ def run_manifest() -> int:
     return 0
 
 
+def run_mart() -> int:
+    """Stage 2: reconcile silver into gold.
+
+    Sharded because it has to be: unsharded this peaked at 9,808 MiB against a
+    4,096 MiB ceiling, and a container that exceeds its limit is killed with no
+    traceback and nothing to distinguish it from a crash.
+    """
+    from pipeline import mart
+    from reconcile.gold import Reconciliation
+    from storage import publish, resolve
+
+    location = resolve()
+
+    def shard_done(spec: mart.SystemSpec, shard: str, left: int, right: int, pairs: int) -> None:
+        log(
+            "mart_shard",
+            system=spec.system,
+            shard=shard,
+            hospital_rates=left,
+            payer_rates=right,
+            pairs=pairs,
+            peak_rss_mib=peak_rss_mib(),
+        )
+
+    def system_done(run: Reconciliation) -> None:
+        log(
+            "mart_system",
+            system=run.system,
+            hospital_slug=run.hospital_slug,
+            hospital_rates=run.hospital_rates,
+            payer_rates=run.payer_rates,
+            pairs_formed=run.pairs_formed,
+            comparable_share=round(run.comparable_share, 6),
+            material=run.material,
+            unexplained_and_material=len(run.residual),
+            systematic_offsets=len(run.offsets),
+            facilities=len(run.facilities),
+            peak_rss_mib=peak_rss_mib(),
+        )
+
+    runs = mart.build(location, on_shard=shard_done, on_system=system_done)
+    if not runs:
+        log("mart_no_systems", detail="nothing reconcilable; silver may be missing")
+        return 1
+
+    built = mart.tables(runs)
+    written = mart.write(location, built)
+    log("mart_written", **written)
+
+    # Same manifest-and-verify shape as the two silver layers, so one stage-1
+    # check covers all four without a special case.
+    manifest = publish.build_manifest(
+        location.child(*mart.GOLD_ROOT),
+        [
+            publish.PublishResult(
+                subject=name,
+                destination=name,
+                rows_read=rows,
+                rows_written=rows,
+                partitions=len(runs),
+            )
+            for name, rows in written.items()
+        ],
+        layer="gold",
+        group_key="hospital_slug",
+    )
+    where = publish.write_manifest(location, manifest, path=mart.GOLD_MANIFEST)
+    log(
+        "mart_manifest",
+        path=where,
+        files=manifest["files"],
+        rows=manifest["rows"],
+        megabytes=manifest["megabytes"],
+        verified=manifest["verified"],
+    )
+    return 0 if manifest["verified"] else 1
+
+
 def run(stage: str, *, dry_run: bool) -> int:
     started = time.monotonic()
     log("stage_start", stage=stage, dry_run=dry_run)
@@ -189,6 +268,8 @@ def run(stage: str, *, dry_run: bool) -> int:
         log("stage_skipped", stage=stage, reason="dry run")
     elif stage == "manifest":
         code = run_manifest()
+    elif stage == "mart":
+        code = run_mart()
     else:  # pragma: no cover - the remaining stages land in a later change
         log("stage_not_implemented", stage=stage)
     log(

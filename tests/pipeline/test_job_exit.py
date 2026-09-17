@@ -56,7 +56,7 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, dict[str, object
 
 
 def both(
-    bronze_ok: bool, silver_ok: bool, payer_ok: bool = True
+    bronze_ok: bool, silver_ok: bool, payer_ok: bool = True, gold_ok: bool = True
 ) -> Callable[[object, Layer], ManifestDiff]:
     """Stand in for compare(), answering per layer."""
 
@@ -65,6 +65,8 @@ def both(
             return diff(layer.name, matches=bronze_ok)
         if layer.name == "silver/payer_rates":
             return diff(layer.name, matches=payer_ok, group_key="carrier", group="Emblem")
+        if layer.name == "gold":
+            return diff(layer.name, matches=gold_ok, group_key="hospital_slug", group="mount-sinai")
         return diff(layer.name, matches=silver_ok, group_key="hospital_slug", group="crouse-health")
 
     return fake
@@ -109,7 +111,7 @@ class TestTheExitCode:
         monkeypatch.setattr(manifest_check, "compare", boom)
 
         assert reckoner_job.run_manifest() == 1
-        assert [e for e, _ in stubbed].count("manifest_unreadable") == 3
+        assert [e for e, _ in stubbed].count("manifest_unreadable") == 4
 
     def test_the_stage_wrapper_propagates_it(self, stubbed, monkeypatch):
         monkeypatch.setattr(manifest_check, "compare", both(False, True))
@@ -141,10 +143,11 @@ class TestWhatItEmits:
             "bronze/payer_tic": False,
             "silver/hospital_rates": True,
             "silver/payer_rates": True,
+            "gold": True,
         }
 
     def test_a_failure_names_the_layers_that_failed(self, stubbed, monkeypatch):
-        monkeypatch.setattr(manifest_check, "compare", both(False, False, False))
+        monkeypatch.setattr(manifest_check, "compare", both(False, False, False, False))
 
         reckoner_job.run_manifest()
 
@@ -153,6 +156,7 @@ class TestWhatItEmits:
             "bronze/payer_tic",
             "silver/hospital_rates",
             "silver/payer_rates",
+            "gold",
         ]
 
     def test_the_run_states_which_layers_it_covered(self, stubbed, monkeypatch):
@@ -167,12 +171,19 @@ class TestWhatItEmits:
         reckoner_job.run_manifest()
 
         stated = next(f for e, f in stubbed if e == "manifest_layers")
-        assert stated["count"] == 3
+        assert stated["count"] == 4
         assert stated["layers"] == [
             "bronze/payer_tic",
             "silver/hospital_rates",
             "silver/payer_rates",
+            "gold",
         ]
+
+    def test_a_gold_mismatch_exits_non_zero(self, stubbed, monkeypatch):
+        """The mart is checked on the same terms as the layers it derives from."""
+        monkeypatch.setattr(manifest_check, "compare", both(True, True, True, False))
+
+        assert reckoner_job.run_manifest() == 1
 
     def test_a_dry_run_does_no_work(self, stubbed, monkeypatch):
         def fail(*args: object) -> None:

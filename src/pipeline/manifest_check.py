@@ -85,6 +85,17 @@ SILVER_PAYER = Layer(
 )
 
 
+#: The reconciliation mart. One manifest covers every table under ``gold/``,
+#: because they are written together by one stage and are only ever meaningful
+#: together -- a residual without its denominators is not a partial answer.
+GOLD = Layer(
+    name="gold",
+    manifest_path=("_meta", "gold", "upload_manifest.json"),
+    data_root=("gold",),
+    group_key="hospital_slug",
+)
+
+
 @dataclass
 class Observation:
     """A count of files, rows and bytes, for one group or for everything."""
@@ -308,6 +319,7 @@ def counted(records: list[dict[str, Any]]) -> Counter[str]:
 
 
 __all__ = [
+    "GOLD",
     "OVER_QUOTA",
     "SILVER_HOSPITAL",
     "SILVER_PAYER",
