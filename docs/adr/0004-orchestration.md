@@ -115,6 +115,53 @@ ADR 0003 dropped Fabric entirely. A read-only quota check was available and was 
 right tool; this is what using `create` to ask a question costs. Both are gone, the
 meter is closed, and it is recorded here rather than netted out of a total.
 
+## Two jobs, not one
+
+`reckoner-pipeline` runs the manifest check: 2 vCPU / 4 GiB, `0 6 1 * *`, under a
+minute, peak 233 MiB. `reckoner-mart` runs the reconciliation: **4 vCPU / 8 GiB**,
+`0 8 1 * *`, the better part of an hour, peak in the gigabytes.
+
+The gap is two hours and is not an ordering guarantee — Container Apps offers none
+between jobs. It is wide enough that the drift check has finished and its verdict
+is in Log Analytics before the mart reads the same layers, so if a layer drifted,
+the mart's numbers are read next to that failure rather than before it.
+
+**Why not one job with two stages.** The original sizing note argued that 8 GiB
+"would not rescue the stage that needs it while doubling the consumption of every
+stage that does not". Half of that is now false and half of it still holds. The
+mart *does* fit in 8 GiB; it does not fit in 4. And paying the mart's memory on
+every manifest run would still be waste. Two jobs resolves both: each is sized
+for what it does, and neither subsidises the other.
+
+### The peaks this was sized from
+
+Measured in the container, not estimated. Each row is a real execution.
+
+| configuration | peak by shard 1 | outcome |
+|---|---|---|
+| unsharded | 9,808 MiB | never attempted in a container |
+| sharded 36 ways by leading code character | 4,063 MiB | OOM-killed on shard 2 |
+| payer aggregation split per carrier | 3,439 MiB | OOM-killed on shard 2 |
+| `gc.collect()` + Arrow pool release per shard | 3,031 MiB | OOM-killed on shard 2 |
+| the above at 4 vCPU / 8 GiB | — | completes |
+
+Three separate reductions took the figure from 9,808 to 3,031 MiB and **none of
+them was enough at 4 GiB**, which is the useful lesson: peak RSS is a high-water
+mark, so what kills the job is not the average shard but the worst one arriving
+on top of everything the previous shards left resident. `arrow_pool_mib` reading
+0 after the third change is what established that the remainder is Python objects
+rather than Arrow buffers, and therefore that no further Arrow tuning would help.
+
+The reductions were kept rather than reverted once the bigger machine was
+approved. They are not scaffolding for a size limit: the carrier split is exact
+and verified row-for-row, the eligibility scan no longer materialises 38 million
+rows, and a job that runs in 3 GiB instead of 9.8 is cheaper on a meter that
+bills GiB-seconds.
+
+**Cost.** One monthly mart run at 4 vCPU / 8 GiB for an hour is roughly 14,400
+vCPU-seconds and 28,800 GiB-seconds — about 8% of each monthly free grant. The
+manifest job uses 0.04%. Both remain $0.
+
 ## Consequences
 
 - Jobs are defined as code in the repo, image and job definition together. There is no

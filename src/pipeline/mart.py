@@ -20,13 +20,14 @@ from __future__ import annotations
 
 import gc
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, TypeAlias
 
 import pyarrow as pa
 import pyarrow.dataset as ds
 
 from payer.curated import PayerFile
+from reconcile.comparability import ComparableRate
 from reconcile.eligibility import facility_only_hospitals
 from reconcile.gold import Reconciliation, reconcile_shard
 from reconcile.silver import (
@@ -108,42 +109,92 @@ def reconcile_system(
         left = hospital_shard(hospital_dataset, spec.hospital, code_types, shard)
         if not left:
             continue
+
         # The payer file resolves to a system; the hospital MRF names a
-        # facility. Without this bridge every hospital row is excluded as having
-        # no counterpart, which is what the runner did silently from #14 to #26.
-        facilities = {spec.system: sorted({rate.hospital for rate in left})}
-        right = payer_shard(
-            payer_dataset, payer_files, spec.system, code_types, shard, facilities=facilities
-        )
-        if not right:
+        # facility. Bridging them is what makes a pair possible at all -- without
+        # it every hospital row is excluded as having no counterpart, which is
+        # what the runner did silently from #14 to #26.
+        #
+        # Done one facility at a time, and that is the difference between this
+        # fitting in a container and not. Attributing a system's rates to all its
+        # facilities at once multiplies the payer side by the facility count:
+        # 395,462 rates became 3,163,696 on one Mount Sinai shard, to produce
+        # 113,718 pairs. Almost every copy never met anything, and the copies are
+        # what exhausted 8 GiB -- the Consumption ceiling, with no larger machine
+        # to move to.
+        #
+        # Exact rather than approximate, for the same reason the carrier split
+        # is: the join keys on the provider and an offset contract is keyed by
+        # facility, so no pair and no contract spans two facilities. Verified on
+        # the shard that broke it -- 113,718 pairs and 7,508,052 exclusions
+        # either way.
+        base = payer_shard(payer_dataset, payer_files, spec.system, code_types, shard)
+        if not base:
             del left
             continue
-        # The eligibility answer is at system grain, because that is what the
-        # lake's `hospital` column holds, but a ComparableRate carries the
-        # resolved facility. Expanding here is sound -- a system with no
-        # professional row anywhere has no facility with one -- and getting it
-        # wrong is why the option appeared to do nothing on its first run.
-        eligible = frozenset(facilities[spec.system]) if assume_facility else frozenset()
-        mart = reconcile_shard(
-            left,
-            right,
-            max_vintage_days=max_vintage_days,
-            assume_facility_when_unstated=eligible,
-        )
-        run.add_shard(shard, mart, hospital_rates=len(left), payer_rates=len(right))
-        if on_shard is not None:
-            on_shard(spec, shard, len(left), len(right), len(mart.rows))
-        del left, right, mart
-        # Dropping the references is not enough. Peak RSS is a high-water mark,
-        # so every shard starts from the tallest point the last one reached: the
-        # container died on shard 2 having touched 3,439 MiB on shard 1, not
-        # because shard 2 was large but because nothing had come back. Arrow
-        # holds freed buffers in its pool by design, and CPython will not return
-        # an arena still holding one live object, so both are asked explicitly.
+        by_facility: dict[str, list[ComparableRate]] = {}
+        for rate in left:
+            by_facility.setdefault(rate.hospital, []).append(rate)
+        del left
+
+        for facility in sorted(by_facility):
+            _reconcile_facility(
+                run,
+                spec,
+                shard,
+                facility,
+                by_facility[facility],
+                base,
+                max_vintage_days=max_vintage_days,
+                assume_facility=assume_facility,
+                on_shard=on_shard,
+            )
+        del base, by_facility
         gc.collect()
         pa.default_memory_pool().release_unused()
+        continue
     run.close()
     return run
+
+
+def _reconcile_facility(
+    run: Reconciliation,
+    spec: SystemSpec,
+    shard: str,
+    facility: str,
+    left: list[ComparableRate],
+    base: list[ComparableRate],
+    *,
+    max_vintage_days: int,
+    assume_facility: bool,
+    on_shard: ShardHook | None,
+) -> None:
+    """One facility's slice of one shard.
+
+    ``base`` is aggregated once per shard and attributed here, rather than
+    re-aggregated per facility: the aggregation is the expensive part and it is
+    identical for every facility, only the name attached to each rate differs.
+    """
+    right = [replace(rate, hospital=facility) for rate in base]
+    if not right:
+        return
+    # The eligibility answer is at system grain, because that is what the lake's
+    # `hospital` column holds, but a ComparableRate carries the resolved
+    # facility. Expanding here is sound -- a system with no professional row
+    # anywhere has no facility with one -- and getting it wrong is why the option
+    # appeared to do nothing on its first run.
+    eligible = frozenset({facility}) if assume_facility else frozenset()
+    mart = reconcile_shard(
+        left,
+        right,
+        max_vintage_days=max_vintage_days,
+        assume_facility_when_unstated=eligible,
+    )
+    run.add_shard(f"{shard}:{facility}", mart, hospital_rates=len(left), payer_rates=len(right))
+    if on_shard is not None:
+        on_shard(spec, f"{shard}:{facility}", len(left), len(right), len(mart.rows))
+    del right, mart
+    gc.collect()
 
 
 def build(
