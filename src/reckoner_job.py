@@ -278,7 +278,17 @@ def run_mart() -> int:
     log(
         "mart_selection", system=only or "all four", source="RECKONER_SYSTEM" if only else "default"
     )
-    runs = mart.build(location, only=only, on_shard=shard_done, on_system=system_done)
+
+    def shard_split(prefix: str, rows: int, children: int) -> None:
+        log("mart_subsharded", prefix=prefix, payer_rows=rows, children=children)
+
+    runs = mart.build(
+        location,
+        only=only,
+        on_shard=shard_done,
+        on_system=system_done,
+        on_plan=shard_split,
+    )
     if not runs:
         log("mart_no_systems", detail="nothing reconcilable; silver may be missing")
         return 1
