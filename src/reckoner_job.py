@@ -49,11 +49,22 @@ OBSERVED_PEAK_MIB: dict[str, int] = {
     # Recorded here rather than inflated to cover it, because a figure chosen to
     # make the check pessimistic would stop being a measurement (issue #47).
     "mart": 6424,
-    # Reads gold: 365 rows across five tables, then writes CSV.
+    # Reads gold: a few hundred rows across seven tables, then writes CSV.
     "report": 300,
+    # Reads gold/exemplars and classifies it. Hundreds of rows.
+    "triage": 300,
 }
 
-STAGES = ("manifest", "mart", "report", "contract", "verify", "publish", "eligibility")
+STAGES = (
+    "manifest",
+    "mart",
+    "triage",
+    "report",
+    "contract",
+    "verify",
+    "publish",
+    "eligibility",
+)
 
 
 def memory_ceiling_mib() -> int | None:
@@ -432,6 +443,52 @@ def run_report() -> int:
     return 0
 
 
+def run_triage() -> int:
+    """Stage: account for every residual finding with a deterministic rule.
+
+    The A1 fallback and the baseline A1 has to beat. It reads gold's exemplars,
+    classifies each with the first rule that fires, and writes the queue back to
+    gold so the report and the page can read it like any other table.
+
+    Nothing here calls a model. That is the point: an agent that cannot beat
+    five arithmetic rules on a labelled set is not worth its per-call cost, and
+    until this existed there was nothing to compare one against.
+    """
+    from pipeline import mart, triage
+    from storage import resolve
+
+    location = resolve()
+    target = location.child(*mart.GOLD_ROOT, "exemplars")
+    if not target.exists():
+        log("triage_no_gold", detail="gold/exemplars is absent; run --stage mart first")
+        return 1
+
+    import pyarrow.dataset as ds
+
+    rows = (
+        ds.dataset(target.root, filesystem=target.filesystem, format="parquet", partitioning="hive")
+        .to_table()
+        .to_pylist()
+    )
+    if not rows:
+        log("triage_no_findings", detail="gold/exemplars is empty")
+        return 1
+
+    ranked = triage.queue(rows)
+    counted = triage.summarise(ranked)
+    written = mart.write(location, {"triage_queue": ranked, "triage_summary": counted})
+
+    log(
+        "triage_written",
+        **written,
+        by_rule={row["triage_rule"]: row["findings"] for row in counted},
+        unexplained=next(
+            (row["findings"] for row in counted if row["triage_rule"] == "unexplained"), 0
+        ),
+    )
+    return 0
+
+
 def run(stage: str, *, dry_run: bool) -> int:
     started = time.monotonic()
     log("stage_start", stage=stage, dry_run=dry_run)
@@ -444,6 +501,8 @@ def run(stage: str, *, dry_run: bool) -> int:
         code = run_mart()
     elif stage == "report":
         code = run_report()
+    elif stage == "triage":
+        code = run_triage()
     else:  # pragma: no cover - the remaining stages land in a later change
         log("stage_not_implemented", stage=stage)
     log(
