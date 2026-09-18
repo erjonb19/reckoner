@@ -140,6 +140,10 @@ class VarianceMart:
 
     rows: list[Variance] = field(default_factory=list)
     excluded: dict[str, int] = field(default_factory=dict)
+    #: The same refusals keyed (reason, carrier, code_type). Kept beside
+    #: ``excluded`` rather than replacing it so the totals every other figure
+    #: depends on are provably unchanged.
+    excluded_detail: dict[tuple[str, str, str], int] = field(default_factory=dict)
     provenance: Provenance = field(default_factory=Provenance)
 
     @property
@@ -160,8 +164,25 @@ class VarianceMart:
         total = len(self.rows) + sum(self.excluded.values())
         return len(self.rows) / total if total else 0.0
 
-    def exclude(self, reason: str, count: int = 1) -> None:
+    def exclude(
+        self, reason: str, count: int = 1, *, carrier: str = "", code_type: str = ""
+    ) -> None:
+        """Count a refused candidate, by reason and -- where known -- by whose.
+
+        ``excluded`` is untouched and still keyed on the reason alone, because
+        every total, share and caveat in the project is computed from it and a
+        refusal breakdown that stopped summing to the old one would be a
+        regression dressed as a feature. ``excluded_detail`` is additional: the
+        same events, keyed finer, so a report can filter them by carrier and
+        code type instead of declaring two of its three controls inoperative.
+
+        Carrier and code type are blank where the call site does not have them,
+        which is honest rather than convenient -- a refusal attributed to the
+        wrong carrier would be worse than one attributed to none.
+        """
         self.excluded[reason] = self.excluded.get(reason, 0) + count
+        key = (reason, carrier, code_type)
+        self.excluded_detail[key] = self.excluded_detail.get(key, 0) + count
         self.provenance.exclude(reason, count)
 
     def by_explanation(self) -> dict[str, int]:
@@ -338,7 +359,11 @@ def cross_source_variance(
             for candidate in payer_index.get((left.hospital.casefold(), code, payer, bucket), ())
         ]
         if not candidates:
-            mart.exclude("no payer-side counterpart")
+            mart.exclude(
+                "no payer-side counterpart",
+                carrier=left.payer,
+                code_type=left.code_type or "",
+            )
             continue
         for right in candidates:
             verdict = can_compare(
@@ -349,7 +374,11 @@ def cross_source_variance(
                 assume_facility_when_unstated=assume_facility_when_unstated,
             )
             if not verdict:
-                mart.exclude(verdict.reason)
+                mart.exclude(
+                    verdict.reason,
+                    carrier=right.payer or left.payer,
+                    code_type=left.code_type or right.code_type or "",
+                )
                 continue
             explanation, notes = explain(left, right)
             # An assumed pair must not read like an observed one. The note rides

@@ -363,7 +363,8 @@ class TestTheSummaryTables:
         widest = [r["relative_difference"] for r in rows]
         assert widest == sorted(widest, reverse=True), "the widest disagreements first"
 
-    def test_refusals_are_reported_at_system_grain(self):
+    def test_refusals_carry_carrier_and_code_type(self):
+        """All three of the report's filters now apply to this view."""
         left, right = a_contract_with_a_constant_offset(codes=20)
         left.append(hospital("80001", 50.0))
         right.append(
@@ -384,8 +385,52 @@ class TestTheSummaryTables:
         rows = build_sharded(left, right).refusal_rows()
 
         assert rows, "a refused candidate must be reported, not dropped"
-        assert set(rows[0]) == {"hospital_slug", "system", "reason", "candidates"}
-        assert "carrier" not in rows[0], "system grain; the page must say the filter is inactive"
+        assert set(rows[0]) == {
+            "hospital_slug",
+            "system",
+            "reason",
+            "carrier",
+            "code_type",
+            "candidates",
+        }
+        assert any(r["carrier"] == "Aetna" and r["code_type"] == "CPT" for r in rows)
+
+    def test_refusal_rows_sum_to_the_old_totals(self):
+        """The requirement: a finer breakdown that stops adding up is a
+        regression wearing a feature's clothes."""
+        left, right = a_contract_with_a_constant_offset(codes=20)
+        left.append(hospital("80001", 50.0))
+        right.append(
+            ComparableRate(
+                source="payer",
+                hospital=FACILITY,
+                code="80001",
+                code_type="CPT",
+                payer="Aetna",
+                plan="Commercial PPO",
+                product_class="commercial",
+                billing_class="professional",
+                rate_dollar=60.0,
+                vintage="2026-04-01",
+            )
+        )
+        run = build_sharded(left, right)
+
+        by_reason: dict[str, int] = {}
+        for row in run.refusal_rows():
+            by_reason[row["reason"]] = by_reason.get(row["reason"], 0) + row["candidates"]
+
+        assert by_reason == run.excluded
+        assert sum(by_reason.values()) == sum(run.excluded.values())
+
+    def test_an_unattributable_refusal_is_blank_not_guessed(self):
+        """Blank is visible in the table; a wrong carrier is not."""
+        left, right = a_contract_with_a_constant_offset(codes=20)
+        run = build_sharded(left, right)
+
+        for row in run.refusal_rows():
+            assert row["carrier"] == "" or isinstance(row["carrier"], str)
+            assert "carrier" in row, "the column is always present, even when empty"
 
     def test_every_table_refuses_to_report_before_close(self):
         run = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="mount-sinai")

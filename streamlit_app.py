@@ -133,12 +133,20 @@ with refusals:
     rows = view.apply_filters(data.table("refusals"), **selected)
     inapplicable = view.inapplicable_filters(data.table("refusals"), **selected)
     if inapplicable:
+        # Only said when it is true. The refusal grain was widened to carrier
+        # and code type, so this branch is now the exception rather than the
+        # rule -- and a note claiming a limitation that no longer exists is its
+        # own kind of wrong.
         st.warning(
             f"{view.REFUSALS_GRAIN_NOTE} Ignored here: {', '.join(inapplicable)}.",
-            icon="⚠️",
+            icon="⚠",
         )
     else:
-        st.caption(view.REFUSALS_GRAIN_NOTE)
+        st.caption(
+            "A blank carrier or code type means the comparability layer refused "
+            "the candidate before it could attribute one, which is recorded "
+            "rather than guessed at."
+        )
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if rows:
         totals: dict[str, int] = {}
