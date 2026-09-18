@@ -138,6 +138,9 @@ class Reconciliation:
     payer_rates: int = 0
     pairs_formed: int = 0
     excluded: dict[str, int] = field(default_factory=dict)
+    #: The same refusals keyed (reason, carrier, code_type), so a report can
+    #: filter them. Accumulated beside ``excluded``, never instead of it.
+    excluded_detail: dict[tuple[str, str, str], int] = field(default_factory=dict)
     explanation: dict[str, int] = field(default_factory=dict)
     facilities: set[str] = field(default_factory=set)
     caveats: list[str] = field(default_factory=list)
@@ -183,6 +186,10 @@ class Reconciliation:
         self.pairs_formed += len(mart.rows)
         for reason, count in mart.excluded.items():
             self.excluded[reason] = self.excluded.get(reason, 0) + count
+        for detail_key, detail_count in mart.excluded_detail.items():
+            self.excluded_detail[detail_key] = (
+                self.excluded_detail.get(detail_key, 0) + detail_count
+            )
         for note in mart.provenance.caveats:
             if note not in self.caveats:
                 self.caveats.append(note)
@@ -363,19 +370,45 @@ class Reconciliation:
         }
 
     def refusal_rows(self) -> list[dict[str, Any]]:
-        """Why candidates never became pairs.
+        """Why candidates never became pairs, by carrier and code type.
 
-        System grain, because the comparability layer counts a refusal without
-        keeping the refused candidate's carrier or code type. Anything reading
-        this has to say the finer filters do not apply to it rather than appear
-        to honour them.
+        Emitted from ``excluded_detail`` so all three of the report's filters
+        apply. A refusal the comparability layer could not attribute carries an
+        empty carrier or code type rather than a guess -- attributing one to the
+        wrong carrier would be worse than attributing it to none, and the blank
+        is visible in the table.
+
+        The totals are the ones ``excluded`` has always held:
+        ``test_refusal_rows_sum_to_the_old_totals`` holds that down, because a
+        finer breakdown that quietly stopped adding up would be a regression
+        wearing a feature's clothes.
         """
         self._require_closed("refusal_rows")
+        rows = [
+            {
+                "hospital_slug": self.hospital_slug,
+                "system": self.system,
+                "reason": reason,
+                "carrier": carrier,
+                "code_type": code_type,
+                "candidates": count,
+            }
+            for (reason, carrier, code_type), count in sorted(
+                self.excluded_detail.items(), key=lambda kv: -kv[1]
+            )
+        ]
+        if rows:
+            return rows
+        # A mart built before the finer counting existed, or one whose refusals
+        # all came from call sites without the dimensions. Fall back rather than
+        # report nothing, and keep the columns so the shape is stable.
         return [
             {
                 "hospital_slug": self.hospital_slug,
                 "system": self.system,
                 "reason": reason,
+                "carrier": "",
+                "code_type": "",
                 "candidates": count,
             }
             for reason, count in sorted(self.excluded.items(), key=lambda kv: -kv[1])
