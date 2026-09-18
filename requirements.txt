@@ -1,0 +1,4 @@
+# Streamlit Community Cloud installs from this file. The pipeline's own
+# dependencies live in pyproject.toml -- the page needs none of them, because it
+# reads committed CSV and makes no network calls.
+streamlit>=1.40
