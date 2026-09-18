@@ -1,0 +1,102 @@
+# Pull the published summary dataset out of ADLS and commit it.
+#
+# The dataset lives in ADLS; the page reads the copy in this repository. That
+# gap is the whole reason this workflow exists: a snapshot taken by hand gets
+# taken once and then forgotten, and a page showing months-old numbers with
+# nothing saying so is the failure this project keeps writing down.
+#
+# Authentication is OIDC against a federated credential on the same
+# user-assigned identity the pipeline uses. **No secret is stored.** GitHub mints
+# a short-lived token for this repository and this branch; Azure trades it for
+# one scoped to the identity. The three ids below are identifiers, not
+# credentials, and are repository variables so this file stays portable.
+name: summary
+
+on:
+  schedule:
+    # 10:00 UTC on the 2nd. The mart runs on the 1st and takes the better part
+    # of an hour, so this leaves a wide margin rather than racing it. There is
+    # no ordering guarantee between a job and a workflow, which is why the
+    # margin is a day and not an hour.
+    - cron: "0 10 2 * *"
+  workflow_dispatch:
+
+permissions:
+  # id-token to receive the OIDC assertion; contents to push the result. Nothing
+  # else -- this workflow reads one prefix of one container and writes one
+  # directory.
+  id-token: write
+  contents: write
+
+concurrency:
+  # A scheduled run and a manual one arriving together would both try to commit.
+  group: summary
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Download summary/ from ADLS
+        run: |
+          set -euo pipefail
+          az storage fs file download-batch \
+            --account-name "${{ vars.RECKONER_ADLS_ACCOUNT }}" \
+            --file-system lake \
+            --source summary \
+            --destination summary \
+            --auth-mode login \
+            --overwrite true
+          # download-batch preserves the source prefix, so the files can land a
+          # level deeper than intended. Flatten rather than assume.
+          if [ -d summary/summary ]; then
+            mv -f summary/summary/* summary/ && rmdir summary/summary
+          fi
+          ls -la summary/
+
+      - name: Refuse a snapshot that is not a dataset
+        run: |
+          set -euo pipefail
+          # A partial or empty download must not be committed over a good copy.
+          # This is cheap and the alternative is replacing real numbers with
+          # nothing and finding out from the page.
+          for f in coverage.csv outcomes.csv magnitude.csv exemplars.csv refusals.csv run.json; do
+            test -s "summary/$f" || { echo "missing or empty: summary/$f"; exit 1; }
+          done
+          python - <<'PY'
+          import json, pathlib, sys
+          meta = json.loads(pathlib.Path("summary/run.json").read_text(encoding="utf-8"))
+          for field in ("built_at", "rows_per_table", "caveats"):
+              if not meta.get(field):
+                  sys.exit(f"run.json is missing {field}; refusing to commit it")
+          rows = meta["rows_per_table"]
+          if not rows.get("coverage"):
+              sys.exit("run.json reports no coverage rows; refusing to commit it")
+          print(f"built_at {meta['built_at']}, rows {rows}")
+          PY
+
+      - name: Commit if anything moved
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- summary/; then
+            echo "summary/ is already current; nothing to commit"
+            exit 0
+          fi
+          git add summary/
+          BUILT=$(python -c "import json;print(json.load(open('summary/run.json'))['built_at'])")
+          git commit -m "Snapshot the summary dataset from ADLS
+
+          Built ${BUILT}. Pulled by the summary workflow, which authenticates
+          with OIDC against a federated credential on the pipeline's own
+          managed identity -- no stored secret."
+          git push
