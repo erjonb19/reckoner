@@ -213,6 +213,22 @@ def run_manifest() -> int:
         if not diff.matches:
             failed.append(layer.name)
 
+    # Recorded where stage 2 can read it. The mart builds gold from these same
+    # layers, and gold built from drifted layers is full, plausible and wrong.
+    from pipeline import gate
+
+    verdict = {layer.name: layer.name not in failed for layer in layers}
+    try:
+        where = gate.write_status(
+            location, verdict, build_sha=os.environ.get("RECKONER_BUILD_SHA", "")
+        )
+        log("manifest_status_written", path=where, ok=not failed)
+    except Exception as exc:
+        # Not fatal: the check itself succeeded and its result is in the log.
+        # Failing the run because the note could not be left would turn a
+        # bookkeeping problem into an outage.
+        log("manifest_status_unwritable", error=f"{type(exc).__name__}: {exc}")
+
     if failed:
         log("manifest_failed", layers=failed)
         return 1
@@ -226,12 +242,30 @@ def run_mart() -> int:
     4,096 MiB ceiling, and a container that exceeds its limit is killed with no
     traceback and nothing to distinguish it from a crash.
     """
-    from pipeline import mart
+    from pipeline import gate, mart
     from pipeline.memwatch import MemoryWatch
     from reconcile.gold import Reconciliation
     from storage import publish, resolve
 
     location = resolve()
+
+    # The mart reads the layers stage 1 checks. If they drifted, gold built from
+    # them is wrong in a way nothing downstream can detect -- the report, the
+    # page and any human reading them would quote it. So a failed drift check
+    # stops the run. An absent or stale verdict does not: that is "we do not
+    # know", and refusing on it would make this impossible to deploy on a lake
+    # where stage 1 has never run.
+    verdict = gate.check(location)
+    log(
+        "mart_precheck",
+        state=verdict.state,
+        detail=verdict.detail,
+        checked_at=verdict.checked_at,
+        may_run=verdict.may_run,
+    )
+    if not verdict.may_run:
+        return 1
+
     # Sampled every second for the length of the stage. The kernel high-water
     # cannot say when a peak happened, and a figure read once per slice cannot
     # see inside one -- two containers were killed having last reported a
