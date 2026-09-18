@@ -278,6 +278,36 @@ sampled — and prefer the high-water mark for anything transient.
 
 ---
 
+## 11. An override that silently resized the container
+
+**Symptom.** `az containerapp job start --env-vars ... --image ...` returned an
+execution name and reported `Running`. The environment variable was set
+correctly, the image was correct, the identity was correct. The execution was
+running on **0.5 vCPU and 1 GiB** instead of the job's 4 vCPU and 8 GiB.
+
+**Cause.** `--env-vars` on `job start` does not merge into the job's template; it
+**replaces** it. Anything not restated on the command line reverts to the CLI's
+default, and the CLI's defaults for cpu and memory are 0.5 and 1Gi. Nothing warns.
+
+The API very nearly caught it: the first attempt was rejected with
+`ContainerAppImageRequired`, because a replaced template has no image either.
+Supplying `--image` satisfied that check and let the sizing failure through —
+the guard existed for one required field and not for the two that mattered here.
+
+**Why it belongs in this file.** A job sized at an eighth of its memory would
+have been OOM-killed within a minute, and the kill would have looked exactly
+like the four before it. It would have been read as evidence about the pipeline,
+in the middle of an investigation *about* the pipeline's memory, and it would
+have been completely spurious.
+
+**Caught by.** `scripts/run_mart_per_system.sh` puts the selection on the job
+definition with `job update --set-env-vars` and reads the sizing back before
+each start, refusing to launch anything not on 4 vCPU. The override mechanism is
+not used at all — the one that cannot silently change what it was not asked to
+change is the one worth having.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
