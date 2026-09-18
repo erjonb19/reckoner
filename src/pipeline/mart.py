@@ -26,7 +26,7 @@ from typing import Any, TypeAlias
 import pyarrow as pa
 import pyarrow.dataset as ds
 
-from payer.curated import PayerFile
+from payer.curated import PayerFile, PayerFilter
 from reconcile.comparability import ComparableRate
 from reconcile.eligibility import facility_only_hospitals
 from reconcile.gold import Reconciliation, reconcile_shard
@@ -47,9 +47,23 @@ SHARED_CODE_TYPES = ("HCPCS", "MS-DRG", "CPT")
 #: CPT and MS-DRG are numeric, HCPCS is a letter then four digits.
 SHARDS = tuple("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+#: Payer rows above which a shard is split into two-character prefixes.
+#:
+#: NYU Langone is why this exists. It has the largest payer side -- 15.3M rows
+#: against Northwell's 9.8M -- and exceeded 8 GiB on shard "0" in a container
+#: holding nothing else, which is the Consumption ceiling. Splitting *every*
+#: shard would be 1,296 of them and multiply the payer scans accordingly, so the
+#: split is measured rather than blanket: only the shards that are actually big
+#: pay for it. The count is a filtered count_rows, which reads footers rather
+#: than rows.
+SUBSHARD_ABOVE_ROWS = 2_000_000
+
 #: Progress hooks, so the job can log a shard without this module importing the
 #: logger and the tests can watch it without capturing stdout.
 ShardHook: TypeAlias = Callable[["SystemSpec", str, int, int, int], None]
+#: Told when a shard is split: the prefix, its payer row count, and how many
+#: children it became.
+PlanHook: TypeAlias = Callable[[str, int, int], None]
 SystemHook: TypeAlias = Callable[[Reconciliation], None]
 
 GOLD_ROOT = ("gold",)
@@ -80,6 +94,44 @@ RECONCILABLE = (
 #: summary dataset the report stage publishes, so the mapping from gold to the
 #: page is one to one and needs no translation table.
 TABLES = ("coverage", "outcomes", "magnitude", "exemplars", "refusals")
+
+
+def plan_shards(
+    payer_dataset: ds.Dataset,
+    system: str,
+    code_types: tuple[str, ...],
+    *,
+    shards: tuple[str, ...] = SHARDS,
+    threshold: int = SUBSHARD_ABOVE_ROWS,
+    on_plan: PlanHook | None = None,
+) -> tuple[str, ...]:
+    """Single-character shards, with the large ones split in two characters.
+
+    Measured, not assumed. A blanket two-character split is 1,296 shards and
+    1,296 passes over payer silver; splitting only what is large keeps the
+    common case at 36. The measurement is a filtered ``count_rows``, which reads
+    Parquet footers and statistics rather than rows.
+
+    A shard below the threshold is left whole even if it is the largest one
+    present -- the threshold is about fitting in a container, not about
+    balancing.
+    """
+    planned: list[str] = []
+    for shard in shards:
+        where = PayerFilter(
+            systems=(system,), code_types=code_types, code_prefix=shard
+        ).expression()
+        rows = payer_dataset.count_rows(filter=where)
+        if rows == 0:
+            continue
+        if rows <= threshold:
+            planned.append(shard)
+            continue
+        children = [f"{shard}{c}" for c in SHARDS]
+        planned.extend(children)
+        if on_plan is not None:
+            on_plan(shard, rows, len(children))
+    return tuple(planned)
 
 
 def reconcile_system(
@@ -252,6 +304,7 @@ def build(
     only: str | None = None,
     on_shard: ShardHook | None = None,
     on_system: SystemHook | None = None,
+    on_plan: PlanHook | None = None,
 ) -> list[Reconciliation]:
     """Reconcile the selected systems -- by default, all of them."""
     hospital_dataset = open_hospital_silver(lake)
@@ -265,11 +318,16 @@ def build(
 
     runs = []
     for spec in select(only):
+        # Planned per system, because how big a code prefix is depends on whose
+        # payer file it is. NYU Langone needs shard "0" split; Mount Sinai does
+        # not, and paying for 1,296 passes to discover that would be absurd.
+        planned = plan_shards(payer_dataset, spec.system, SHARED_CODE_TYPES, on_plan=on_plan)
         run = reconcile_system(
             hospital_dataset,
             payer_dataset,
             payer_files,
             spec,
+            shards=planned or SHARDS,
             on_shard=on_shard,
             assume_facility=spec.hospital in facility_only,
         )
