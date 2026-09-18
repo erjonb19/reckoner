@@ -147,6 +147,17 @@ def aggregate_rates(
     )
 
 
+#: Rows converted per batch. Small enough that one batch of dicts is cheap to
+#: hold, large enough that half a million rows is not half a million calls.
+CONVERT_BATCH_ROWS = 50_000
+
+
+def _rows_in_batches(table: pa.Table) -> Iterator[dict[str, Any]]:
+    """Yield rows as dicts without ever holding more than one batch of them."""
+    for batch in table.to_batches(max_chunksize=CONVERT_BATCH_ROWS):
+        yield from batch.to_pylist()
+
+
 def to_comparable_rates(
     table: pa.Table,
     *,
@@ -162,17 +173,29 @@ def to_comparable_rates(
     """
     if table.num_rows == 0:
         return []
-    rows = table.to_pylist()
-    # Which location labels fail to distinguish their own files, computed from
-    # the rows in hand rather than assumed.
+
+    # Two passes happen before a single rate is built -- which locations fail to
+    # distinguish their own files, and which payer strings need canonicalising --
+    # and both are answered from two columns rather than from whole rows. One
+    # `to_pylist()` over the table materialised 4.5 million dicts for a single
+    # NYU Langone shard, 260 MB of them, before anything was constructed. Nine
+    # columns of dict were being built to read two.
     ambiguous = ambiguous_locations(
-        (row.get("location_name"), row.get("source_url")) for row in rows
+        zip(
+            table.column("location_name").to_pylist(),
+            table.column("source_url").to_pylist(),
+            strict=True,
+        )
     )
-    payer_names = {str(row.get("payer_name_raw") or "") for row in rows}
+    payer_names = {str(v or "") for v in table.column("payer_name_raw").to_pylist()}
     canonical = _canonical_payers(payer_names) if canonicalise_payers else {}
 
     rates: list[ComparableRate] = []
-    for row in rows:
+    # Converted a batch at a time, so the dicts for one chunk are alive rather
+    # than the dicts for the whole shard. The output is identical; only the
+    # high-water mark changes, and for the shard that would not fit it changes
+    # by gigabytes.
+    for row in _rows_in_batches(table):
         raw_payer = str(row.get("payer_name_raw") or "")
         rate = row.get("rate_dollar_approximate_median")
         if rate is None:
