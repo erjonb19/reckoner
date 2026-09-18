@@ -1,0 +1,11 @@
+{
+ "checked_at": "2026-09-18T03:50:26+00:00",
+ "build_sha": "",
+ "layers": {
+  "bronze/payer_tic": true,
+  "silver/hospital_rates": true,
+  "silver/payer_rates": true,
+  "gold": false
+ },
+ "ok": false
+}
