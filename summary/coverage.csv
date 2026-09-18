@@ -1,0 +1,5 @@
+system,hospital_rates,payer_rates,candidates,pairs_formed,comparable_share,material,unexplained_and_material,facilities,carriers,systematic_offsets,assumed_facility_when_unstated,hospital_slug
+Mount Sinai,1348398,18799888,36250415,3370446,0.092977,3011270,60182,7,5,461,True,mount-sinai-health-system
+NYP,504350,3487774,7139863,106852,0.014966,88462,0,3,4,5,True,newyork-presbyterian
+NYU Langone,9300114,10635020,168677578,6539353,0.038768,5895344,86174,4,4,176,True,nyu-langone-health
+Northwell,3001740,54386425,73039833,4552693,0.062332,4022260,116504,24,4,78,True,northwell-health
