@@ -1,0 +1,15 @@
+system,carrier,code_type,residual_pairs,median_relative_difference,p90_relative_difference,median_abs_difference_usd,implausible_pairs,hospital_slug
+Mount Sinai,Anthem / Empire BCBS,HCPCS,50035,0.779675,1.353033,2340.5,0,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,6538,0.3518,0.536428,11008.37,0,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,693,0.271192,0.283012,77.04,0,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,2916,0.356912,0.410521,9992.36,0,mount-sinai-health-system
+NYU Langone,Aetna,CPT,59414,0.58042,2.2223,3969.0,0,nyu-langone-health
+NYU Langone,Aetna,HCPCS,760,0.534752,2.27083,3937.0,0,nyu-langone-health
+NYU Langone,Cigna,CPT,568,1.251402,5.792354,1644.89,0,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,25112,0.237767,0.631344,1733.56,0,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,320,0.239268,1.244819,3526.12,0,nyu-langone-health
+Northwell,Aetna,CPT,74850,0.588362,2.938151,1960.0,0,northwell-health
+Northwell,Aetna,MS-DRG,14815,0.326219,0.710888,13042.0,0,northwell-health
+Northwell,Cigna,CPT,4978,3.02285,5.962365,228.36,0,northwell-health
+Northwell,Cigna,MS-DRG,3879,0.25366,0.82508,14970.29,0,northwell-health
+Northwell,UnitedHealthcare,CPT,17982,0.147256,0.335033,820.0,0,northwell-health

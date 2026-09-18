@@ -1,0 +1,43 @@
+{
+ "built_at": "2026-09-18T02:18:18+00:00",
+ "build_sha": "64dfb61d4ebf1211962c000da97afc9a7c9608fe",
+ "bronze_ingest_date": "2026-09-13",
+ "silver_hospital_published_at": "2026-09-15T03:50:29+00:00",
+ "silver_payer_published_at": "2026-09-15T12:15:37+00:00",
+ "gold_published_at": "2026-09-18T01:00:18+00:00",
+ "systems": [
+  "Mount Sinai",
+  "NYP",
+  "Northwell",
+  "NYU Langone"
+ ],
+ "systems_expected": [
+  "Mount Sinai",
+  "Northwell",
+  "NYU Langone",
+  "NYP"
+ ],
+ "code_types": [
+  "CPT",
+  "HCPCS",
+  "MS-DRG"
+ ],
+ "max_vintage_days": 400,
+ "assume_facility_when_unstated": [
+  "mount-sinai-health-system",
+  "newyork-presbyterian",
+  "northwell-health",
+  "nyu-langone-health"
+ ],
+ "caveats": [
+  "All summary data derives from public hospital (45 CFR 180) and payer (Transparency in Coverage) price transparency files. No PHI.",
+  "Gold for NYU Langone comes from a local run; Mount Sinai, Northwell and NewYork-Presbyterian come from cloud executions of reckoner-mart. NYU Langone exceeds the 8 GiB Consumption ceiling; tracked in issue #47."
+ ],
+ "rows_per_table": {
+  "coverage": 4,
+  "outcomes": 125,
+  "magnitude": 14,
+  "exemplars": 200,
+  "refusals": 22
+ }
+}

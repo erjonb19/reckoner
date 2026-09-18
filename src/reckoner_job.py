@@ -39,13 +39,21 @@ OBSERVED_PEAK_MIB: dict[str, int] = {
     "contract": 700,
     "publish": 1200,
     "eligibility": 2900,
-    # The mart is the outlier and the reason the ceiling matters: 9,808 MiB on a
-    # sharded NYU Langone run. It does not fit in a Consumption job and is not
-    # scheduled here; it is listed so the number is not forgotten.
-    "mart": 9808,
+    # The worst measured peak of a system that completes: Northwell, 6,424 MiB
+    # in a 8,192 MiB container, one system per execution. The unsharded figure
+    # was 9,808 and is kept in ADR 0004 with the rest of the table.
+    #
+    # NYU Langone does not complete at any setting -- it exceeds the Consumption
+    # ceiling in a process containing nothing else -- so for that one system
+    # this number is optimistic and the preflight will say "fits" before an OOM.
+    # Recorded here rather than inflated to cover it, because a figure chosen to
+    # make the check pessimistic would stop being a measurement (issue #47).
+    "mart": 6424,
+    # Reads gold: 365 rows across five tables, then writes CSV.
+    "report": 300,
 }
 
-STAGES = ("manifest", "mart", "contract", "verify", "publish", "eligibility")
+STAGES = ("manifest", "mart", "report", "contract", "verify", "publish", "eligibility")
 
 
 def memory_ceiling_mib() -> int | None:
@@ -320,6 +328,54 @@ def run_mart() -> int:
     return 0 if manifest["verified"] else 1
 
 
+def run_report() -> int:
+    """Stage 3: publish gold as the summary dataset and the written report.
+
+    Writes to ADLS and to the working tree. The committed copy is what the page
+    reads -- it makes no network calls, which is the strongest form of "no
+    credentials in the app" -- and ``run.json`` carries the vintages, so a stale
+    snapshot cannot render as a current one.
+    """
+    from pathlib import Path
+
+    from pipeline import report
+    from storage import resolve
+
+    location = resolve()
+
+    # Provenance a reader cannot recover from the data: which gold partitions
+    # came from a cloud execution and which from a local run. The tables look
+    # identical either way and the difference is real, so it is stated.
+    caveats = (
+        "Gold for NYU Langone comes from a local run; Mount Sinai, Northwell and "
+        "NewYork-Presbyterian come from cloud executions of reckoner-mart. NYU "
+        "Langone exceeds the 8 GiB Consumption ceiling; tracked in issue #47.",
+    )
+    summary = report.build(
+        location, build_sha=os.environ.get("RECKONER_BUILD_SHA", ""), caveats=caveats
+    )
+    if not summary.tables.get("coverage"):
+        log("report_no_gold", detail="gold/coverage is empty; run --stage mart first")
+        return 1
+
+    remote = report.write_remote(summary, location)
+    local = report.write_local(summary, Path("summary"))
+    report_path = Path(*report.REPORT_PATH)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(report.markdown(summary), encoding="utf-8")
+
+    log(
+        "report_written",
+        rows=summary.rows(),
+        remote=len(remote),
+        local=[str(item) for item in local],
+        markdown=str(report_path),
+        systems=summary.metadata["systems"],
+        caveats=len(summary.metadata["caveats"]),
+    )
+    return 0
+
+
 def run(stage: str, *, dry_run: bool) -> int:
     started = time.monotonic()
     log("stage_start", stage=stage, dry_run=dry_run)
@@ -330,6 +386,8 @@ def run(stage: str, *, dry_run: bool) -> int:
         code = run_manifest()
     elif stage == "mart":
         code = run_mart()
+    elif stage == "report":
+        code = run_report()
     else:  # pragma: no cover - the remaining stages land in a later change
         log("stage_not_implemented", stage=stage)
     log(

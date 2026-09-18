@@ -1,0 +1,23 @@
+system,reason,candidates,hospital_slug
+Mount Sinai,different_billing_class,31123000,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,6116,mount-sinai-health-system
+Mount Sinai,mixed_rate_kind,40114,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,425079,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,1070204,mount-sinai-health-system
+Mount Sinai,zero_rate,215456,mount-sinai-health-system
+NYP,different_billing_class,2020625,newyork-presbyterian
+NYP,incompatible_methodology,48861,newyork-presbyterian
+NYP,mixed_rate_kind,48695,newyork-presbyterian
+NYP,no payer-side counterpart,344314,newyork-presbyterian
+NYP,tic_exempt_product,4505955,newyork-presbyterian
+NYP,zero_rate,64561,newyork-presbyterian
+NYU Langone,different_billing_class,128835935,nyu-langone-health
+NYU Langone,incompatible_methodology,391860,nyu-langone-health
+NYU Langone,mixed_rate_kind,492080,nyu-langone-health
+NYU Langone,no payer-side counterpart,5111840,nyu-langone-health
+NYU Langone,tic_exempt_product,27306510,nyu-langone-health
+Northwell,different_billing_class,40959177,northwell-health
+Northwell,incompatible_methodology,320766,northwell-health
+Northwell,mixed_rate_kind,825038,northwell-health
+Northwell,no payer-side counterpart,1757195,northwell-health
+Northwell,tic_exempt_product,24624964,northwell-health
