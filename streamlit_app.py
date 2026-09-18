@@ -18,7 +18,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from pipeline import summary_view as view  # noqa: E402
+from pipeline import summary_view as view
 
 SUMMARY = Path(__file__).parent / "summary"
 
@@ -53,7 +53,7 @@ for column, (label, value) in zip(columns, stale.items(), strict=True):
     column.metric(label, value[:10] if len(value) > 10 else value)
 
 for caveat in view.caveats(data.metadata):
-    st.info(caveat, icon="ℹ️")
+    st.info(caveat)
 
 if data.missing:
     st.warning(f"Missing from the dataset: {', '.join(data.missing)}")
@@ -109,10 +109,7 @@ with magnitude:
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if rows:
         st.bar_chart(
-            {
-                f"{r['carrier']} / {r['code_type']}": r["median_relative_difference"]
-                for r in rows
-            },
+            {f"{r['carrier']} / {r['code_type']}": r["median_relative_difference"] for r in rows},
             y_label="median relative difference",
         )
 
@@ -146,9 +143,7 @@ with refusals:
     if rows:
         totals: dict[str, int] = {}
         for row in rows:
-            totals[str(row["reason"])] = totals.get(str(row["reason"]), 0) + int(
-                row["candidates"]
-            )
+            totals[str(row["reason"])] = totals.get(str(row["reason"]), 0) + int(row["candidates"])
         st.bar_chart(totals, y_label="candidates refused")
 
 st.divider()
