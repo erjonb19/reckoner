@@ -223,13 +223,37 @@ def _reconcile_facility(
     gc.collect()
 
 
+def select(only: str | None) -> tuple[SystemSpec, ...]:
+    """The systems to reconcile: one named, or all four.
+
+    Matches on the slug or on either of the two names a system goes by, because
+    the caller is a shell variable and being strict about which of three correct
+    spellings it used would only produce a run that reconciles nothing.
+    """
+    wanted = (only or "").strip().casefold()
+    if not wanted:
+        # An environment variable set to blank is an unset one. Treating it as a
+        # name would fail a run for the sake of a stray space in a shell.
+        return RECONCILABLE
+    chosen = [
+        spec
+        for spec in RECONCILABLE
+        if wanted in {spec.slug.casefold(), spec.system.casefold(), spec.hospital.casefold()}
+    ]
+    if not chosen:
+        known = ", ".join(spec.slug for spec in RECONCILABLE)
+        raise ValueError(f"no reconcilable system matches {only!r}; known slugs: {known}")
+    return tuple(chosen)
+
+
 def build(
     lake: Location,
     *,
+    only: str | None = None,
     on_shard: ShardHook | None = None,
     on_system: SystemHook | None = None,
 ) -> list[Reconciliation]:
-    """Reconcile every system that can be reconciled."""
+    """Reconcile the selected systems -- by default, all of them."""
     hospital_dataset = open_hospital_silver(lake)
     payer_dataset = open_payer_silver(lake)
     payer_files = payer_files_from_silver(payer_dataset)
@@ -240,7 +264,7 @@ def build(
     facility_only = facility_only_hospitals(hospital_dataset)
 
     runs = []
-    for spec in RECONCILABLE:
+    for spec in select(only):
         run = reconcile_system(
             hospital_dataset,
             payer_dataset,
@@ -310,6 +334,7 @@ __all__ = [
     "SystemSpec",
     "build",
     "reconcile_system",
+    "select",
     "tables",
     "write",
 ]

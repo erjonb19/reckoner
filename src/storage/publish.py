@@ -237,6 +237,7 @@ def build_manifest(
     *,
     layer: str,
     group_key: str = "hospital_slug",
+    verify_only: set[str] | None = None,
 ) -> dict[str, Any]:
     """Describe what landed, one entry per file.
 
@@ -268,6 +269,17 @@ def build_manifest(
         )
 
     rows_landed = sum(u["rows"] for u in uploads)
+    # ``verify_only`` narrows the *check* without narrowing the manifest. A run
+    # that wrote one system's partitions still has to describe the whole tree,
+    # because that is what the drift check reads -- but it can only honestly
+    # claim to have verified its own. Without this a correct single-system run
+    # compares its own rows against everyone's and reports failure.
+    checked = (
+        uploads
+        if verify_only is None
+        else [u for u in uploads if str(u.get(group_key, "?")) in verify_only]
+    )
+    rows_checked = sum(u["rows"] for u in checked)
     rows_from_source = sum(r.rows_read for r in results)
     by_group: dict[str, int] = {}
     for upload in uploads:
@@ -286,7 +298,8 @@ def build_manifest(
         "rows_from_source": rows_from_source,
         # The one claim here that is not self-referential: the bytes and rows
         # above were read back, but this says they agree with what was asked for.
-        "verified": rows_landed == rows_from_source,
+        "verified": rows_checked == rows_from_source,
+        "rows_checked": rows_checked,
         "megabytes": round(sum(u["bytes"] for u in uploads) / 1e6, 1),
         f"by_{group_key}": dict(sorted(by_group.items())),
         "uploads": uploads,
