@@ -14,6 +14,37 @@ serving no users and supporting no one's decisions.
 
 ---
 
+## Start here
+
+**[`docs/silent-failures.md`](docs/silent-failures.md)** — every bug so far that
+**reported success and was wrong**, with the check that now catches each one.
+Eleven entries: a `write_dataset` call that silently dropped a partition key, a
+`str.replace` that did nothing while every gate stayed green, a feature that was
+designed and tested and never switched on so two of four systems reconciled
+nothing, a gauge that read zero correctly about the wrong thing, and a CLI flag
+that silently resized a container to an eighth of its memory. It is the most
+useful document in this repository and the reason most of the rest is trustworthy.
+
+### What actually reconciles
+
+Four of twelve health systems appear in both sources and can be compared at all.
+
+| system | pairs formed | comparable share | residual findings | offsets |
+|---|---|---|---|---|
+| NYU Langone | 6,539,353 | 3.88% | 86,174 | 176 |
+| Northwell | 4,552,693 | 6.23% | 116,504 | 78 |
+| Mount Sinai | 3,370,446 | 9.30% | 60,182 | 461 |
+| NewYork-Presbyterian | 106,852 | 1.50% | 0 | 5 |
+
+**Read the comparable share, not the pair count.** Between 1.5% and 9.3% of
+candidate pairs survive the comparability rules; the rest are refused for stated
+reasons, published in `gold/refusals`. The **residual** is the finding: pairs
+that are material *and* unexplained after every deterministic rule has had its
+say. **Offsets** are contracts where one constant ratio covers many services —
+one fact about two base rates, not one finding per code.
+
+---
+
 ## The two rules, and why it matters
 
 |  | Hospital (45 CFR 180) | Payer (Transparency in Coverage) |
@@ -30,8 +61,49 @@ rates exist only in hospital-side files.** Any claim otherwise is a bug.
 
 ## Architecture
 
-Three storage layers plus a compute layer, on ADLS Gen2. Everything else reads
+Three storage layers plus a control layer, on ADLS Gen2. Everything else reads
 from it; no engine ever holds the only copy.
+
+```mermaid
+flowchart TD
+    subgraph sources["Public filings"]
+        TIC["Payer TiC files<br/>100 GB - 1 TB"]
+        MRF["Hospital MRFs<br/>cms-hpt.txt discovery"]
+    end
+
+    TIC -->|"streaming parse, NY filter<br/>(mrf_pipeline, separate repo)"| BRONZE
+    MRF -->|"CMS template parser"| SILVERH
+
+    BRONZE["<b>BRONZE</b><br/>bronze/payer_tic<br/>as landed, 118 files, 56.8M rows"]
+    BRONZE -->|"conform: lowercase billing_class,<br/>zstd, compact 98 files to 1"| SILVERP
+
+    SILVERP["<b>SILVER</b> payer_rates<br/>carrier / vintage<br/>14 files, 56.8M rows"]
+    SILVERH["<b>SILVER</b> hospital_rates<br/>hospital_slug / code_type / vintage<br/>93 files, 156.5M rows"]
+
+    SILVERP --> MART
+    SILVERH --> MART
+    MART{{"comparability rules<br/>variance mart<br/>systematic-offset collapse"}}
+    MART --> GOLD
+
+    GOLD["<b>GOLD</b><br/>coverage, outcomes, magnitude,<br/>exemplars, refusals"]
+    GOLD --> REPORT["<b>report stage</b><br/>summary/*.csv + run.json"]
+    REPORT --> PAGE["Streamlit page<br/>no network calls"]
+    REPORT --> MD["docs/reconciliation-report.md"]
+
+    META[("<b>CONTROL</b> _meta/<br/>a manifest per layer")]
+    BRONZE -.-> META
+    SILVERP -.-> META
+    SILVERH -.-> META
+    GOLD -.-> META
+    META ==>|"stage 1 re-counts every file's rows<br/>from its Parquet footer,<br/>exits non-zero on drift"| CHECK{{"drift check<br/>monthly"}}
+
+    style META fill:#fff3cd,stroke:#856404
+    style CHECK fill:#fff3cd,stroke:#856404
+    style GOLD fill:#d4edda,stroke:#155724
+```
+
+<details>
+<summary>The same thing as plain text, for anywhere Mermaid does not render</summary>
 
 ```
   mrf_pipeline (separate repo)              hospital MRFs
@@ -65,7 +137,9 @@ from it; no engine ever holds the only copy.
   └───────────────────────────────────────────────────────────┘
 ```
 
-The fourth is not a storage layer, which is why it is drawn apart. It is the
+</details>
+
+The control layer is not a storage layer, which is why it is drawn apart. It is the
 thing that makes the other three trustworthy: a manifest per layer, and a
 scheduled job that re-counts every file's rows from its Parquet footer and fails
 loudly when the count has moved. A layer nobody checks is a layer nobody can
@@ -87,31 +161,9 @@ falls out of the partition key rather than being a pass over the data.
 
 ---
 
-## What reconciles, honestly
+## Why the residual is small
 
-The hospital lake holds 12 health systems; the payer target list holds 7; **four
-appear in both**, and only those four can be compared at all. That is a fact
-about name overlap, not about coverage.
-
-| system | pairs formed | comparable share | residual findings | systematic offsets |
-|---|---|---|---|---|
-| NYU Langone | 6,539,353 | 3.88% | 86,174 | 176 |
-| Northwell | 4,552,693 | 6.23% | 116,504 | 78 |
-| Mount Sinai | 3,370,446 | 9.30% | 60,182 | 461 |
-| NewYork-Presbyterian | 106,852 | 1.50% | 0 | 5 |
-
-**Read the comparable share, not the pair count.** Between 1.5% and 9.3% of
-candidates survive the comparability rules. The rest are refused for stated
-reasons — a different billing class, a TiC-exempt product, no counterpart, a zero
-rate, incompatible methodology — and the counts are published in
-`gold/refusals` so the denominator is visible rather than implied.
-
-**The residual is the finding, not the variance count.** Of Mount Sinai's
-3,370,446 pairs, 3,011,270 are "material" — which is not selective. 60,182 are
-material *and* unexplained after every deterministic rule has had its say. Those
-are what a human or an agent should look at.
-
-**Systematic offsets are why that number is small.** When two sources use the
+**Systematic offsets are the reason.** When two sources use the
 same DRG weights and different base rates, the weight cancels and hundreds of
 codes come out at one constant ratio. Reported per code it reads as hundreds of
 findings; it is one fact about two base rates. Collapsing them turned 2,943
@@ -177,13 +229,11 @@ so it is stated here rather than left to be discovered.
 
 ## Documentation
 
-- **[`docs/silent-failures.md`](docs/silent-failures.md)** — every bug so far that
-  **reported success and was wrong**, with the check that now catches each one.
-  Nine entries, including a `write_dataset` call that silently dropped a
-  partition key, a `str.replace` that did nothing while every gate stayed green,
-  and a feature that was designed, tested and correct but never switched on — so
-  two of four systems reconciled nothing and the run passed. The most useful
-  document here.
+- [`docs/silent-failures.md`](docs/silent-failures.md) — see **Start here**.
+- [`docs/reconciliation-report.md`](docs/reconciliation-report.md) — the written
+  report, generated from gold by the report stage.
+- [`docs/streamlit-deploy.md`](docs/streamlit-deploy.md) — how the page is
+  deployed, and why its Secrets box stays empty.
 - [`docs/BUILT_VS_PLANNED.md`](docs/BUILT_VS_PLANNED.md) — built / scaffolded /
   not started. Check here before believing a claim made anywhere else.
 - [`docs/adr/`](docs/adr/) — numbered design decisions, including dropping Fabric
