@@ -148,6 +148,57 @@ class TestThePublishedCopyIsUsable:
         assert written.to_table(columns=["file_vintage"]).column(0).to_pylist() == ["1/15/2026"]
 
 
+class TestScopedVerification:
+    """A run that wrote one partition may only claim to have verified that one.
+
+    The manifest still describes the whole tree, because that is what the drift
+    check reads. Without the distinction, a correct single-system run compares
+    its own rows against every system's and reports failure -- a green run
+    reported as red, which erodes trust in the check exactly as fast as the
+    reverse.
+    """
+
+    def test_verify_only_scopes_the_check_without_narrowing_the_manifest(self, tmp_path):
+        curated(
+            tmp_path / "lake",
+            [("A", "2026-01-01", 1.0), ("B", "2026-01-01", 2.0), ("B", "2026-01-01", 3.0)],
+        )
+        out = tmp_path / "out"
+        assert publish.main(["--root", str(tmp_path / "lake"), "--all", "--to", str(out)]) == 0
+        destination = storage.local(out).child(*publish.SILVER_HOSPITAL_ROOT)
+
+        # As if only A had been written this run: one row read, one row there.
+        only_a = publish.build_manifest(
+            destination,
+            [publish.PublishResult("A", "A", rows_read=1, rows_written=1, partitions=1)],
+            layer="silver/hospital_rates",
+            verify_only={"a"},
+        )
+
+        assert only_a["verified"] is True
+        assert only_a["rows"] == 3, "the manifest still describes every system"
+        assert only_a["rows_checked"] == 1
+        assert sorted(only_a["by_hospital_slug"]) == ["a", "b"]
+
+    def test_without_it_the_same_run_reports_failure(self, tmp_path):
+        """The bug this exists to prevent, written down."""
+        curated(
+            tmp_path / "lake",
+            [("A", "2026-01-01", 1.0), ("B", "2026-01-01", 2.0), ("B", "2026-01-01", 3.0)],
+        )
+        out = tmp_path / "out"
+        publish.main(["--root", str(tmp_path / "lake"), "--all", "--to", str(out)])
+        destination = storage.local(out).child(*publish.SILVER_HOSPITAL_ROOT)
+
+        unscoped = publish.build_manifest(
+            destination,
+            [publish.PublishResult("A", "A", rows_read=1, rows_written=1, partitions=1)],
+            layer="silver/hospital_rates",
+        )
+
+        assert unscoped["verified"] is False
+
+
 class TestTheCommandLine:
     """--all and --hospital are different code paths, and the dispatch is one of them.
 

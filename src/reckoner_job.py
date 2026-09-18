@@ -261,17 +261,31 @@ def run_mart() -> int:
             peak_rss_mib=peak_rss_mib(),
         )
 
-    runs = mart.build(location, on_shard=shard_done, on_system=system_done)
+    # One system per execution is how this fits. Each execution is a fresh
+    # process, so nothing inherits the previous system's retained pages or its
+    # accumulated state -- which is what the measured per-system peaks say the
+    # problem was: 4,748 MiB for Mount Sinai alone against 6,746 by the time
+    # Northwell ran after it in the same process.
+    only = os.environ.get("RECKONER_SYSTEM", "").strip() or None
+    log(
+        "mart_selection", system=only or "all four", source="RECKONER_SYSTEM" if only else "default"
+    )
+    runs = mart.build(location, only=only, on_shard=shard_done, on_system=system_done)
     if not runs:
         log("mart_no_systems", detail="nothing reconcilable; silver may be missing")
         return 1
 
     built = mart.tables(runs)
     written = mart.write(location, built)
-    log("mart_written", **written)
+    log("mart_written", systems=[run.hospital_slug for run in runs], **written)
 
     # Same manifest-and-verify shape as the two silver layers, so one stage-1
     # check covers all four without a special case.
+    # The manifest describes the whole gold tree, because that is what stage 1
+    # checks, but only the partitions this execution wrote were intended by it.
+    # Naming them is the difference between a manifest that says "gold is
+    # correct" and one that says "gold is correct and I am the reason for this
+    # part of it" -- and after a per-system run, only the second is true.
     manifest = publish.build_manifest(
         location.child(*mart.GOLD_ROOT),
         [
@@ -286,6 +300,11 @@ def run_mart() -> int:
         ],
         layer="gold",
         group_key="hospital_slug",
+        verify_only={run.hospital_slug for run in runs},
+    )
+    manifest["systems_written"] = [run.hospital_slug for run in runs]
+    manifest["complete"] = sorted(manifest["by_hospital_slug"]) == sorted(
+        spec.slug for spec in mart.RECONCILABLE
     )
     where = publish.write_manifest(location, manifest, path=mart.GOLD_MANIFEST)
     log(
@@ -295,6 +314,8 @@ def run_mart() -> int:
         rows=manifest["rows"],
         megabytes=manifest["megabytes"],
         verified=manifest["verified"],
+        systems_written=manifest["systems_written"],
+        complete=manifest["complete"],
     )
     return 0 if manifest["verified"] else 1
 
