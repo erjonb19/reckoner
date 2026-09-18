@@ -25,6 +25,32 @@ nothing, a gauge that read zero correctly about the wrong thing, and a CLI flag
 that silently resized a container to an eighth of its memory. It is the most
 useful document in this repository and the reason most of the rest is trustworthy.
 
+### The page
+
+Five views over the published dataset, filterable by health system, carrier and
+code type. It reads committed CSV and makes no network calls.
+
+![Filtering the outcomes view by system, carrier and code type](docs/img/filters.gif)
+
+<details>
+<summary>The other four views</summary>
+
+| | |
+|---|---|
+| ![Coverage](docs/img/coverage.png) | ![Outcomes](docs/img/outcomes.png) |
+| **Coverage** — the funnel, and the comparable share | **Outcomes** — why pairs differ, by explanation |
+| ![Magnitude](docs/img/magnitude.png) | ![Widest gaps](docs/img/widest-gaps.png) |
+| **Magnitude** — how large the surviving disagreements are | **Widest gaps** — the largest, with implausible ones flagged |
+| ![Refusals](docs/img/refusals.png) | |
+| **Refusals** — why candidates never became pairs | |
+
+</details>
+
+Deployment steps are in [`docs/streamlit-deploy.md`](docs/streamlit-deploy.md).
+Community Cloud sleeps an app after a period without traffic and wakes it on the
+next visit, which takes a few seconds; nothing is lost, and the vintages the page
+shows are the dataset's, not the wake-up's.
+
 ### What actually reconciles
 
 Four of twelve health systems appear in both sources and can be compared at all.
