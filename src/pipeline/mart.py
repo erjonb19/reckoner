@@ -93,7 +93,15 @@ RECONCILABLE = (
 #: One table per grain, each partitioned by ``hospital_slug``. Names match the
 #: summary dataset the report stage publishes, so the mapping from gold to the
 #: page is one to one and needs no translation table.
-TABLES = ("coverage", "outcomes", "magnitude", "exemplars", "refusals")
+TABLES = (
+    "coverage",
+    "outcomes",
+    "magnitude",
+    "exemplars",
+    "refusals",
+    "triage_queue",
+    "triage_summary",
+)
 
 
 def plan_shards(
