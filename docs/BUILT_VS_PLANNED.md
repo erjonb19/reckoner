@@ -256,14 +256,24 @@ named.
   3,370,446 / 4,552,693 / 6,539,353 / 106,852 pairs. Mount Sinai's figures match the
   unsharded `mart_cli` run exactly, which is the shard-invariance property holding on real
   data rather than on a fixture.
-- **Gold is published from a local run, not from the cloud job.** This is the one place where
-  what is deployed and what produced the data differ, so it is stated rather than implied.
-  `reckoner-mart` exists (4 vCPU / 8 GiB) but is **manual-trigger only**: four container
-  executions were OOM-killed, at 4 GiB and again at 8 GiB, which is the Consumption ceiling.
-  A single slice of 395,462 payer rates reaches 7.1 GB, which those objects cannot account
-  for, and the cause is not yet known. The schedule is removed rather than left to fail
-  monthly. Tracked in issue #47; the next step is a `tracemalloc` profile, not another
-  structural guess.
+- **Three of four systems are published by the cloud job; NYU Langone is not.** That split is
+  the honest state and is stated rather than implied. `reckoner-mart` reconciles one system
+  per execution (`RECKONER_SYSTEM`), at 4 vCPU / 8 GiB, **manual-trigger only**:
+
+  | system | peak RSS of 8,192 MiB | Arrow high-water | cloud execution |
+  |---|---|---|---|
+  | NewYork-Presbyterian | 2,425 | 1,481 | Succeeded |
+  | Mount Sinai | 4,747 | 1,450 | Succeeded |
+  | Northwell | 6,424 | 3,772 | Succeeded |
+  | NYU Langone | — | — | **OOM-killed** |
+
+  NYU Langone has the largest payer side (15.3M rows) and exceeds 8 GiB even alone, on a
+  ceiling that is the Consumption maximum. Its gold partition is still the one written by a
+  local run, which completes. Every figure the cloud produced matches that local run exactly.
+
+  The schedule stays off until all four succeed, because a monthly job that reliably fails
+  teaches whoever reads it to ignore the real alarm. Tracked in issue #47; the remaining
+  lever is finer sharding for that one system, which is structural.
 - **Not built:** the contract, publish and verify stages still log `stage_not_implemented`.
 
 ## Scaffolded
