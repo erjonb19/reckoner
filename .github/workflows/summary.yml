@@ -48,18 +48,16 @@ jobs:
       - name: Download summary/ from ADLS
         run: |
           set -euo pipefail
-          az storage fs file download-batch \
+          # The blob command, not `storage fs file download-batch`, which does
+          # not exist. The blob API serves a hierarchical-namespace account
+          # perfectly well for a flat prefix like this one.
+          az storage blob download-batch \
             --account-name "${{ vars.RECKONER_ADLS_ACCOUNT }}" \
-            --file-system lake \
-            --source summary \
-            --destination summary \
+            --source lake \
+            --pattern "summary/*" \
+            --destination . \
             --auth-mode login \
             --overwrite true
-          # download-batch preserves the source prefix, so the files can land a
-          # level deeper than intended. Flatten rather than assume.
-          if [ -d summary/summary ]; then
-            mv -f summary/summary/* summary/ && rmdir summary/summary
-          fi
           ls -la summary/
 
       - name: Refuse a snapshot that is not a dataset
