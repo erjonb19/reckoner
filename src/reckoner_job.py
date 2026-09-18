@@ -227,15 +227,26 @@ def run_mart() -> int:
     traceback and nothing to distinguish it from a crash.
     """
     from pipeline import mart
+    from pipeline.memwatch import MemoryWatch
     from reconcile.gold import Reconciliation
     from storage import publish, resolve
 
     location = resolve()
+    # Sampled every second for the length of the stage. The kernel high-water
+    # cannot say when a peak happened, and a figure read once per slice cannot
+    # see inside one -- two containers were killed having last reported a
+    # comfortable number because the fatal moment fell between samples.
+    watch = MemoryWatch().start()
+    log("memwatch_started", available=watch.available, interval_seconds=1.0)
 
     def shard_done(spec: mart.SystemSpec, shard: str, left: int, right: int, pairs: int) -> None:
         arrow_live, arrow_peak, _ = arrow_memory()
         log(
             "mart_shard",
+            # The largest RSS actually observed during this slice, as opposed to
+            # the process high-water, which never falls and so says nothing
+            # about which slice was expensive.
+            rss_window_peak_mib=watch.reset(),
             system=spec.system,
             shard=shard,
             hospital_rates=left,
@@ -320,6 +331,7 @@ def run_mart() -> int:
         group_key="hospital_slug",
         verify_only={run.hospital_slug for run in runs},
     )
+    log("memwatch_peak", sampled_peak_rss_mib=watch.stop(), samples=watch.samples)
     manifest["systems_written"] = [run.hospital_slug for run in runs]
     manifest["complete"] = sorted(manifest["by_hospital_slug"]) == sorted(
         spec.slug for spec in mart.RECONCILABLE
