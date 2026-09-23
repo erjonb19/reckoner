@@ -106,7 +106,7 @@ the place to check before claiming anything. `docs/adr/` holds the design decisi
 
 **Data on hand** (local, not committed):
 
-- 156M curated hospital rate lines across 12 health systems
+- 184M curated hospital rate lines across 15 health systems
 - 59.5M payer rate lines across 120 TiC files and 6 carriers — UHC, Aetna (group
   and individual), Cigna, Empire BCBS, EmblemHealth. Vintages span 2026-06-05 to
   2026-09-04, so vintage handling is load-bearing rather than a footnote.
@@ -119,22 +119,24 @@ reconcilable. Volume is not coverage either — roughly 46% of EmblemHealth's ro
 carry a rate of exactly $0.
 
 **Cross-source coverage is bounded by name overlap, not row counts.** The hospital
-lake holds 12 systems and the payer target list holds 7; four appear in both —
-Mount Sinai, NYU Langone, NewYork-Presbyterian, Northwell. Only those four can be
-reconciled at all.
+lake holds 15 systems and the payer target list holds 7. All seven appear in both,
+and six reconcile: Mount Sinai, NYU Langone, NewYork-Presbyterian, Northwell, WMC
+and White Plains. Montefiore is ingested but its mart run does not yet fit in
+8 GiB (#47). See `docs/scope.md`.
 
 **Deployed (Phase 2, Azure-native per ADR 0003; orchestration per ADR 0004).**
 All East US, all in `rg-reckoner`:
 
 - **ADLS Gen2 `reckonerlake0914`** (hierarchical namespace on) is the
   authoritative store, holding `bronze/payer_tic` (118 files, 56,784,415 rows)
-  and `silver/hospital_rates` (93 files, 156,484,277 rows, partitioned
-  `hospital_slug/code_type/vintage`). Both written with zstd, matching the
+  and `silver/hospital_rates` (122 files, 184,424,339 rows, partitioned
+  `hospital_slug/code_type/vintage`), plus `silver/payer_rates` and `gold/`. Both written with zstd, matching the
   curated lake; taking `write_dataset`'s snappy default once cost 2.45 GB.
 - **Container Apps Job `reckoner-pipeline`** — Consumption profile, 2 vCPU /
   4 GiB, cron `0 6 1 * *`, image from ghcr.io (no ACR: ~$5/month would trip the
-  budget). One stage per execution; `--stage manifest` is wired, the rest log
-  `stage_not_implemented`.
+  budget). One stage per execution; `manifest`, `mart`, `triage` and `report` are wired,
+  the rest log `stage_not_implemented`. The mart runs as the separate job
+  `reckoner-mart` (4 vCPU / 8 GiB, manual trigger until #47 closes).
 - **Authentication is a user-assigned managed identity**, named explicitly via
   `AZURE_CLIENT_ID`. Not left to `DefaultAzureCredential`: pyarrow's bundled
   Azure C++ chain shells out to the Azure CLI, which no container has. No key,
@@ -142,8 +144,8 @@ All East US, all in `rg-reckoner`:
 - **Log Analytics `reckoner-logs`** — 0.5 GB/day cap, 31-day retention. The job
   reads its own `dataIngestionStatus` through ARM and carries it on every
   summary record, so a capped day is visible rather than silent.
-- **Cost target: the free tier.** 5 GB of hot LRS blob (4.87 GB projected once
-  payer silver lands) and the monthly Container Apps grant of 180,000 vCPU-s /
+- **Cost target: the free tier.** 5 GB of hot LRS blob (5.282 GB measured,
+  0.6 cents a month over) and the monthly Container Apps grant of 180,000 vCPU-s /
   360,000 GiB-s, of which a run uses ~0.04%. The $0.10/hour environment
   management meter does not apply — Consumption-only, no private endpoint, no
   VNet. Anything that would cost money beyond this is a question for the human,
