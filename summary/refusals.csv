@@ -1,153 +1,367 @@
-system,reason,candidates,hospital_slug
-Mount Sinai,different_billing_class,31123000,mount-sinai-health-system
-Mount Sinai,incompatible_methodology,6116,mount-sinai-health-system
-Mount Sinai,mixed_rate_kind,40114,mount-sinai-health-system
-Mount Sinai,no payer-side counterpart,425079,mount-sinai-health-system
-Mount Sinai,tic_exempt_product,1070204,mount-sinai-health-system
-Mount Sinai,zero_rate,215456,mount-sinai-health-system
-NYP,different_billing_class,2020625,newyork-presbyterian
-NYP,incompatible_methodology,48861,newyork-presbyterian
-NYP,mixed_rate_kind,48695,newyork-presbyterian
-NYP,no payer-side counterpart,344314,newyork-presbyterian
-NYP,tic_exempt_product,4505955,newyork-presbyterian
-NYP,zero_rate,64561,newyork-presbyterian
-NYU Langone,different_billing_class,128835935,nyu-langone-health
-NYU Langone,incompatible_methodology,391860,nyu-langone-health
-NYU Langone,mixed_rate_kind,492080,nyu-langone-health
-NYU Langone,no payer-side counterpart,5111840,nyu-langone-health
-NYU Langone,tic_exempt_product,27306510,nyu-langone-health
-Northwell,different_billing_class,40959177,northwell-health
-Northwell,incompatible_methodology,320766,northwell-health
-Northwell,mixed_rate_kind,825038,northwell-health
-Northwell,no payer-side counterpart,1757195,northwell-health
-Northwell,tic_exempt_product,24624964,northwell-health
-WMC,different_billing_class,711,westchester-medical-center-health-network
-WMC,incompatible_methodology,2556,westchester-medical-center-health-network
-WMC,incompatible_methodology,621,westchester-medical-center-health-network
-WMC,incompatible_methodology,6980,westchester-medical-center-health-network
-WMC,no payer-side counterpart,1018,westchester-medical-center-health-network
-WMC,no payer-side counterpart,1190,westchester-medical-center-health-network
-WMC,no payer-side counterpart,1519,westchester-medical-center-health-network
-WMC,no payer-side counterpart,1528,westchester-medical-center-health-network
-WMC,no payer-side counterpart,15892,westchester-medical-center-health-network
-WMC,no payer-side counterpart,165,westchester-medical-center-health-network
-WMC,no payer-side counterpart,17443,westchester-medical-center-health-network
-WMC,no payer-side counterpart,18,westchester-medical-center-health-network
-WMC,no payer-side counterpart,2292,westchester-medical-center-health-network
-WMC,no payer-side counterpart,2294,westchester-medical-center-health-network
-WMC,no payer-side counterpart,2298,westchester-medical-center-health-network
-WMC,no payer-side counterpart,2298,westchester-medical-center-health-network
-WMC,no payer-side counterpart,2826,westchester-medical-center-health-network
-WMC,no payer-side counterpart,286,westchester-medical-center-health-network
-WMC,no payer-side counterpart,3025,westchester-medical-center-health-network
-WMC,no payer-side counterpart,3058,westchester-medical-center-health-network
-WMC,no payer-side counterpart,3072,westchester-medical-center-health-network
-WMC,no payer-side counterpart,35172,westchester-medical-center-health-network
-WMC,no payer-side counterpart,4586,westchester-medical-center-health-network
-WMC,no payer-side counterpart,6,westchester-medical-center-health-network
-WMC,no payer-side counterpart,7588,westchester-medical-center-health-network
-WMC,no payer-side counterpart,766,westchester-medical-center-health-network
-WMC,no payer-side counterpart,766,westchester-medical-center-health-network
-WMC,tic_exempt_product,10448,westchester-medical-center-health-network
-White Plains,different_billing_class,277431,white-plains-hospital
-White Plains,different_billing_class,33192,white-plains-hospital
-White Plains,different_billing_class,377,white-plains-hospital
-White Plains,different_billing_class,6,white-plains-hospital
-White Plains,different_billing_class,6918,white-plains-hospital
-White Plains,different_billing_class,80,white-plains-hospital
-White Plains,incompatible_methodology,3225,white-plains-hospital
-White Plains,incompatible_methodology,408,white-plains-hospital
-White Plains,incompatible_methodology,448,white-plains-hospital
-White Plains,incompatible_methodology,52,white-plains-hospital
-White Plains,incompatible_methodology,54,white-plains-hospital
-White Plains,incompatible_methodology,70,white-plains-hospital
-White Plains,incompatible_methodology,8,white-plains-hospital
-White Plains,incompatible_methodology,9,white-plains-hospital
-White Plains,mixed_rate_kind,1528,white-plains-hospital
-White Plains,mixed_rate_kind,16,white-plains-hospital
-White Plains,mixed_rate_kind,50,white-plains-hospital
-White Plains,mixed_rate_kind,560,white-plains-hospital
-White Plains,no payer-side counterpart,1073,white-plains-hospital
-White Plains,no payer-side counterpart,11246,white-plains-hospital
-White Plains,no payer-side counterpart,1131,white-plains-hospital
-White Plains,no payer-side counterpart,1163,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1164,white-plains-hospital
-White Plains,no payer-side counterpart,1244,white-plains-hospital
-White Plains,no payer-side counterpart,1308,white-plains-hospital
-White Plains,no payer-side counterpart,136,white-plains-hospital
-White Plains,no payer-side counterpart,14338,white-plains-hospital
-White Plains,no payer-side counterpart,1466,white-plains-hospital
-White Plains,no payer-side counterpart,1536,white-plains-hospital
-White Plains,no payer-side counterpart,1536,white-plains-hospital
-White Plains,no payer-side counterpart,1563,white-plains-hospital
-White Plains,no payer-side counterpart,1590,white-plains-hospital
-White Plains,no payer-side counterpart,1590,white-plains-hospital
-White Plains,no payer-side counterpart,163,white-plains-hospital
-White Plains,no payer-side counterpart,182,white-plains-hospital
-White Plains,no payer-side counterpart,188,white-plains-hospital
-White Plains,no payer-side counterpart,2120,white-plains-hospital
-White Plains,no payer-side counterpart,21292,white-plains-hospital
-White Plains,no payer-side counterpart,2151,white-plains-hospital
-White Plains,no payer-side counterpart,22121,white-plains-hospital
-White Plains,no payer-side counterpart,225,white-plains-hospital
-White Plains,no payer-side counterpart,2327,white-plains-hospital
-White Plains,no payer-side counterpart,2380,white-plains-hospital
-White Plains,no payer-side counterpart,2432,white-plains-hospital
-White Plains,no payer-side counterpart,2679,white-plains-hospital
-White Plains,no payer-side counterpart,273,white-plains-hospital
-White Plains,no payer-side counterpart,303,white-plains-hospital
-White Plains,no payer-side counterpart,303,white-plains-hospital
-White Plains,no payer-side counterpart,3056,white-plains-hospital
-White Plains,no payer-side counterpart,3142,white-plains-hospital
-White Plains,no payer-side counterpart,3228,white-plains-hospital
-White Plains,no payer-side counterpart,3536,white-plains-hospital
-White Plains,no payer-side counterpart,458,white-plains-hospital
-White Plains,no payer-side counterpart,4766,white-plains-hospital
-White Plains,no payer-side counterpart,485,white-plains-hospital
-White Plains,no payer-side counterpart,5288,white-plains-hospital
-White Plains,no payer-side counterpart,53,white-plains-hospital
-White Plains,no payer-side counterpart,540,white-plains-hospital
-White Plains,no payer-side counterpart,5610,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,5891,white-plains-hospital
-White Plains,no payer-side counterpart,6787,white-plains-hospital
-White Plains,no payer-side counterpart,746,white-plains-hospital
-White Plains,no payer-side counterpart,748,white-plains-hospital
-White Plains,no payer-side counterpart,748,white-plains-hospital
-White Plains,no payer-side counterpart,757,white-plains-hospital
-White Plains,no payer-side counterpart,762,white-plains-hospital
-White Plains,no payer-side counterpart,764,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,768,white-plains-hospital
-White Plains,no payer-side counterpart,7780,white-plains-hospital
-White Plains,no payer-side counterpart,8281,white-plains-hospital
-White Plains,no payer-side counterpart,867,white-plains-hospital
-White Plains,no payer-side counterpart,90,white-plains-hospital
-White Plains,tic_exempt_product,10536,white-plains-hospital
-White Plains,tic_exempt_product,11362,white-plains-hospital
-White Plains,tic_exempt_product,148884,white-plains-hospital
-White Plains,tic_exempt_product,204,white-plains-hospital
-White Plains,tic_exempt_product,28227,white-plains-hospital
-White Plains,tic_exempt_product,2919,white-plains-hospital
-White Plains,tic_exempt_product,3440,white-plains-hospital
-White Plains,tic_exempt_product,374,white-plains-hospital
-White Plains,tic_exempt_product,39779,white-plains-hospital
-White Plains,tic_exempt_product,4079,white-plains-hospital
-White Plains,zero_rate,19988,white-plains-hospital
-White Plains,zero_rate,367,white-plains-hospital
+system,reason,carrier,code_type,candidates,hospital_slug
+Mount Sinai,different_billing_class,Aetna,HCPCS,2713342,mount-sinai-health-system
+Mount Sinai,different_billing_class,Aetna,MS-DRG,93775,mount-sinai-health-system
+Mount Sinai,different_billing_class,Anthem / Empire BCBS,HCPCS,1332199,mount-sinai-health-system
+Mount Sinai,different_billing_class,Cigna,HCPCS,191471,mount-sinai-health-system
+Mount Sinai,different_billing_class,UnitedHealthcare,HCPCS,26792213,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,Aetna,HCPCS,192,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,Aetna,MS-DRG,936,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,Anthem / Empire BCBS,HCPCS,568,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,Anthem / Empire BCBS,MS-DRG,2760,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,Cigna,MS-DRG,60,mount-sinai-health-system
+Mount Sinai,incompatible_methodology,EmblemHealth,MS-DRG,1600,mount-sinai-health-system
+Mount Sinai,mixed_rate_kind,Aetna,HCPCS,36495,mount-sinai-health-system
+Mount Sinai,mixed_rate_kind,Anthem / Empire BCBS,HCPCS,2752,mount-sinai-health-system
+Mount Sinai,mixed_rate_kind,Cigna,HCPCS,867,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Aetna,HCPCS,2357,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Affinity,HCPCS,817,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Anthem / Empire BCBS,HCPCS,15037,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Anthem / Empire BCBS,MS-DRG,1696,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Cigna,HCPCS,1808,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Cigna,MS-DRG,756,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,EmblemHealth,HCPCS,52,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Fidelis Care,MS-DRG,4620,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Healthfirst,HCPCS,18870,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Healthfirst,MS-DRG,10010,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,Humana,MS-DRG,5390,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,MagnaCare,HCPCS,81303,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,MetroPlus,HCPCS,90185,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,MetroPlus,MS-DRG,4620,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,UnitedHealthcare,HCPCS,21037,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,UnitedHealthcare,MS-DRG,16758,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,WellCare,MS-DRG,5390,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,brighton,MS-DRG,757,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,elderplan,MS-DRG,770,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,horizon,HCPCS,16080,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,horizon,MS-DRG,4542,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,local,HCPCS,76130,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,local,MS-DRG,3785,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,longevity,MS-DRG,1540,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,oscar,HCPCS,12587,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,oscar,MS-DRG,7570,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,seiu,HCPCS,15197,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,seiu,MS-DRG,757,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,valueoptions,HCPCS,38,mount-sinai-health-system
+Mount Sinai,no payer-side counterpart,vns,MS-DRG,4620,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,Aetna,HCPCS,309448,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,Aetna,MS-DRG,23460,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,Anthem / Empire BCBS,MS-DRG,21032,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,Cigna,HCPCS,4925,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,Cigna,MS-DRG,15603,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,EmblemHealth,MS-DRG,129360,mount-sinai-health-system
+Mount Sinai,tic_exempt_product,UnitedHealthcare,HCPCS,566376,mount-sinai-health-system
+Mount Sinai,zero_rate,Aetna,HCPCS,53474,mount-sinai-health-system
+Mount Sinai,zero_rate,EmblemHealth,HCPCS,161982,mount-sinai-health-system
+NYP,different_billing_class,Aetna,CPT,273734,newyork-presbyterian
+NYP,different_billing_class,Aetna,HCPCS,47668,newyork-presbyterian
+NYP,different_billing_class,Aetna,MS-DRG,5189,newyork-presbyterian
+NYP,different_billing_class,Cigna,CPT,32321,newyork-presbyterian
+NYP,different_billing_class,Cigna,HCPCS,5505,newyork-presbyterian
+NYP,different_billing_class,UnitedHealthcare,CPT,1616175,newyork-presbyterian
+NYP,different_billing_class,UnitedHealthcare,HCPCS,40033,newyork-presbyterian
+NYP,incompatible_methodology,Aetna,CPT,36576,newyork-presbyterian
+NYP,incompatible_methodology,Aetna,HCPCS,11046,newyork-presbyterian
+NYP,incompatible_methodology,Aetna,MS-DRG,671,newyork-presbyterian
+NYP,incompatible_methodology,Cigna,CPT,99,newyork-presbyterian
+NYP,incompatible_methodology,Cigna,HCPCS,6,newyork-presbyterian
+NYP,incompatible_methodology,Cigna,MS-DRG,51,newyork-presbyterian
+NYP,incompatible_methodology,EmblemHealth,CPT,20,newyork-presbyterian
+NYP,incompatible_methodology,EmblemHealth,MS-DRG,278,newyork-presbyterian
+NYP,incompatible_methodology,UnitedHealthcare,CPT,111,newyork-presbyterian
+NYP,incompatible_methodology,UnitedHealthcare,HCPCS,3,newyork-presbyterian
+NYP,mixed_rate_kind,Aetna,CPT,47840,newyork-presbyterian
+NYP,mixed_rate_kind,Aetna,HCPCS,855,newyork-presbyterian
+NYP,no payer-side counterpart,1199seiu funds,CPT,6753,newyork-presbyterian
+NYP,no payer-side counterpart,1199seiu funds,HCPCS,1765,newyork-presbyterian
+NYP,no payer-side counterpart,1199seiu funds,MS-DRG,894,newyork-presbyterian
+NYP,no payer-side counterpart,Aetna,CPT,420,newyork-presbyterian
+NYP,no payer-side counterpart,Aetna,HCPCS,211,newyork-presbyterian
+NYP,no payer-side counterpart,Affinity,CPT,15680,newyork-presbyterian
+NYP,no payer-side counterpart,Affinity,HCPCS,3616,newyork-presbyterian
+NYP,no payer-side counterpart,Affinity,MS-DRG,2004,newyork-presbyterian
+NYP,no payer-side counterpart,Anthem / Empire BCBS,CPT,55122,newyork-presbyterian
+NYP,no payer-side counterpart,Anthem / Empire BCBS,HCPCS,12691,newyork-presbyterian
+NYP,no payer-side counterpart,Anthem / Empire BCBS,MS-DRG,7014,newyork-presbyterian
+NYP,no payer-side counterpart,Cigna,CPT,612,newyork-presbyterian
+NYP,no payer-side counterpart,Cigna,HCPCS,1087,newyork-presbyterian
+NYP,no payer-side counterpart,Cigna,MS-DRG,20,newyork-presbyterian
+NYP,no payer-side counterpart,EmblemHealth,CPT,1154,newyork-presbyterian
+NYP,no payer-side counterpart,EmblemHealth,HCPCS,607,newyork-presbyterian
+NYP,no payer-side counterpart,Fidelis Care,CPT,31422,newyork-presbyterian
+NYP,no payer-side counterpart,Fidelis Care,HCPCS,6859,newyork-presbyterian
+NYP,no payer-side counterpart,Fidelis Care,MS-DRG,4008,newyork-presbyterian
+NYP,no payer-side counterpart,Healthfirst,CPT,31422,newyork-presbyterian
+NYP,no payer-side counterpart,Healthfirst,HCPCS,6850,newyork-presbyterian
+NYP,no payer-side counterpart,Healthfirst,MS-DRG,4008,newyork-presbyterian
+NYP,no payer-side counterpart,MVP Health Care,CPT,16546,newyork-presbyterian
+NYP,no payer-side counterpart,MVP Health Care,HCPCS,4270,newyork-presbyterian
+NYP,no payer-side counterpart,MVP Health Care,MS-DRG,1746,newyork-presbyterian
+NYP,no payer-side counterpart,MagnaCare,CPT,6862,newyork-presbyterian
+NYP,no payer-side counterpart,MagnaCare,HCPCS,2690,newyork-presbyterian
+NYP,no payer-side counterpart,MultiPlan,CPT,6862,newyork-presbyterian
+NYP,no payer-side counterpart,MultiPlan,HCPCS,2690,newyork-presbyterian
+NYP,no payer-side counterpart,UnitedHealthcare,CPT,801,newyork-presbyterian
+NYP,no payer-side counterpart,UnitedHealthcare,HCPCS,869,newyork-presbyterian
+NYP,no payer-side counterpart,UnitedHealthcare,MS-DRG,7014,newyork-presbyterian
+NYP,no payer-side counterpart,WellCare,CPT,7902,newyork-presbyterian
+NYP,no payer-side counterpart,WellCare,HCPCS,1435,newyork-presbyterian
+NYP,no payer-side counterpart,WellCare,MS-DRG,1002,newyork-presbyterian
+NYP,no payer-side counterpart,amida care,CPT,7840,newyork-presbyterian
+NYP,no payer-side counterpart,amida care,HCPCS,1808,newyork-presbyterian
+NYP,no payer-side counterpart,amida care,MS-DRG,1002,newyork-presbyterian
+NYP,no payer-side counterpart,beech street,CPT,2659,newyork-presbyterian
+NYP,no payer-side counterpart,beech street,HCPCS,921,newyork-presbyterian
+NYP,no payer-side counterpart,beechstreet,CPT,2159,newyork-presbyterian
+NYP,no payer-side counterpart,beechstreet,HCPCS,888,newyork-presbyterian
+NYP,no payer-side counterpart,consumer health network,CPT,6862,newyork-presbyterian
+NYP,no payer-side counterpart,consumer health network,HCPCS,2690,newyork-presbyterian
+NYP,no payer-side counterpart,devon,CPT,4818,newyork-presbyterian
+NYP,no payer-side counterpart,devon,HCPCS,1809,newyork-presbyterian
+NYP,no payer-side counterpart,elderplan,CPT,4182,newyork-presbyterian
+NYP,no payer-side counterpart,elderplan,HCPCS,938,newyork-presbyterian
+NYP,no payer-side counterpart,elderplan,MS-DRG,399,newyork-presbyterian
+NYP,no payer-side counterpart,first health,CPT,6862,newyork-presbyterian
+NYP,no payer-side counterpart,first health,HCPCS,2690,newyork-presbyterian
+NYP,no payer-side counterpart,longevity,CPT,1828,newyork-presbyterian
+NYP,no payer-side counterpart,longevity,HCPCS,464,newyork-presbyterian
+NYP,no payer-side counterpart,longevity,MS-DRG,108,newyork-presbyterian
+NYP,no payer-side counterpart,qhm,CPT,2659,newyork-presbyterian
+NYP,no payer-side counterpart,qhm,HCPCS,921,newyork-presbyterian
+NYP,no payer-side counterpart,senior whole health,CPT,7902,newyork-presbyterian
+NYP,no payer-side counterpart,senior whole health,HCPCS,1426,newyork-presbyterian
+NYP,no payer-side counterpart,senior whole health,MS-DRG,1002,newyork-presbyterian
+NYP,no payer-side counterpart,vns health,CPT,15742,newyork-presbyterian
+NYP,no payer-side counterpart,vns health,HCPCS,3243,newyork-presbyterian
+NYP,no payer-side counterpart,vns health,MS-DRG,2004,newyork-presbyterian
+NYP,no payer-side counterpart,worldwide,CPT,2659,newyork-presbyterian
+NYP,no payer-side counterpart,worldwide,HCPCS,921,newyork-presbyterian
+NYP,tic_exempt_product,Aetna,CPT,269185,newyork-presbyterian
+NYP,tic_exempt_product,Aetna,HCPCS,25244,newyork-presbyterian
+NYP,tic_exempt_product,Aetna,MS-DRG,10315,newyork-presbyterian
+NYP,tic_exempt_product,Cigna,CPT,42291,newyork-presbyterian
+NYP,tic_exempt_product,Cigna,HCPCS,3300,newyork-presbyterian
+NYP,tic_exempt_product,Cigna,MS-DRG,2994,newyork-presbyterian
+NYP,tic_exempt_product,EmblemHealth,CPT,106826,newyork-presbyterian
+NYP,tic_exempt_product,EmblemHealth,HCPCS,23325,newyork-presbyterian
+NYP,tic_exempt_product,EmblemHealth,MS-DRG,28980,newyork-presbyterian
+NYP,tic_exempt_product,UnitedHealthcare,CPT,3926189,newyork-presbyterian
+NYP,tic_exempt_product,UnitedHealthcare,HCPCS,67306,newyork-presbyterian
+NYP,zero_rate,Aetna,HCPCS,20,newyork-presbyterian
+NYP,zero_rate,EmblemHealth,CPT,48481,newyork-presbyterian
+NYP,zero_rate,EmblemHealth,HCPCS,16060,newyork-presbyterian
+NYU Langone,different_billing_class,,,128835935,nyu-langone-health
+NYU Langone,incompatible_methodology,,,391860,nyu-langone-health
+NYU Langone,mixed_rate_kind,,,492080,nyu-langone-health
+NYU Langone,no payer-side counterpart,,,5111840,nyu-langone-health
+NYU Langone,tic_exempt_product,,,27306510,nyu-langone-health
+Northwell,different_billing_class,Aetna,CPT,3024090,northwell-health
+Northwell,different_billing_class,Aetna,HCPCS,3035361,northwell-health
+Northwell,different_billing_class,Aetna,MS-DRG,270861,northwell-health
+Northwell,different_billing_class,Anthem / Empire BCBS,CPT,642362,northwell-health
+Northwell,different_billing_class,Anthem / Empire BCBS,HCPCS,774384,northwell-health
+Northwell,different_billing_class,Cigna,CPT,201073,northwell-health
+Northwell,different_billing_class,Cigna,HCPCS,247018,northwell-health
+Northwell,different_billing_class,UnitedHealthcare,CPT,26553900,northwell-health
+Northwell,different_billing_class,UnitedHealthcare,HCPCS,6210128,northwell-health
+Northwell,incompatible_methodology,Aetna,CPT,9894,northwell-health
+Northwell,incompatible_methodology,Aetna,HCPCS,376,northwell-health
+Northwell,incompatible_methodology,Aetna,MS-DRG,30650,northwell-health
+Northwell,incompatible_methodology,Cigna,CPT,918,northwell-health
+Northwell,incompatible_methodology,Cigna,MS-DRG,234,northwell-health
+Northwell,incompatible_methodology,EmblemHealth,CPT,243984,northwell-health
+Northwell,incompatible_methodology,EmblemHealth,HCPCS,13026,northwell-health
+Northwell,incompatible_methodology,EmblemHealth,MS-DRG,21684,northwell-health
+Northwell,mixed_rate_kind,Aetna,CPT,516696,northwell-health
+Northwell,mixed_rate_kind,Aetna,HCPCS,303062,northwell-health
+Northwell,mixed_rate_kind,Aetna,MS-DRG,732,northwell-health
+Northwell,mixed_rate_kind,Cigna,CPT,2677,northwell-health
+Northwell,mixed_rate_kind,Cigna,HCPCS,1403,northwell-health
+Northwell,mixed_rate_kind,EmblemHealth,HCPCS,468,northwell-health
+Northwell,no payer-side counterpart,Aetna,CPT,759,northwell-health
+Northwell,no payer-side counterpart,Aetna,HCPCS,2503,northwell-health
+Northwell,no payer-side counterpart,Aetna,MS-DRG,6011,northwell-health
+Northwell,no payer-side counterpart,Affinity,CPT,64294,northwell-health
+Northwell,no payer-side counterpart,Anthem / Empire BCBS,CPT,3519,northwell-health
+Northwell,no payer-side counterpart,Anthem / Empire BCBS,HCPCS,7760,northwell-health
+Northwell,no payer-side counterpart,Anthem / Empire BCBS,MS-DRG,136865,northwell-health
+Northwell,no payer-side counterpart,CDPHP,HCPCS,25833,northwell-health
+Northwell,no payer-side counterpart,CDPHP,MS-DRG,4701,northwell-health
+Northwell,no payer-side counterpart,Cigna,CPT,1563,northwell-health
+Northwell,no payer-side counterpart,Cigna,HCPCS,10655,northwell-health
+Northwell,no payer-side counterpart,Cigna,MS-DRG,3811,northwell-health
+Northwell,no payer-side counterpart,EmblemHealth,CPT,282293,northwell-health
+Northwell,no payer-side counterpart,EmblemHealth,HCPCS,18927,northwell-health
+Northwell,no payer-side counterpart,EmblemHealth,MS-DRG,16661,northwell-health
+Northwell,no payer-side counterpart,Fidelis Care,CPT,129911,northwell-health
+Northwell,no payer-side counterpart,Fidelis Care,MS-DRG,28716,northwell-health
+Northwell,no payer-side counterpart,Healthfirst,CPT,153598,northwell-health
+Northwell,no payer-side counterpart,Healthfirst,MS-DRG,12818,northwell-health
+Northwell,no payer-side counterpart,Humana,CPT,19686,northwell-health
+Northwell,no payer-side counterpart,Humana,HCPCS,28148,northwell-health
+Northwell,no payer-side counterpart,Humana,MS-DRG,15128,northwell-health
+Northwell,no payer-side counterpart,MVP Health Care,CPT,21947,northwell-health
+Northwell,no payer-side counterpart,MVP Health Care,HCPCS,25495,northwell-health
+Northwell,no payer-side counterpart,MVP Health Care,MS-DRG,7650,northwell-health
+Northwell,no payer-side counterpart,MagnaCare,CPT,45568,northwell-health
+Northwell,no payer-side counterpart,MagnaCare,HCPCS,1737,northwell-health
+Northwell,no payer-side counterpart,MagnaCare,MS-DRG,23374,northwell-health
+Northwell,no payer-side counterpart,MetroPlus,CPT,103662,northwell-health
+Northwell,no payer-side counterpart,MetroPlus,MS-DRG,38318,northwell-health
+Northwell,no payer-side counterpart,UnitedHealthcare,CPT,4648,northwell-health
+Northwell,no payer-side counterpart,UnitedHealthcare,HCPCS,1367,northwell-health
+Northwell,no payer-side counterpart,UnitedHealthcare,MS-DRG,115715,northwell-health
+Northwell,no payer-side counterpart,WellCare,CPT,19686,northwell-health
+Northwell,no payer-side counterpart,WellCare,HCPCS,29990,northwell-health
+Northwell,no payer-side counterpart,WellCare,MS-DRG,18208,northwell-health
+Northwell,no payer-side counterpart,advantage plus network,HCPCS,29990,northwell-health
+Northwell,no payer-side counterpart,advantage plus network,MS-DRG,2310,northwell-health
+Northwell,no payer-side counterpart,centivo,HCPCS,28134,northwell-health
+Northwell,no payer-side counterpart,centivo,MS-DRG,3850,northwell-health
+Northwell,no payer-side counterpart,connecticare,HCPCS,86260,northwell-health
+Northwell,no payer-side counterpart,connecticare,MS-DRG,7608,northwell-health
+Northwell,no payer-side counterpart,healthplus,CPT,86632,northwell-health
+Northwell,no payer-side counterpart,healthplus,MS-DRG,12818,northwell-health
+Northwell,no payer-side counterpart,local,CPT,22722,northwell-health
+Northwell,no payer-side counterpart,local,MS-DRG,7540,northwell-health
+Northwell,no payer-side counterpart,northwell direct,CPT,22678,northwell-health
+Northwell,no payer-side counterpart,northwell direct,MS-DRG,12818,northwell-health
+Northwell,no payer-side counterpart,optumcare network,MS-DRG,2310,northwell-health
+Northwell,tic_exempt_product,Aetna,CPT,1303509,northwell-health
+Northwell,tic_exempt_product,Aetna,HCPCS,838210,northwell-health
+Northwell,tic_exempt_product,Aetna,MS-DRG,161727,northwell-health
+Northwell,tic_exempt_product,Anthem / Empire BCBS,CPT,156944,northwell-health
+Northwell,tic_exempt_product,Cigna,HCPCS,30196,northwell-health
+Northwell,tic_exempt_product,Cigna,MS-DRG,15624,northwell-health
+Northwell,tic_exempt_product,EmblemHealth,CPT,274482,northwell-health
+Northwell,tic_exempt_product,EmblemHealth,MS-DRG,941616,northwell-health
+Northwell,tic_exempt_product,UnitedHealthcare,CPT,20902656,northwell-health
+WMC,different_billing_class,Aetna,MS-DRG,711,westchester-medical-center-health-network
+WMC,incompatible_methodology,Aetna,MS-DRG,6980,westchester-medical-center-health-network
+WMC,incompatible_methodology,Anthem / Empire BCBS,MS-DRG,2556,westchester-medical-center-health-network
+WMC,incompatible_methodology,EmblemHealth,MS-DRG,621,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Aetna,MS-DRG,1018,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Affinity,MS-DRG,4586,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Anthem / Empire BCBS,MS-DRG,2826,westchester-medical-center-health-network
+WMC,no payer-side counterpart,CDPHP,MS-DRG,3025,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Cigna,MS-DRG,286,westchester-medical-center-health-network
+WMC,no payer-side counterpart,EmblemHealth,MS-DRG,1190,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Excellus BCBS,MS-DRG,766,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Fidelis Care,MS-DRG,1528,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Healthfirst,MS-DRG,3058,westchester-medical-center-health-network
+WMC,no payer-side counterpart,MVP Health Care,MS-DRG,15892,westchester-medical-center-health-network
+WMC,no payer-side counterpart,MagnaCare,MS-DRG,7588,westchester-medical-center-health-network
+WMC,no payer-side counterpart,Medicare,MS-DRG,35172,westchester-medical-center-health-network
+WMC,no payer-side counterpart,MultiPlan,MS-DRG,165,westchester-medical-center-health-network
+WMC,no payer-side counterpart,UnitedHealthcare,MS-DRG,17443,westchester-medical-center-health-network
+WMC,no payer-side counterpart,WellCare,MS-DRG,2294,westchester-medical-center-health-network
+WMC,no payer-side counterpart,beacon commercial,MS-DRG,18,westchester-medical-center-health-network
+WMC,no payer-side counterpart,beacon exchange,MS-DRG,6,westchester-medical-center-health-network
+WMC,no payer-side counterpart,first health,MS-DRG,3072,westchester-medical-center-health-network
+WMC,no payer-side counterpart,geisinger health commercial exchange,MS-DRG,2292,westchester-medical-center-health-network
+WMC,no payer-side counterpart,todays options,MS-DRG,1519,westchester-medical-center-health-network
+WMC,no payer-side counterpart,value options non hmo,MS-DRG,766,westchester-medical-center-health-network
+WMC,no payer-side counterpart,world trade center fdny,MS-DRG,2298,westchester-medical-center-health-network
+WMC,no payer-side counterpart,world trade center other,MS-DRG,2298,westchester-medical-center-health-network
+WMC,tic_exempt_product,Anthem / Empire BCBS,MS-DRG,10448,westchester-medical-center-health-network
+White Plains,different_billing_class,Aetna,CPT,80,white-plains-hospital
+White Plains,different_billing_class,Anthem / Empire BCBS,CPT,377,white-plains-hospital
+White Plains,different_billing_class,Cigna,CPT,33192,white-plains-hospital
+White Plains,different_billing_class,Cigna,HCPCS,6,white-plains-hospital
+White Plains,different_billing_class,UnitedHealthcare,CPT,277431,white-plains-hospital
+White Plains,different_billing_class,UnitedHealthcare,HCPCS,6918,white-plains-hospital
+White Plains,incompatible_methodology,Aetna,CPT,448,white-plains-hospital
+White Plains,incompatible_methodology,Aetna,HCPCS,54,white-plains-hospital
+White Plains,incompatible_methodology,Anthem / Empire BCBS,CPT,3225,white-plains-hospital
+White Plains,incompatible_methodology,Anthem / Empire BCBS,HCPCS,70,white-plains-hospital
+White Plains,incompatible_methodology,Anthem / Empire BCBS,MS-DRG,408,white-plains-hospital
+White Plains,incompatible_methodology,EmblemHealth,CPT,8,white-plains-hospital
+White Plains,incompatible_methodology,EmblemHealth,MS-DRG,52,white-plains-hospital
+White Plains,incompatible_methodology,UnitedHealthcare,CPT,9,white-plains-hospital
+White Plains,mixed_rate_kind,Aetna,CPT,560,white-plains-hospital
+White Plains,mixed_rate_kind,Aetna,HCPCS,16,white-plains-hospital
+White Plains,mixed_rate_kind,Anthem / Empire BCBS,CPT,1528,white-plains-hospital
+White Plains,mixed_rate_kind,Anthem / Empire BCBS,HCPCS,50,white-plains-hospital
+White Plains,no payer-side counterpart,Aetna,CPT,5288,white-plains-hospital
+White Plains,no payer-side counterpart,Aetna,HCPCS,1131,white-plains-hospital
+White Plains,no payer-side counterpart,Aetna,MS-DRG,273,white-plains-hospital
+White Plains,no payer-side counterpart,Affinity,CPT,14338,white-plains-hospital
+White Plains,no payer-side counterpart,Affinity,HCPCS,3536,white-plains-hospital
+White Plains,no payer-side counterpart,Affinity,MS-DRG,1536,white-plains-hospital
+White Plains,no payer-side counterpart,Anthem / Empire BCBS,CPT,458,white-plains-hospital
+White Plains,no payer-side counterpart,Anthem / Empire BCBS,HCPCS,1308,white-plains-hospital
+White Plains,no payer-side counterpart,Anthem / Empire BCBS,MS-DRG,2151,white-plains-hospital
+White Plains,no payer-side counterpart,Cigna,CPT,757,white-plains-hospital
+White Plains,no payer-side counterpart,Cigna,HCPCS,540,white-plains-hospital
+White Plains,no payer-side counterpart,Cigna,MS-DRG,188,white-plains-hospital
+White Plains,no payer-side counterpart,EmblemHealth,CPT,1244,white-plains-hospital
+White Plains,no payer-side counterpart,EmblemHealth,HCPCS,3228,white-plains-hospital
+White Plains,no payer-side counterpart,EmblemHealth,MS-DRG,182,white-plains-hospital
+White Plains,no payer-side counterpart,Fidelis Care,CPT,22121,white-plains-hospital
+White Plains,no payer-side counterpart,Fidelis Care,HCPCS,2679,white-plains-hospital
+White Plains,no payer-side counterpart,Fidelis Care,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,Healthfirst,CPT,21292,white-plains-hospital
+White Plains,no payer-side counterpart,Healthfirst,HCPCS,2432,white-plains-hospital
+White Plains,no payer-side counterpart,Humana,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,Humana,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,MVP Health Care,CPT,3142,white-plains-hospital
+White Plains,no payer-side counterpart,MVP Health Care,HCPCS,1563,white-plains-hospital
+White Plains,no payer-side counterpart,Medicaid,CPT,1590,white-plains-hospital
+White Plains,no payer-side counterpart,Medicaid,HCPCS,303,white-plains-hospital
+White Plains,no payer-side counterpart,UnitedHealthcare,CPT,163,white-plains-hospital
+White Plains,no payer-side counterpart,UnitedHealthcare,HCPCS,1073,white-plains-hospital
+White Plains,no payer-side counterpart,UnitedHealthcare,MS-DRG,3056,white-plains-hospital
+White Plains,no payer-side counterpart,WellCare,CPT,8281,white-plains-hospital
+White Plains,no payer-side counterpart,WellCare,HCPCS,2380,white-plains-hospital
+White Plains,no payer-side counterpart,WellCare,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,american postal workers,CPT,225,white-plains-hospital
+White Plains,no payer-side counterpart,american postal workers,HCPCS,485,white-plains-hospital
+White Plains,no payer-side counterpart,american postal workers,MS-DRG,764,white-plains-hospital
+White Plains,no payer-side counterpart,centerlight,CPT,11246,white-plains-hospital
+White Plains,no payer-side counterpart,centerlight,HCPCS,2327,white-plains-hospital
+White Plains,no payer-side counterpart,centerlight,MS-DRG,1536,white-plains-hospital
+White Plains,no payer-side counterpart,centivo,CPT,867,white-plains-hospital
+White Plains,no payer-side counterpart,centivo,HCPCS,136,white-plains-hospital
+White Plains,no payer-side counterpart,centivo,MS-DRG,748,white-plains-hospital
+White Plains,no payer-side counterpart,elderplan,CPT,5610,white-plains-hospital
+White Plains,no payer-side counterpart,elderplan,HCPCS,1163,white-plains-hospital
+White Plains,no payer-side counterpart,elderplan,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,hamaspik,CPT,7780,white-plains-hospital
+White Plains,no payer-side counterpart,hamaspik,HCPCS,2120,white-plains-hospital
+White Plains,no payer-side counterpart,longevity,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,longevity,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,longevity,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,northwell,CPT,4766,white-plains-hospital
+White Plains,no payer-side counterpart,northwell,HCPCS,53,white-plains-hospital
+White Plains,no payer-side counterpart,northwell,MS-DRG,748,white-plains-hospital
+White Plains,no payer-side counterpart,oscar,CPT,6787,white-plains-hospital
+White Plains,no payer-side counterpart,oscar,HCPCS,90,white-plains-hospital
+White Plains,no payer-side counterpart,oscar,MS-DRG,746,white-plains-hospital
+White Plains,no payer-side counterpart,partners,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,partners,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,partners,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,point comfort,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,point comfort,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,point comfort,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,veterans affair,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,veterans affair,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,veterans affair,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,villagecaremax,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,villagecaremax,HCPCS,1164,white-plains-hospital
+White Plains,no payer-side counterpart,villagecaremax,MS-DRG,768,white-plains-hospital
+White Plains,no payer-side counterpart,vnsny choice,CPT,5891,white-plains-hospital
+White Plains,no payer-side counterpart,vnsny choice,HCPCS,1466,white-plains-hospital
+White Plains,no payer-side counterpart,vnsny choice,MS-DRG,762,white-plains-hospital
+White Plains,no payer-side counterpart,vnsny select health,CPT,1590,white-plains-hospital
+White Plains,no payer-side counterpart,vnsny select health,HCPCS,303,white-plains-hospital
+White Plains,tic_exempt_product,Aetna,CPT,39779,white-plains-hospital
+White Plains,tic_exempt_product,Aetna,HCPCS,2919,white-plains-hospital
+White Plains,tic_exempt_product,Aetna,MS-DRG,3440,white-plains-hospital
+White Plains,tic_exempt_product,Anthem / Empire BCBS,CPT,28227,white-plains-hospital
+White Plains,tic_exempt_product,Anthem / Empire BCBS,HCPCS,4079,white-plains-hospital
+White Plains,tic_exempt_product,Anthem / Empire BCBS,MS-DRG,204,white-plains-hospital
+White Plains,tic_exempt_product,EmblemHealth,CPT,11362,white-plains-hospital
+White Plains,tic_exempt_product,EmblemHealth,HCPCS,374,white-plains-hospital
+White Plains,tic_exempt_product,UnitedHealthcare,CPT,148884,white-plains-hospital
+White Plains,tic_exempt_product,UnitedHealthcare,HCPCS,10536,white-plains-hospital
+White Plains,zero_rate,EmblemHealth,CPT,19988,white-plains-hospital
+White Plains,zero_rate,EmblemHealth,HCPCS,367,white-plains-hospital
