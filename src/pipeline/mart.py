@@ -29,7 +29,7 @@ import pyarrow.dataset as ds
 from payer.curated import PayerFile, PayerFilter
 from reconcile.comparability import ComparableRate
 from reconcile.eligibility import facility_only_hospitals
-from reconcile.gold import Reconciliation, reconcile_shard
+from reconcile.gold import Reconciliation, stream_shard
 from reconcile.silver import (
     hospital_shard,
     open_hospital_silver,
@@ -263,16 +263,26 @@ def _reconcile_facility(
     # anywhere has no facility with one -- and getting it wrong is why the option
     # appeared to do nothing on its first run.
     eligible = frozenset({facility}) if assume_facility else frozenset()
-    mart = reconcile_shard(
+    # Streamed, not collected. One slice of this system forms three million
+    # pairs from a quarter-million inputs -- a 290-way fan-out, because the join
+    # keys on carrier rather than plan -- and holding them all was roughly two
+    # gigabytes for rows that are read once and mostly discarded.
+    mart, rows = stream_shard(
         left,
         right,
         max_vintage_days=max_vintage_days,
         assume_facility_when_unstated=eligible,
     )
-    run.add_shard(f"{shard}:{facility}", mart, hospital_rates=len(left), payer_rates=len(right))
+    pairs = run.add_shard(
+        f"{shard}:{facility}",
+        mart,
+        hospital_rates=len(left),
+        payer_rates=len(right),
+        rows=rows,
+    )
     if on_shard is not None:
-        on_shard(spec, f"{shard}:{facility}", len(left), len(right), len(mart.rows))
-    del right, mart
+        on_shard(spec, f"{shard}:{facility}", len(left), len(right), pairs)
+    del right, mart, rows
     # Collected per slice, not per shard. Splitting the fan-out by facility
     # bounded what is live at once but not what is *garbage* at once: eight
     # slices each build and discard their own copy of the shard's payer rates,

@@ -27,6 +27,8 @@ useful document in this repository and the reason most of the rest is trustworth
 
 ### The page
 
+**<https://reckoner-ny.streamlit.app>**
+
 Five views over the published dataset, filterable by health system, carrier and
 code type. It reads committed CSV and makes no network calls.
 
@@ -46,10 +48,10 @@ code type. It reads committed CSV and makes no network calls.
 
 </details>
 
-Deployment steps are in [`docs/streamlit-deploy.md`](docs/streamlit-deploy.md).
-Community Cloud sleeps an app after a period without traffic and wakes it on the
-next visit, which takes a few seconds; nothing is lost, and the vintages the page
-shows are the dataset's, not the wake-up's.
+Community Cloud **sleeps the app after a period without traffic** and wakes it on
+the next visit, which takes a few seconds. Nothing is lost, and the vintages the
+page shows are the dataset's rather than the wake-up's. Deployment steps are in
+[`docs/streamlit-deploy.md`](docs/streamlit-deploy.md).
 
 ### What actually reconciles
 

@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import sys
 from array import array
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from statistics import median
 from typing import Any
@@ -52,6 +52,7 @@ from reconcile.variance import (
     Variance,
     VarianceMart,
     cross_source_variance,
+    iter_cross_source_variance,
 )
 
 #: The contract a pair belongs to. Same key :func:`find_systematic_offsets`
@@ -172,29 +173,32 @@ class Reconciliation:
         *,
         hospital_rates: int = 0,
         payer_rates: int = 0,
-    ) -> None:
-        """Fold one shard's mart in, keeping only what survives the whole run.
+        rows: Iterable[Variance] | None = None,
+    ) -> int:
+        """Fold one shard's pairs in, keeping only what survives the whole run.
 
         Deliberately called with a mart whose offsets have **not** been applied:
         doing that per shard is the thing this class exists to avoid.
+
+        ``rows`` is the pair stream. Given one, the pairs are never all in
+        memory at once -- which is the difference between fitting a container
+        and not, because one NYU Langone slice forms three million of them
+        against a quarter-million inputs. Omitted, ``mart.rows`` is used, which
+        is what a caller holding the list already wants.
+
+        **The exclusion counts are read after the stream, not before.** A
+        generator fills them as it runs, so reading them first would report
+        plausible, smaller numbers and nothing would look wrong.
         """
         if self._closed:
             raise RuntimeError("cannot add a shard after close(); the offsets are already fixed")
         self.shards.append(shard)
         self.hospital_rates += hospital_rates
         self.payer_rates += payer_rates
-        self.pairs_formed += len(mart.rows)
-        for reason, count in mart.excluded.items():
-            self.excluded[reason] = self.excluded.get(reason, 0) + count
-        for detail_key, detail_count in mart.excluded_detail.items():
-            self.excluded_detail[detail_key] = (
-                self.excluded_detail.get(detail_key, 0) + detail_count
-            )
-        for note in mart.provenance.caveats:
-            if note not in self.caveats:
-                self.caveats.append(note)
 
-        for row in mart.rows:
+        pairs = 0
+        for row in mart.rows if rows is None else rows:
+            pairs += 1
             self.explanation[row.explanation] = self.explanation.get(row.explanation, 0) + 1
             if row.is_material:
                 self.explanation["_material"] = self.explanation.get("_material", 0) + 1
@@ -223,6 +227,19 @@ class Reconciliation:
             elif row.ratio > 0:
                 contract.immaterial_ratios.append(row.ratio)
                 contract.immaterial_code_types.append(sys.intern(row.code_type or ""))
+
+        # After the loop: a streamed mart is only fully counted once exhausted.
+        self.pairs_formed += pairs
+        for reason, count in mart.excluded.items():
+            self.excluded[reason] = self.excluded.get(reason, 0) + count
+        for detail_key, detail_count in mart.excluded_detail.items():
+            self.excluded_detail[detail_key] = (
+                self.excluded_detail.get(detail_key, 0) + detail_count
+            )
+        for note in mart.provenance.caveats:
+            if note not in self.caveats:
+                self.caveats.append(note)
+        return pairs
 
     def close(
         self,
@@ -535,6 +552,31 @@ def _as_residual(row: Variance, hospital: str, system: str, slug: str) -> Residu
     )
 
 
+def stream_shard(
+    hospital_side: list[ComparableRate],
+    payer_side: list[ComparableRate],
+    *,
+    max_vintage_days: int = 400,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
+) -> tuple[VarianceMart, Iterator[Variance]]:
+    """An empty mart and the pair stream that fills it.
+
+    The mart is returned first so the caller can hand both to
+    :meth:`Reconciliation.add_shard`, which must consume the stream before it
+    reads the mart's counts. Offsets are deliberately not applied here, for the
+    same reason :func:`reconcile_shard` does not apply them.
+    """
+    mart = VarianceMart()
+    rows = iter_cross_source_variance(
+        hospital_side,
+        payer_side,
+        mart=mart,
+        max_vintage_days=max_vintage_days,
+        assume_facility_when_unstated=assume_facility_when_unstated,
+    )
+    return mart, rows
+
+
 def reconcile_shard(
     hospital_side: list[ComparableRate],
     payer_side: list[ComparableRate],
@@ -572,4 +614,5 @@ __all__ = [
     "as_records",
     "reconcile_shard",
     "residual_columns",
+    "stream_shard",
 ]

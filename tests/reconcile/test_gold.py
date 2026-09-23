@@ -21,7 +21,7 @@ from __future__ import annotations
 import pytest
 
 from reconcile.comparability import ComparableRate
-from reconcile.gold import Reconciliation, reconcile_shard
+from reconcile.gold import Reconciliation, reconcile_shard, stream_shard
 from reconcile.variance import apply_systematic_offsets, cross_source_variance
 
 SYSTEM = "Mount Sinai"
@@ -446,6 +446,93 @@ class TestTheSummaryTables:
         ):
             with pytest.raises(RuntimeError, match="close"):
                 reader()
+
+
+class TestStreamingIsIdentical:
+    """The property the memory fix rests on.
+
+    One NYU Langone slice forms three million pairs from a quarter-million
+    inputs -- the join keys on carrier rather than plan, so 290 plan-level
+    rates of one carrier collapse into a single key. Holding them was roughly
+    two gigabytes for rows that are read once and mostly discarded.
+
+    Streaming is only safe if it changes nothing, so that is what is asserted:
+    same residual, same offsets, same counts, same exclusions.
+    """
+
+    def test_a_streamed_run_matches_a_collected_one(self):
+        left, right = a_contract_with_a_constant_offset()
+        left.append(hospital("70001", 200.0))
+        right.append(payer("70001", 900.0))
+
+        collected = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="ms")
+        collected.add_shard("1", reconcile_shard(left, right))
+        collected.close()
+
+        streamed = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="ms")
+        mart, rows = stream_shard(left, right)
+        streamed.add_shard("1", mart, rows=rows)
+        streamed.close()
+
+        assert streamed.pairs_formed == collected.pairs_formed
+        assert streamed.explanation == collected.explanation
+        assert streamed.excluded == collected.excluded
+        assert len(streamed.residual) == len(collected.residual)
+        assert [r.code for r in streamed.residual] == [r.code for r in collected.residual]
+        assert len(streamed.offsets) == len(collected.offsets)
+        assert streamed.outcomes == collected.outcomes
+
+    def test_the_stream_never_fills_mart_rows(self):
+        """If it did, the memory would still be held and nothing would say so."""
+        left, right = a_contract_with_a_constant_offset()
+
+        mart, rows = stream_shard(left, right)
+        consumed = list(rows)
+
+        assert consumed, "the stream must produce the pairs"
+        assert mart.rows == [], "a streamed mart must not also collect"
+
+    def test_exclusions_are_only_complete_after_the_stream(self):
+        """Written down because reading them early fails silently.
+
+        A generator fills the mart as it runs. A caller that read the counts
+        before consuming the rows would get plausible, smaller numbers and
+        nothing would look wrong.
+        """
+        left, right = a_contract_with_a_constant_offset(codes=20)
+        left.append(hospital("80001", 50.0))
+        right.append(
+            ComparableRate(
+                source="payer",
+                hospital=FACILITY,
+                code="80001",
+                code_type="CPT",
+                payer="Aetna",
+                plan="Commercial PPO",
+                product_class="commercial",
+                billing_class="professional",
+                rate_dollar=60.0,
+                vintage="2026-04-01",
+            )
+        )
+
+        mart, rows = stream_shard(left, right)
+        before = dict(mart.excluded)
+        list(rows)
+
+        assert before == {}, "nothing is counted until the stream runs"
+        assert sum(mart.excluded.values()) >= 1
+
+    def test_add_shard_returns_the_pair_count(self):
+        """The caller logs it, and len() is not available on a generator."""
+        left, right = a_contract_with_a_constant_offset()
+        run = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="ms")
+
+        mart, rows = stream_shard(left, right)
+        pairs = run.add_shard("1", mart, rows=rows)
+
+        assert pairs == 30
+        assert run.pairs_formed == 30
 
 
 class TestTheGuards:

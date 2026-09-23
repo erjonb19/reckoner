@@ -20,6 +20,7 @@ that need no judgement.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from statistics import median
@@ -341,9 +342,50 @@ def cross_source_variance(
     Pairs are formed on service, payer and setting, within one hospital. Rows
     that cannot be compared are counted by reason rather than dropped -- the
     share that is uncomparable is part of what this project set out to measure.
+
+    Materialises every pair. That is right for a caller that needs the list
+    twice -- ``mart_cli`` triages it after counting it -- and wrong for the
+    gold path, which reads each row exactly once and then discards all but the
+    residual. See :func:`iter_cross_source_variance`, which is this function's
+    body: one NYU Langone slice forms three million pairs, and holding them is
+    roughly two gigabytes for no purpose.
     """
     mart = VarianceMart()
+    mart.rows.extend(
+        iter_cross_source_variance(
+            hospital_side,
+            payer_side,
+            mart=mart,
+            max_vintage_days=max_vintage_days,
+            assume_facility_when_unstated=assume_facility_when_unstated,
+        )
+    )
+    return mart
+
+
+def iter_cross_source_variance(
+    hospital_side: list[ComparableRate],
+    payer_side: list[ComparableRate],
+    *,
+    mart: VarianceMart,
+    max_vintage_days: int = 400,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
+) -> Iterator[Variance]:
+    """Yield each comparable pair, counting the refusals into ``mart``.
+
+    The same comparison as :func:`cross_source_variance` -- literally the same
+    code, which is why that function is now three lines -- emitting rows rather
+    than collecting them.
+
+    **The mart is filled as the stream runs, not before it.** Exclusion counts,
+    provenance and caveats are only complete once the iterator is exhausted, so
+    a caller must consume the rows before reading any of them. That is stated
+    here because the failure would be silent: a mart read too early reports
+    plausible, smaller numbers.
+    """
     mart.provenance.add_source("hospital MRF (45 CFR 180)", rows=len(hospital_side))
+    paired = 0
+    facilities: set[str] = set()
     mart.provenance.add_source("payer TiC", rows=len(payer_side))
 
     payer_index: dict[tuple[str, str, str, str], list[ComparableRate]] = {}
@@ -385,27 +427,28 @@ def cross_source_variance(
             # with the row into A1's queue, where a reader has no other way to
             # tell that the billing class was inferred rather than published.
             notes = verdict.assumptions + notes
-            mart.rows.append(
-                Variance(
-                    code=left.code,
-                    code_type=left.code_type,
-                    payer=left.payer,
-                    setting=left.setting,
-                    left=left,
-                    right=right,
-                    explanation=explanation,
-                    notes=notes,
-                )
+            paired += 1
+            facilities.add(left.hospital)
+            yield Variance(
+                code=left.code,
+                code_type=left.code_type,
+                payer=left.payer,
+                setting=left.setting,
+                left=left,
+                right=right,
+                explanation=explanation,
+                notes=notes,
             )
 
-    mart.provenance.rows = len(mart.rows)
-    mart.provenance.hospitals = len({r.left.hospital for r in mart.rows})
+    # Counted while streaming rather than measured off mart.rows, which is
+    # empty for every caller that consumes the iterator instead of the list.
+    mart.provenance.rows = paired
+    mart.provenance.hospitals = len(facilities)
     mart.provenance.extra_caveats.append(
         "hospital files update at least annually and payer files monthly, so a "
         "variance may be a timing artifact; the explanation column says which "
         "pairs that applies to"
     )
-    return mart
 
 
 def cross_hospital_variance(
