@@ -37,10 +37,12 @@ from __future__ import annotations
 
 import sys
 from array import array
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from statistics import median
 from typing import Any
+
+import pyarrow as pa
 
 from reconcile.comparability import ComparableRate
 from reconcile.variance import (
@@ -137,6 +139,126 @@ class _Contract:
 
 
 @dataclass
+class _RateState:
+    """One facility x carrier x code within one slice, while it is being read."""
+
+    hospital: list[float] = field(default_factory=list)
+    compared: int = 0
+    inside: int = 0
+    payer_count: int = 0
+    mins: list[float] = field(default_factory=list)
+    medians: list[float] = field(default_factory=list)
+    maxs: list[float] = field(default_factory=list)
+    explanations: dict[str, int] = field(default_factory=dict)
+    refusals: dict[str, int] = field(default_factory=dict)
+
+
+#: Columns of the ``rates`` table, in order. One row per facility, carrier,
+#: code and code type: what code lookup reads.
+RATE_COLUMNS: tuple[tuple[str, pa.DataType], ...] = (
+    ("hospital_slug", pa.string()),
+    ("system", pa.string()),
+    ("facility", pa.string()),
+    ("carrier", pa.string()),
+    ("code", pa.string()),
+    ("code_type", pa.string()),
+    ("hospital_rates", pa.int32()),
+    ("hospital_rate", pa.float64()),
+    ("compared", pa.int32()),
+    ("payer_min", pa.float64()),
+    ("payer_median", pa.float64()),
+    ("payer_max", pa.float64()),
+    ("payer_count", pa.int32()),
+    ("inside_share", pa.float64()),
+    ("explanation_before_offsets", pa.string()),
+    ("refusal", pa.string()),
+)
+RATE_SCHEMA = pa.schema(list(RATE_COLUMNS))
+
+
+def _mode(counts: dict[str, int]) -> str:
+    return max(sorted(counts), key=lambda k: counts[k]) if counts else ""
+
+
+class RateCollector:
+    """Every hospital rate's outcome, rolled up to facility x carrier x code.
+
+    Collected one slice at a time and flushed at the slice's end: a slice is
+    one facility and one code shard, and the key holds both, so no key spans
+    two slices and each flush is final. Memory is one slice's keys, never the
+    system's -- which is what lets code lookup be built inside the same 8 GiB
+    container that NYU Langone's mart runs in.
+
+    ``explanation_before_offsets`` is named for what it is: systematic offsets
+    are detected over the whole system at ``close()``, after these rows are
+    final, and a row here cannot know which of its rates an offset later
+    reclassifies.
+    """
+
+    def __init__(self) -> None:
+        self._keys: dict[tuple[str, str, str, str], _RateState] = {}
+
+    def _state(self, facility: str, carrier: str, code: str, code_type: str) -> _RateState:
+        return self._keys.setdefault((facility, carrier, code, code_type), _RateState())
+
+    def compared(self, row: Variance) -> None:
+        state = self._state(row.left.hospital, row.payer, row.code, row.code_type or "")
+        state.hospital.append(row.left_rate)
+        state.compared += 1
+        state.explanations[row.explanation] = state.explanations.get(row.explanation, 0) + 1
+        spread = row.spread
+        if spread is not None:
+            state.mins.append(spread.minimum)
+            state.medians.append(spread.median)
+            state.maxs.append(spread.maximum)
+            state.payer_count = max(state.payer_count, spread.count)
+            state.inside += 1 if spread.contains(row.left_rate) else 0
+
+    def refused(self, left: ComparableRate, reason: str) -> None:
+        state = self._state(left.hospital, left.payer, left.code, left.code_type or "")
+        if left.rate_dollar:
+            state.hospital.append(left.rate_dollar)
+        state.refusals[reason] = state.refusals.get(reason, 0) + 1
+
+    def flush(self, carriers: frozenset[str], slug: str, system: str) -> pa.RecordBatch | None:
+        """This slice's rows, for carriers the payer side holds; then forget them.
+
+        Only carriers in the payer corpus: a hospital rate for a carrier with no
+        payer file (Healthfirst, Medicare) has no insurer rate to look up, and
+        code lookup is a comparison, not a listing of the hospital file.
+        """
+        wanted = {c.casefold() for c in carriers}
+        columns: dict[str, list[Any]] = {name: [] for name, _ in RATE_COLUMNS}
+        for (facility, carrier, code, code_type), state in sorted(self._keys.items()):
+            if carrier.casefold() not in wanted:
+                continue
+            values = {
+                "hospital_slug": slug,
+                "system": system,
+                "facility": facility,
+                "carrier": carrier,
+                "code": code,
+                "code_type": code_type,
+                "hospital_rates": len(state.hospital) or sum(state.refusals.values()),
+                "hospital_rate": median(state.hospital) if state.hospital else None,
+                "compared": state.compared,
+                "payer_min": min(state.mins) if state.mins else None,
+                "payer_median": median(state.medians) if state.medians else None,
+                "payer_max": max(state.maxs) if state.maxs else None,
+                "payer_count": state.payer_count,
+                "inside_share": state.inside / state.compared if state.compared else None,
+                "explanation_before_offsets": _mode(state.explanations),
+                "refusal": "" if state.compared else _mode(state.refusals),
+            }
+            for name, value in values.items():
+                columns[name].append(value)
+        self._keys.clear()
+        if not columns["facility"]:
+            return None
+        return pa.RecordBatch.from_pydict(columns, schema=RATE_SCHEMA)
+
+
+@dataclass
 class Reconciliation:
     """One system's reconciliation, accumulated across shards and then closed."""
 
@@ -155,7 +277,7 @@ class Reconciliation:
     excluded: dict[str, int] = field(default_factory=dict)
     #: The same refusals keyed (reason, carrier, code_type), so a report can
     #: filter them. Accumulated beside ``excluded``, never instead of it.
-    excluded_detail: dict[tuple[str, str, str], int] = field(default_factory=dict)
+    excluded_detail: dict[tuple[str, str, str, str], int] = field(default_factory=dict)
     explanation: dict[str, int] = field(default_factory=dict)
     facilities: set[str] = field(default_factory=set)
     caveats: list[str] = field(default_factory=list)
@@ -167,8 +289,17 @@ class Reconciliation:
     #: the grain every filter in the report acts on -- a page that filters by
     #: carrier against a table counted per system would answer with the system's
     #: numbers and look like it had filtered.
-    outcomes: dict[tuple[str, str, str], list[int]] = field(default_factory=dict)
+    outcomes: dict[tuple[str, str, str, str], list[int]] = field(default_factory=dict)
     _contracts: dict[ContractKey, _Contract] = field(default_factory=dict)
+    #: Per facility x carrier: every compared rate's signed gap (payer median over
+    #: hospital, minus one) and how many sat inside the payer's range. One float a
+    #: comparison, for the rankings' median gap and inside share.
+    _pair_gaps: dict[tuple[str, str], array[float]] = field(default_factory=dict)
+    _pair_inside: dict[tuple[str, str], int] = field(default_factory=dict)
+    _rates: RateCollector = field(default_factory=RateCollector)
+    rate_batches: list[pa.RecordBatch] = field(default_factory=list)
+    #: (code_type, code) -> description -> rows, capped at the top three per code.
+    descriptions: dict[tuple[str, str], dict[str, int]] = field(default_factory=dict)
     _closed: bool = False
 
     @property
@@ -203,6 +334,7 @@ class Reconciliation:
         hospital_rates: int = 0,
         payer_rates: int = 0,
         rows: Iterable[Variance] | None = None,
+        payer_carriers: frozenset[str] | None = None,
     ) -> int:
         """Fold one shard's pairs in, keeping only what survives the whole run.
 
@@ -234,10 +366,18 @@ class Reconciliation:
             self.facilities.add(row.left.hospital)
 
             bucket = self.outcomes.setdefault(
-                (row.payer, row.code_type or "", row.explanation), [0, 0]
+                (row.left.hospital, row.payer, row.code_type or "", row.explanation), [0, 0]
             )
             bucket[0] += 1
             bucket[1] += 1 if row.is_material else 0
+
+            pair = (row.left.hospital, row.payer)
+            if row.ratio > 0:
+                self._pair_gaps.setdefault(pair, array("d")).append(row.ratio - 1.0)
+            if row.spread is not None and row.spread.contains(row.left_rate):
+                self._pair_inside[pair] = self._pair_inside.get(pair, 0) + 1
+            if payer_carriers is not None:
+                self._rates.compared(row)
 
             # The payer side of the contract is the row's payer label -- one
             # network, or every network a distribution spans -- so it is the
@@ -266,6 +406,10 @@ class Reconciliation:
                 contract.immaterial_code_types.append(sys.intern(row.code_type or ""))
 
         # After the loop: a streamed mart is only fully counted once exhausted.
+        if payer_carriers is not None:
+            batch = self._rates.flush(payer_carriers, self.hospital_slug, self.system)
+            if batch is not None:
+                self.rate_batches.append(batch)
         self.pairs_formed += pairs
         for reason, count in mart.excluded.items():
             self.excluded[reason] = self.excluded.get(reason, 0) + count
@@ -277,6 +421,31 @@ class Reconciliation:
             if note not in self.caveats:
                 self.caveats.append(note)
         return pairs
+
+    def record_refusal(self, left: ComparableRate, reason: str) -> None:
+        """Hand a refused hospital rate to code lookup's collector."""
+        self._rates.refused(left, reason)
+
+    def add_descriptions(self, table: pa.Table) -> None:
+        """Fold in (code_type, code, description, rows) counts from a shard scan.
+
+        Kept to the three most common descriptions per code, so the store is
+        bounded by codes rather than by how many ways a hospital spells one.
+        """
+        for code_type, code, text, rows in zip(
+            table.column("code_type").to_pylist(),
+            table.column("code").to_pylist(),
+            table.column("description").to_pylist(),
+            table.column("rows").to_pylist(),
+            strict=True,
+        ):
+            if not text:
+                continue
+            counts = self.descriptions.setdefault((code_type or "", code or ""), {})
+            counts[text] = counts.get(text, 0) + int(rows)
+            if len(counts) > 3:
+                for weakest in sorted(counts, key=counts.__getitem__)[:-3]:
+                    del counts[weakest]
 
     def close(
         self,
@@ -304,7 +473,7 @@ class Reconciliation:
             offset = by_key.get(row.contract)
             if offset is not None and _in_band(row.ratio, offset.ratio, tolerance):
                 moved += 1
-                self._reclassify(row.carrier, row.code_type, material=True)
+                self._reclassify(row.facility, row.carrier, row.code_type, material=True)
                 continue
             kept.append(row)
         self.residual = kept
@@ -321,7 +490,7 @@ class Reconciliation:
             ):
                 if _in_band(ratio, offset.ratio, tolerance):
                     moved += 1
-                    self._reclassify(key[1], code_type, material=False)
+                    self._reclassify(key[0], key[1], code_type, material=False)
 
         if moved:
             self.explanation[UNEXPLAINED] = self.explanation.get(UNEXPLAINED, 0) - moved
@@ -329,13 +498,13 @@ class Reconciliation:
         self._contracts.clear()
         self._closed = True
 
-    def _reclassify(self, carrier: str, code_type: str, *, material: bool) -> None:
+    def _reclassify(self, facility: str, carrier: str, code_type: str, *, material: bool) -> None:
         """Move one pair from unexplained to systematic_offset at outcome grain."""
-        source = self.outcomes.get((carrier, code_type, UNEXPLAINED))
+        source = self.outcomes.get((facility, carrier, code_type, UNEXPLAINED))
         if source is not None:
             source[0] -= 1
             source[1] -= 1 if material else 0
-        target = self.outcomes.setdefault((carrier, code_type, SYSTEMATIC_OFFSET), [0, 0])
+        target = self.outcomes.setdefault((facility, carrier, code_type, SYSTEMATIC_OFFSET), [0, 0])
         target[0] += 1
         target[1] += 1 if material else 0
 
@@ -346,13 +515,14 @@ class Reconciliation:
             {
                 "hospital_slug": self.hospital_slug,
                 "system": self.system,
+                "facility": facility,
                 "carrier": carrier,
                 "code_type": code_type,
                 "explanation": explanation,
                 "pairs": pairs,
                 "material_pairs": material,
             }
-            for (carrier, code_type, explanation), (pairs, material) in sorted(
+            for (facility, carrier, code_type, explanation), (pairs, material) in sorted(
                 self.outcomes.items()
             )
             if pairs
@@ -420,7 +590,7 @@ class Reconciliation:
             "material": self.material,
             "unexplained_and_material": len(self.residual),
             "facilities": len(self.facilities),
-            "carriers": len({carrier for carrier, _, _ in self.outcomes}),
+            "carriers": len({carrier for _, carrier, _, _ in self.outcomes}),
             "systematic_offsets": len(self.offsets),
             "assumed_facility_when_unstated": self.assumed_facility_when_unstated,
         }
@@ -445,11 +615,12 @@ class Reconciliation:
                 "hospital_slug": self.hospital_slug,
                 "system": self.system,
                 "reason": reason,
+                "facility": facility,
                 "carrier": carrier,
                 "code_type": code_type,
                 "candidates": count,
             }
-            for (reason, carrier, code_type), count in sorted(
+            for (reason, carrier, code_type, facility), count in sorted(
                 self.excluded_detail.items(), key=lambda kv: -kv[1]
             )
         ]
@@ -468,6 +639,95 @@ class Reconciliation:
                 "candidates": count,
             }
             for reason, count in sorted(self.excluded.items(), key=lambda kv: -kv[1])
+        ]
+
+    def pair_rows(self) -> list[dict[str, Any]]:
+        """One row per facility x carrier: what the rankings page ranks.
+
+        ``summed_abs_gap_usd`` adds price differences across codes, and the files
+        carry no volumes, so it is not money at stake. The page says so beside it.
+        """
+        self._require_closed("pair_rows")
+        compared: dict[tuple[str, str], int] = {}
+        material: dict[tuple[str, str], int] = {}
+        for (facility, carrier, _, _), (pairs, mat) in self.outcomes.items():
+            compared[(facility, carrier)] = compared.get((facility, carrier), 0) + pairs
+            material[(facility, carrier)] = material.get((facility, carrier), 0) + mat
+        refused: dict[tuple[str, str], int] = {}
+        other_class: dict[tuple[str, str], int] = {}
+        for (reason, carrier, _, facility), count in self.excluded_detail.items():
+            if not facility:
+                continue
+            refused[(facility, carrier)] = refused.get((facility, carrier), 0) + count
+            if reason == DIFFERENT_BILLING_CLASS:
+                other_class[(facility, carrier)] = other_class.get((facility, carrier), 0) + count
+        unexplained: dict[tuple[str, str], list[ResidualRow]] = {}
+        for row in self.residual:
+            unexplained.setdefault((row.facility, row.carrier), []).append(row)
+
+        out = []
+        for pair in sorted(set(compared) | set(refused)):
+            facility, carrier = pair
+            done = compared.get(pair, 0)
+            total = done + refused.get(pair, 0)
+            like = total - other_class.get(pair, 0)
+            gaps = self._pair_gaps.get(pair)
+            residual = unexplained.get(pair, [])
+            out.append(
+                {
+                    "hospital_slug": self.hospital_slug,
+                    "system": self.system,
+                    "facility": facility,
+                    "carrier": carrier,
+                    "hospital_rates": total,
+                    "compared": done,
+                    "material": material.get(pair, 0),
+                    "unexplained_material": len(residual),
+                    "median_signed_gap": round(median(gaps), 6) if gaps else None,
+                    "summed_abs_gap_usd": round(sum(abs(r.difference) for r in residual), 2),
+                    "inside_range_share": round(self._pair_inside.get(pair, 0) / done, 6)
+                    if done
+                    else None,
+                    "like_class_share": round(done / like, 6) if like else None,
+                }
+            )
+        return out
+
+    def residual_rows(self, per_pair: int = 100) -> list[dict[str, Any]]:
+        """The widest unexplained gaps in dollars, capped per facility x carrier.
+
+        Beside ``exemplar_rows``, not instead of it: the exemplars feed A1's
+        triage queue, which is being labelled, and must not change under the
+        labeller.
+        """
+        self._require_closed("residual_rows")
+        by_pair: dict[tuple[str, str], list[ResidualRow]] = {}
+        for row in self.residual:
+            by_pair.setdefault((row.facility, row.carrier), []).append(row)
+        chosen: list[ResidualRow] = []
+        for pair in sorted(by_pair):
+            ranked = sorted(by_pair[pair], key=lambda r: (-abs(r.difference), r.code))
+            chosen.extend(ranked[:per_pair])
+        return as_records(chosen)
+
+    def rate_table(self) -> pa.Table:
+        """Code lookup's rows, as Arrow: millions of dicts would not fit."""
+        self._require_closed("rate_table")
+        return pa.Table.from_batches(self.rate_batches, schema=RATE_SCHEMA)
+
+    def code_rows(self) -> list[dict[str, Any]]:
+        """Each code's most common description in this system's hospital files."""
+        self._require_closed("code_rows")
+        return [
+            {
+                "hospital_slug": self.hospital_slug,
+                "code_type": code_type,
+                "code": code,
+                "description": max(sorted(counts), key=counts.__getitem__),
+                "rows": max(counts.values()),
+            }
+            for (code_type, code), counts in sorted(self.descriptions.items())
+            if counts
         ]
 
     def _require_closed(self, what: str) -> None:
@@ -603,6 +863,7 @@ def stream_shard(
     max_vintage_days: int = 400,
     assume_facility_when_unstated: frozenset[str] = frozenset(),
     grain: str = "distribution",
+    on_refusal: Callable[[ComparableRate, str], None] | None = None,
 ) -> tuple[VarianceMart, Iterator[Variance]]:
     """An empty mart and the pair stream that fills it.
 
@@ -614,14 +875,24 @@ def stream_shard(
     if grain not in GRAINS:
         raise ValueError(f"unknown grain {grain!r}; expected one of {GRAINS}")
     mart = VarianceMart()
-    join = iter_distribution_variance if grain == "distribution" else iter_cross_source_variance
-    rows = join(
-        hospital_side,
-        payer_side,
-        mart=mart,
-        max_vintage_days=max_vintage_days,
-        assume_facility_when_unstated=assume_facility_when_unstated,
-    )
+    rows: Iterator[Variance]
+    if grain == "distribution":
+        rows = iter_distribution_variance(
+            hospital_side,
+            payer_side,
+            mart=mart,
+            max_vintage_days=max_vintage_days,
+            assume_facility_when_unstated=assume_facility_when_unstated,
+            on_refusal=on_refusal,
+        )
+    else:
+        rows = iter_cross_source_variance(
+            hospital_side,
+            payer_side,
+            mart=mart,
+            max_vintage_days=max_vintage_days,
+            assume_facility_when_unstated=assume_facility_when_unstated,
+        )
     return mart, rows
 
 

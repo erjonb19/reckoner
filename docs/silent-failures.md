@@ -365,6 +365,38 @@ selections would fail it.
 
 ---
 
+## 14. A monthly job that would have republished last month
+
+**Symptom.** None yet, and that is the point. Found while sizing the page
+redesign, before 1 October's run could show it.
+
+**Cause.** The monthly chain had a missing link. The mart rebuilds gold on the
+1st. The summary workflow copies `lake/summary` into the repository on the 2nd,
+and the page reads that copy. But only the `report` stage writes
+`lake/summary`, and nothing scheduled ran it, or `triage`: both had only ever
+been run by hand. So on the 2nd the workflow would have found September's
+`lake/summary`, committed it, and reported success. The page would have shown
+it as current. `run.json` carries `built_at`, but nothing compared it with the
+date.
+
+A second instance was hiding inside the first. The report hard-coded a caveat
+that NYU Langone's gold "comes from a local run". That stopped being true on
+2026-09-23, when NYU completed in the cloud, and the published `run.json`
+went on saying it.
+
+**Why it belongs in this file.** Every component was working and every check
+was green. The mart succeeded, the workflow succeeded, the page loaded. The
+failure was in a link between two schedules that no single test spans.
+
+**Caught by.** Reading the publishing path end to end rather than stage by
+stage. A full scheduled mart now chains `triage` and `report` in the same
+execution; a single-system run does not, because a report after one system
+would publish a mix of fresh and stale systems. `TestTheScheduledRunPublishes`
+holds both, and that a failure anywhere in the chain stops it. The hard-coded
+caveat is gone.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:

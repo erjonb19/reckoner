@@ -482,14 +482,12 @@ def run_report() -> int:
 
     location = resolve()
 
-    # Provenance a reader cannot recover from the data: which gold partitions
-    # came from a cloud execution and which from a local run. The tables look
-    # identical either way and the difference is real, so it is stated.
-    caveats = (
-        "Gold for NYU Langone comes from a local run; Mount Sinai, Northwell and "
-        "NewYork-Presbyterian come from cloud executions of reckoner-mart. NYU "
-        "Langone exceeds the 8 GiB Consumption ceiling; tracked in issue #47.",
-    )
+    # Provenance a reader cannot recover from the data. This once said NYU
+    # Langone's gold came from a local run, and it stayed true in run.json for
+    # a day after it stopped being true: a caveat is a claim, and a hard-coded
+    # one does not notice when the world changes. Every system's gold now comes
+    # from reckoner-mart, and there is no caveat to add.
+    caveats: tuple[str, ...] = ()
     summary = report.build(
         location, build_sha=os.environ.get("RECKONER_BUILD_SHA", ""), caveats=caveats
     )
@@ -499,6 +497,9 @@ def run_report() -> int:
 
     remote = report.write_remote(summary, location)
     local = report.write_local(summary, Path("summary"))
+    # The release files go beside the repository's data, never into summary/,
+    # which is committed. The summary workflow uploads them as a GitHub Release.
+    release = report.write_release(summary, Path("release"))
     report_path = Path(*report.REPORT_PATH)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report.markdown(summary), encoding="utf-8")
@@ -508,6 +509,8 @@ def run_report() -> int:
         rows=summary.rows(),
         remote=len(remote),
         local=[str(item) for item in local],
+        release=summary.metadata.get("release", {}),
+        release_local=[str(item) for item in release],
         markdown=str(report_path),
         systems=summary.metadata["systems"],
         caveats=len(summary.metadata["caveats"]),
@@ -605,6 +608,18 @@ def run(stage: str, *, dry_run: bool) -> int:
         code = run_manifest()
     elif stage == "mart":
         code = run_mart()
+        # The scheduled run publishes what it built. Without this, nothing
+        # scheduled wrote lake/summary: the mart rebuilt gold on the 1st, the
+        # summary workflow copied a stale lake/summary on the 2nd, and the page
+        # showed last month's numbers as current (silent failure #14). A
+        # single-system run does not chain, because a report after one system
+        # would publish a mix of fresh and stale systems as one dataset.
+        if code == 0 and not os.environ.get("RECKONER_SYSTEM", "").strip():
+            for then in ("triage", "report"):
+                log("stage_chained", after="mart", stage=then)
+                code = run_triage() if then == "triage" else run_report()
+                if code != 0:
+                    break
     elif stage == "report":
         code = run_report()
     elif stage == "triage":

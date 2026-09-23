@@ -20,7 +20,7 @@ that need no judgement.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from statistics import median
@@ -193,10 +193,11 @@ class VarianceMart:
 
     rows: list[Variance] = field(default_factory=list)
     excluded: dict[str, int] = field(default_factory=dict)
-    #: The same refusals keyed (reason, carrier, code_type). Kept beside
-    #: ``excluded`` rather than replacing it so the totals every other figure
-    #: depends on are provably unchanged.
-    excluded_detail: dict[tuple[str, str, str], int] = field(default_factory=dict)
+    #: The same refusals keyed (reason, carrier, code_type, facility). Kept
+    #: beside ``excluded`` rather than replacing it so the totals every other
+    #: figure depends on are provably unchanged. Facility is blank where a call
+    #: site does not have one.
+    excluded_detail: dict[tuple[str, str, str, str], int] = field(default_factory=dict)
     provenance: Provenance = field(default_factory=Provenance)
 
     @property
@@ -218,7 +219,13 @@ class VarianceMart:
         return len(self.rows) / total if total else 0.0
 
     def exclude(
-        self, reason: str, count: int = 1, *, carrier: str = "", code_type: str = ""
+        self,
+        reason: str,
+        count: int = 1,
+        *,
+        carrier: str = "",
+        code_type: str = "",
+        facility: str = "",
     ) -> None:
         """Count a refused candidate, by reason and -- where known -- by whose.
 
@@ -234,7 +241,7 @@ class VarianceMart:
         wrong carrier would be worse than one attributed to none.
         """
         self.excluded[reason] = self.excluded.get(reason, 0) + count
-        key = (reason, carrier, code_type)
+        key = (reason, carrier, code_type, facility)
         self.excluded_detail[key] = self.excluded_detail.get(key, 0) + count
         self.provenance.exclude(reason, count)
 
@@ -605,6 +612,7 @@ def iter_distribution_variance(
     mart: VarianceMart,
     max_vintage_days: int = 400,
     assume_facility_when_unstated: frozenset[str] = frozenset(),
+    on_refusal: Callable[[ComparableRate, str], None] | None = None,
 ) -> Iterator[Variance]:
     """One outcome per hospital rate, compared against the carrier's distribution.
 
@@ -627,9 +635,23 @@ def iter_distribution_variance(
 
     Like :func:`iter_cross_source_variance`, the mart's counts are complete only
     once the iterator is exhausted.
+
+    ``on_refusal`` receives each refused hospital rate and its reason, so a
+    caller can show the hospital's rate for a code even where nothing could be
+    compared. The mart counts refusals either way.
     """
     mart.provenance.add_source("hospital MRF (45 CFR 180)", rows=len(hospital_side))
     mart.provenance.add_source("payer TiC", rows=len(payer_side))
+
+    def refuse(left: ComparableRate, reason: str) -> None:
+        mart.exclude(
+            reason,
+            carrier=left.payer,
+            code_type=left.code_type or "",
+            facility=left.hospital,
+        )
+        if on_refusal is not None:
+            on_refusal(left, reason)
 
     index: dict[tuple[str, str, str, str], dict[str | None, list[ComparableRate]]] = {}
     for rate in payer_side:
@@ -640,10 +662,9 @@ def iter_distribution_variance(
     compared = 0
     facilities: set[str] = set()
     for left in hospital_side:
-        carrier, code_type = left.payer, left.code_type or ""
         reason = _refusal_before_comparing(left, index, assume_facility_when_unstated)
         if isinstance(reason, str):
-            mart.exclude(reason, carrier=carrier, code_type=code_type)
+            refuse(left, reason)
             continue
 
         comparable: list[ComparableRate] = []
@@ -663,8 +684,7 @@ def iter_distribution_variance(
             else:
                 reasons[verdict.reason] = reasons.get(verdict.reason, 0) + 1
         if not comparable:
-            chosen = max(reasons, key=lambda r: (reasons[r], -_precedence(r)))
-            mart.exclude(chosen, carrier=carrier, code_type=code_type)
+            refuse(left, max(reasons, key=lambda r: (reasons[r], -_precedence(r))))
             continue
 
         spread = PayerSpread.of(comparable)

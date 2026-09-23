@@ -20,15 +20,17 @@ the failure this project keeps cataloguing.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pyarrow as pa
 import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 
 from pipeline import vintage
 from pipeline.mart import GOLD_ROOT, RECONCILABLE, TABLES
@@ -58,26 +60,101 @@ class Summary:
 
     tables: dict[str, list[dict[str, Any]]]
     metadata: dict[str, Any]
+    #: File name -> Parquet bytes: the monthly GitHub Release's contents. Their
+    #: checksums are in ``metadata["release"]``.
+    release: dict[str, bytes] = field(default_factory=dict)
 
     def rows(self) -> dict[str, int]:
         return {name: len(records) for name, records in self.tables.items()}
 
 
+#: Gold tables published as monthly GitHub Release files rather than as CSV in
+#: the repository: code lookup's rows run to millions, and committing them every
+#: month would grow git history by gigabytes a year.
+RELEASE_TABLES = ("rates", "codes")
+
+
 def read_gold(lake: Location) -> dict[str, list[dict[str, Any]]]:
-    """Every gold table, as records.
+    """Every gold table published as CSV, as records.
 
     A missing table is an empty list rather than an error: gold is written per
     system, so a partially published tree is a state this can legitimately meet
-    and should describe rather than refuse.
+    and should describe rather than refuse. The release tables are read by
+    :func:`read_release`, as Arrow, never as records.
     """
     out: dict[str, list[dict[str, Any]]] = {}
     for name in TABLES:
+        if name in RELEASE_TABLES:
+            continue
         target = lake.child(*GOLD_ROOT, name)
         if not target.exists():
             out[name] = []
             continue
         out[name] = _read_unified(target).to_pylist()
     return out
+
+
+def read_release(lake: Location) -> dict[str, pa.Table]:
+    """The release tables, as Arrow. ``codes`` is merged across systems here.
+
+    Each system's gold names its own most common description per code; the
+    published file names one per code, the one with the most rows anywhere.
+    """
+    out: dict[str, pa.Table] = {}
+    for name in RELEASE_TABLES:
+        target = lake.child(*GOLD_ROOT, name)
+        if not target.exists():
+            continue
+        table = _read_unified(target)
+        if name == "codes" and table.num_rows:
+            best: dict[tuple[str, str], tuple[int, str]] = {}
+            for code_type, code, text, rows in zip(
+                table.column("code_type").to_pylist(),
+                table.column("code").to_pylist(),
+                table.column("description").to_pylist(),
+                table.column("rows").to_pylist(),
+                strict=True,
+            ):
+                key = (code_type, code)
+                if key not in best or rows > best[key][0]:
+                    best[key] = (rows, text)
+            keys = sorted(best)
+            table = pa.table(
+                {
+                    "code_type": [k[0] for k in keys],
+                    "code": [k[1] for k in keys],
+                    "description": [best[k][1] for k in keys],
+                }
+            )
+        out[name] = table
+    return out
+
+
+def release_files(tables: dict[str, pa.Table]) -> dict[str, bytes]:
+    """Each release table as zstd Parquet bytes, ready to checksum and upload."""
+    files: dict[str, bytes] = {}
+    for name, table in tables.items():
+        sink = io.BytesIO()
+        pq.write_table(table, sink, compression="zstd")
+        files[f"{name}.parquet"] = sink.getvalue()
+    return files
+
+
+def release_manifest(
+    files: dict[str, bytes], tables: dict[str, pa.Table], tag: str
+) -> dict[str, Any]:
+    """What ``run.json`` records, so the page can verify what it downloads."""
+    return {
+        "tag": tag,
+        "files": {
+            name: {
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "bytes": len(data),
+                "rows": tables[name.removesuffix(".parquet")].num_rows,
+            }
+            for name, data in sorted(files.items())
+        },
+    }
 
 
 def _read_unified(target: Location) -> pa.Table:
@@ -158,9 +235,12 @@ def build(lake: Location, *, build_sha: str = "", caveats: tuple[str, ...] = ())
     # formed, not a new measurement, so it costs one pass over a table already
     # in hand and cannot disagree with the rows it describes.
     tables["vintage_alignment"] = vintage.alignment(tables.get("exemplars", []))
-    return Summary(
-        tables=tables, metadata=metadata(lake, tables, build_sha=build_sha, caveats=caveats)
-    )
+    meta = metadata(lake, tables, build_sha=build_sha, caveats=caveats)
+    arrow = read_release(lake)
+    files = release_files(arrow)
+    if files:
+        meta["release"] = release_manifest(files, arrow, f"data-{meta['built_at'][:10]}")
+    return Summary(tables=tables, metadata=meta, release=files)
 
 
 def as_csv(records: list[dict[str, Any]]) -> str:
@@ -209,6 +289,22 @@ def write_remote(summary: Summary, lake: Location) -> list[str]:
     with lake.filesystem.open_output_stream(target.root) as handle:
         handle.write((json.dumps(summary.metadata, indent=1) + "\n").encode("utf-8"))
     written.append(target.root)
+    for name, data in summary.release.items():
+        target = root.child(name)
+        with lake.filesystem.open_output_stream(target.root) as handle:
+            handle.write(data)
+        written.append(target.root)
+    return written
+
+
+def write_release(summary: Summary, directory: Path) -> list[Path]:
+    """The release files, locally: beside the repository's data, never in it."""
+    directory.mkdir(parents=True, exist_ok=True)
+    written = []
+    for name, data in summary.release.items():
+        path = directory / name
+        path.write_bytes(data)
+        written.append(path)
     return written
 
 

@@ -76,3 +76,8 @@ desktop.ini
 
 # Crawler output
 out/
+
+# Monthly release files: uploaded as GitHub Release assets by the summary
+# workflow, never committed (code lookup's rates run to millions of rows).
+release/
+summary/*.parquet

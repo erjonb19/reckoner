@@ -29,6 +29,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
 
@@ -142,6 +143,7 @@ def hospital_shard(
     slug: str | None = None,
     readahead: bool = True,
     on_step: LoadHook | None = None,
+    on_descriptions: Callable[[pa.Table], None] | None = None,
 ) -> list[ComparableRate]:
     """Aggregated hospital rates for one system and one code shard.
 
@@ -167,10 +169,21 @@ def hospital_shard(
     options: dict[str, int] = {} if readahead else {"fragment_readahead": 1, "batch_readahead": 1}
     step = on_step or (lambda *_a, **_k: None)
     step("start", files=len(dataset.files))
-    scanned = dataset.to_table(columns=list(NEEDED_COLUMNS), filter=where, **options)
+    # The description rides along only when asked for, and only where silver
+    # has it: it is not a grouping key, so it changes no rate, and code lookup's
+    # search is the one reader of it.
+    describe = on_descriptions is not None and "description" in dataset.schema.names
+    columns = [*NEEDED_COLUMNS, "description"] if describe else list(NEEDED_COLUMNS)
+    scanned = dataset.to_table(columns=columns, filter=where, **options)
     step("scanned", rows=scanned.num_rows, table_mib=round(scanned.nbytes / 2**20, 1))
     if scanned.num_rows == 0:
         return []
+    if describe and on_descriptions is not None:
+        on_descriptions(
+            scanned.group_by(["code_type", "code", "description"])
+            .aggregate([("code", "count")])
+            .rename_columns(["code_type", "code", "description", "rows"])
+        )
     table = median_by_group(scanned, _HOSPITAL_KEYS, "rate_dollar", [("methodology", "min")])
     step("aggregated", rows=table.num_rows, table_mib=round(table.nbytes / 2**20, 1))
     del scanned
