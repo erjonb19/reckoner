@@ -124,3 +124,42 @@ Northwell,UnitedHealthcare,CPT,unexplained,17982,17982,northwell-health
 Northwell,UnitedHealthcare,CPT,vintage_artifact,53406,29376,northwell-health
 Northwell,UnitedHealthcare,HCPCS,entity_resolution_suspect,165,165,northwell-health
 Northwell,UnitedHealthcare,HCPCS,granularity_mismatch,152523,144996,northwell-health
+WMC,Aetna,MS-DRG,entity_resolution_suspect,740,740,westchester-medical-center-health-network
+WMC,Aetna,MS-DRG,plan_unresolved,35235,32637,westchester-medical-center-health-network
+WMC,Aetna,MS-DRG,vintage_artifact,37885,2,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,entity_resolution_suspect,2558,2558,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,plan_unresolved,77731,77490,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,vintage_artifact,16107,9,westchester-medical-center-health-network
+WMC,Cigna,MS-DRG,plan_unresolved,3479,3479,westchester-medical-center-health-network
+WMC,Cigna,MS-DRG,systematic_offset,3479,3479,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,entity_resolution_suspect,100,100,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,plan_unresolved,67228,67228,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,vintage_artifact,12066,712,westchester-medical-center-health-network
+White Plains,Aetna,CPT,entity_resolution_suspect,60,60,white-plains-hospital
+White Plains,Aetna,CPT,plan_unresolved,27866,27866,white-plains-hospital
+White Plains,Aetna,CPT,vintage_artifact,80068,4314,white-plains-hospital
+White Plains,Aetna,HCPCS,plan_unresolved,2182,2182,white-plains-hospital
+White Plains,Aetna,HCPCS,vintage_artifact,5524,216,white-plains-hospital
+White Plains,Aetna,MS-DRG,plan_unresolved,1068,1068,white-plains-hospital
+White Plains,Aetna,MS-DRG,vintage_artifact,5422,2747,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,entity_resolution_suspect,47956,47956,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,granularity_mismatch,6228,6228,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,plan_unresolved,2835,2835,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,vintage_artifact,42489,24432,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,5548,5548,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,granularity_mismatch,761,761,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,plan_unresolved,206,206,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,vintage_artifact,5279,3520,white-plains-hospital
+White Plains,Cigna,MS-DRG,plan_unresolved,629,629,white-plains-hospital
+White Plains,Cigna,MS-DRG,unexplained,20,20,white-plains-hospital
+White Plains,Cigna,MS-DRG,vintage_artifact,3395,1681,white-plains-hospital
+White Plains,EmblemHealth,CPT,plan_unresolved,46,46,white-plains-hospital
+White Plains,EmblemHealth,CPT,vintage_artifact,38,38,white-plains-hospital
+White Plains,EmblemHealth,MS-DRG,plan_unresolved,1450,1450,white-plains-hospital
+White Plains,EmblemHealth,MS-DRG,vintage_artifact,1208,972,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,entity_resolution_suspect,756,756,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,plan_unresolved,912,912,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,vintage_artifact,51207,0,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,entity_resolution_suspect,84,84,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,plan_unresolved,261,261,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,vintage_artifact,3690,0,white-plains-hospital

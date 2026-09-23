@@ -1,0 +1,4 @@
+triage_rule,findings,share,priority,why
+systematic_offset,91,0.455,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on"
+unexplained,34,0.17,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call"
+vintage_artifact,75,0.375,2,"the two sides are at least 180 days apart, so the difference may be time rather than contract"

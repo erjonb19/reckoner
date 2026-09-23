@@ -55,14 +55,21 @@ page shows are the dataset's rather than the wake-up's. Deployment steps are in
 
 ### What actually reconciles
 
-Four of twelve health systems appear in both sources and can be compared at all.
+Six of fifteen health systems reconcile today, ordered by the number that
+matters. A seventh, Montefiore, is ingested and waiting on a job that fits.
 
 | system | pairs formed | comparable share | residual findings | offsets |
 |---|---|---|---|---|
-| NYU Langone | 6,539,353 | 3.88% | 86,174 | 176 |
-| Northwell | 4,552,693 | 6.23% | 116,504 | 78 |
+| WMC | 256,608 | 66.30% | 0 | 342 |
+| White Plains | 297,188 | 26.90% | 20 | 19 |
 | Mount Sinai | 3,370,446 | 9.30% | 60,182 | 461 |
+| Northwell | 4,552,693 | 6.23% | 116,504 | 78 |
+| NYU Langone | 6,539,353 | 3.88% | 86,174 | 176 |
 | NewYork-Presbyterian | 106,852 | 1.50% | 0 | 5 |
+
+WMC's 66% is not a better result than Mount Sinai's 9%; it is a smaller, tidier
+file. Its 256,608 pairs are fewer than Mount Sinai's refusals alone. The share
+says how much survived the rules, the pair count says how much there was.
 
 **Read the comparable share, not the pair count.** Between 1.5% and 9.3% of
 candidate pairs survive the comparability rules; the rest are refused for stated
