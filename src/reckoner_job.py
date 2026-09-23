@@ -360,27 +360,8 @@ def run_mart() -> int:
     # Naming them is the difference between a manifest that says "gold is
     # correct" and one that says "gold is correct and I am the reason for this
     # part of it" -- and after a per-system run, only the second is true.
-    manifest = publish.build_manifest(
-        location.child(*mart.GOLD_ROOT),
-        [
-            publish.PublishResult(
-                subject=name,
-                destination=name,
-                rows_read=rows,
-                rows_written=rows,
-                partitions=len(runs),
-            )
-            for name, rows in written.items()
-        ],
-        layer="gold",
-        group_key="hospital_slug",
-        verify_only={run.hospital_slug for run in runs},
-    )
+    manifest = mart.gold_manifest(location, written, {run.hospital_slug for run in runs})
     log("memwatch_peak", sampled_peak_rss_mib=watch.stop(), samples=watch.samples)
-    manifest["systems_written"] = [run.hospital_slug for run in runs]
-    manifest["complete"] = sorted(manifest["by_hospital_slug"]) == sorted(
-        spec.slug for spec in mart.RECONCILABLE
-    )
     where = publish.write_manifest(location, manifest, path=mart.GOLD_MANIFEST)
     log(
         "mart_manifest",
@@ -477,6 +458,21 @@ def run_triage() -> int:
     ranked = triage.queue(rows)
     counted = triage.summarise(ranked)
     written = mart.write(location, {"triage_queue": ranked, "triage_summary": counted})
+    # Triage writes into gold, so it rewrites gold's manifest -- otherwise the
+    # next stage-1 check finds files no manifest describes and fails on them.
+    from storage import publish
+
+    systems = {str(row.get("hospital_slug")) for row in ranked if row.get("hospital_slug")}
+    manifest = mart.gold_manifest(location, written, systems)
+    publish.write_manifest(location, manifest, path=mart.GOLD_MANIFEST)
+    log(
+        "triage_manifest",
+        verified=manifest["verified"],
+        rows_checked=manifest["rows_checked"],
+        systems_written=manifest["systems_written"],
+    )
+    if not manifest["verified"]:
+        return 1
 
     log(
         "triage_written",

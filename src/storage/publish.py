@@ -238,6 +238,7 @@ def build_manifest(
     layer: str,
     group_key: str = "hospital_slug",
     verify_only: set[str] | None = None,
+    verify_subjects: set[str] | None = None,
 ) -> dict[str, Any]:
     """Describe what landed, one entry per file.
 
@@ -279,6 +280,20 @@ def build_manifest(
         if verify_only is None
         else [u for u in uploads if str(u.get(group_key, "?")) in verify_only]
     )
+    # ``verify_subjects`` narrows it the other way: to the tables this run
+    # wrote. Gold is one tree written by two stages -- the mart writes five
+    # tables, triage writes two more into the same system partitions -- and a
+    # mart run counting triage's rows as its own reports a correct write as a
+    # failed one. The subject is the first directory under the data root.
+    if verify_subjects is not None:
+        # Same normalisation the upload paths got above, or a Windows root never
+        # prefixes its own files and the check silently covers nothing.
+        prefix = destination.root.replace("\\", "/").rstrip("/") + "/"
+        checked = [
+            u
+            for u in checked
+            if str(u["destination"]).removeprefix(prefix).split("/", 1)[0] in verify_subjects
+        ]
     rows_checked = sum(u["rows"] for u in checked)
     rows_from_source = sum(r.rows_read for r in results)
     by_group: dict[str, int] = {}
