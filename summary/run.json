@@ -1,10 +1,10 @@
 {
- "built_at": "2026-09-23T04:12:26+00:00",
- "build_sha": "afa2904984f48e660c22bd8c23eae5aa9219d7e8",
+ "built_at": "2026-09-23T15:28:23+00:00",
+ "build_sha": "67dba5df9faae3995843b732c25d38e856a5516b",
  "bronze_ingest_date": "2026-09-13",
  "silver_hospital_published_at": "2026-09-23T03:48:09+00:00",
  "silver_payer_published_at": "2026-09-15T12:15:37+00:00",
- "gold_published_at": "2026-09-23T04:08:17+00:00",
+ "gold_published_at": "2026-09-23T15:20:37+00:00",
  "systems": [
   "Mount Sinai",
   "NYP",
@@ -45,7 +45,7 @@
   "outcomes": 164,
   "magnitude": 15,
   "exemplars": 220,
-  "refusals": 152,
+  "refusals": 366,
   "triage_queue": 200,
   "triage_summary": 3,
   "vintage_alignment": 9

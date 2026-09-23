@@ -18,12 +18,13 @@ serving no users and supporting no one's decisions.
 
 **[`docs/silent-failures.md`](docs/silent-failures.md)** — every bug so far that
 **reported success and was wrong**, with the check that now catches each one.
-Twelve entries: a `write_dataset` call that silently dropped a partition key, a
+Thirteen entries: a `write_dataset` call that silently dropped a partition key, a
 `str.replace` that did nothing while every gate stayed green, a feature that was
 designed and tested and never switched on so two of four systems reconciled
 nothing, a gauge that read zero correctly about the wrong thing, a CLI flag
-that silently resized a container to an eighth of its memory, and a reader that
-dropped a column because the first file it opened predated it. It is the most
+that silently resized a container to an eighth of its memory, a reader that dropped
+a column because the first file it opened predated it, and a test fake that
+never delivered a filter, so every "filtered" test ran unfiltered. It is the most
 useful document in this repository and the reason most of the rest is trustworthy.
 
 ### The page

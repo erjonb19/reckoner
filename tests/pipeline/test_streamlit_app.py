@@ -55,7 +55,11 @@ class FakeStreamlit(ModuleType):
         super().__init__("streamlit")
         self._drawn = drawn
         self._selections = selections
-        self.sidebar = Recorder(drawn)
+        # The page's filters live in the sidebar. A Recorder there answered
+        # every selectbox with itself, so for as long as this fake existed the
+        # "narrowed" renders never narrowed anything -- and a check that relied
+        # on a filter being ignored passed because every filter was.
+        self.sidebar = self
 
     def __getattr__(self, name: str) -> object:
         drawn, selections = self._drawn, self._selections
@@ -111,18 +115,29 @@ class TestThePageRuns:
 
         assert drawn
 
+    def test_a_selection_actually_reaches_the_page(self):
+        """The fake's own guard. Without it, every test above could pass unfiltered."""
+        unfiltered = render()
+        narrowed = render({"Carrier": "Aetna"})
+
+        assert not any("predates carrier grain" in text for text in unfiltered)
+        assert any("predates carrier grain" in text for text in narrowed)
+
     def test_it_tells_the_reader_to_read_the_share(self):
         drawn = render()
 
         assert any("comparable share, not the pair count" in text for text in drawn)
 
-    def test_it_states_the_refusals_grain(self):
-        """Two of the three controls do nothing on that view; it must say so."""
-        from pipeline.summary_view import REFUSALS_GRAIN_NOTE
+    def test_a_carrier_filter_names_the_refusals_it_had_to_drop(self):
+        """Refusals gained carrier grain, except NYU Langone's, which predate it.
 
+        This test used to assert the system-grain note. The data outgrew it: the
+        filters now apply, and the hazard became the reverse -- a carrier filter
+        silently dropping the one system recorded without carriers.
+        """
         drawn = render({"Carrier": "Aetna"})
 
-        assert any(REFUSALS_GRAIN_NOTE[:40] in text for text in drawn)
+        assert any("NYU Langone" in text and "predates carrier grain" in text for text in drawn)
 
     def test_it_shows_the_no_phi_caveat(self):
         drawn = render()
