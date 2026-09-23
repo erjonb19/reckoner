@@ -70,6 +70,10 @@ class FakeStreamlit(ModuleType):
             ]
         if name == "tabs":
             return lambda labels, **_: [Recorder(drawn) for _ in labels]
+        if name == "dataframe":
+            # Row counts, so a test can see what a filter actually did to a
+            # table -- not only which messages the page chose to print.
+            return lambda data, **_: drawn.append(f"dataframe rows={len(data)}")
         if name == "cache_data":
             return lambda fn: fn
         if name == "selectbox":
@@ -116,28 +120,46 @@ class TestThePageRuns:
         assert drawn
 
     def test_a_selection_actually_reaches_the_page(self):
-        """The fake's own guard. Without it, every test above could pass unfiltered."""
-        unfiltered = render()
-        narrowed = render({"Carrier": "Aetna"})
+        """The fake's own guard. Without it, every test above could pass unfiltered.
 
-        assert not any("predates carrier grain" in text for text in unfiltered)
-        assert any("predates carrier grain" in text for text in narrowed)
+        It used to rest on a data quirk -- a warning only NYU Langone's
+        carrierless refusals produced -- and went red when a rebuild gave every
+        system carrier grain. It now counts the rows the coverage table was
+        given, which a filter must change whatever the data holds.
+        """
+        from pipeline import summary_view as view
+
+        systems = {r["system"] for r in view.load(ROOT / "summary").table("coverage")}
+        one = sorted(systems)[0]
+
+        unfiltered = render()
+        narrowed = render({"Health system": one})
+
+        tables = lambda drawn: [t for t in drawn if t.startswith("dataframe rows=")]  # noqa: E731
+        assert tables(unfiltered)[0] == f"dataframe rows={len(systems)}"
+        assert tables(narrowed)[0] == "dataframe rows=1"
 
     def test_it_tells_the_reader_to_read_the_share(self):
         drawn = render()
 
         assert any("Read the shares, not the counts" in text for text in drawn)
 
-    def test_a_carrier_filter_names_the_refusals_it_had_to_drop(self):
-        """Refusals gained carrier grain, except NYU Langone's, which predate it.
+    def test_a_carrier_filter_warns_exactly_when_it_drops_unattributed_refusals(self):
+        """Warns if and only if the loaded data has refusals without a carrier.
 
-        This test used to assert the system-grain note. The data outgrew it: the
-        filters now apply, and the hazard became the reverse -- a carrier filter
-        silently dropping the one system recorded without carriers.
+        Twice this test asserted a fact about the data rather than the page:
+        first the system-grain note, then NYU Langone's carrierless refusals.
+        Both went red when a rebuild changed the data, not the page.
         """
+        from pipeline import summary_view as view
+
+        refusals = view.load(ROOT / "summary").table("refusals")
+        chosen = {"system": view.ALL, "carrier": "Aetna", "code_type": view.ALL}
+        expected = bool(view.unattributed_excluded(refusals, **chosen))
+
         drawn = render({"Carrier": "Aetna"})
 
-        assert any("NYU Langone" in text and "predates carrier grain" in text for text in drawn)
+        assert any("predates carrier grain" in text for text in drawn) is expected
 
     def test_it_shows_the_no_phi_caveat(self):
         drawn = render()
