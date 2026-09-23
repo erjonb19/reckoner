@@ -110,9 +110,17 @@ TABLES = (
     "magnitude",
     "exemplars",
     "refusals",
+    "pairs",
+    "residual",
+    "rates",
+    "codes",
     "triage_queue",
     "triage_summary",
 )
+
+#: Records for every table but these, which are Arrow tables: ``rates`` runs to
+#: millions of rows, and a list of dicts that size would not fit beside the mart.
+ARROW_TABLES = frozenset({"rates"})
 
 
 def plan_shards(
@@ -177,7 +185,13 @@ def reconcile_system(
         assumed_facility_when_unstated=assume_facility,
     )
     for shard in shards:
-        left = hospital_shard(hospital_dataset, spec.hospital, code_types, shard)
+        left = hospital_shard(
+            hospital_dataset,
+            spec.hospital,
+            code_types,
+            shard,
+            on_descriptions=run.add_descriptions,
+        )
         if not left:
             continue
 
@@ -283,6 +297,7 @@ def _reconcile_facility(
         right,
         max_vintage_days=max_vintage_days,
         assume_facility_when_unstated=eligible,
+        on_refusal=run.record_refusal,
     )
     pairs = run.add_shard(
         f"{shard}:{facility}",
@@ -290,6 +305,7 @@ def _reconcile_facility(
         hospital_rates=len(left),
         payer_rates=len(right),
         rows=rows,
+        payer_carriers=frozenset(rate.payer for rate in right),
     )
     if on_shard is not None:
         on_shard(spec, f"{shard}:{facility}", len(left), len(right), pairs)
@@ -366,14 +382,18 @@ def build(
     return runs
 
 
-def tables(runs: list[Reconciliation]) -> dict[str, list[dict[str, Any]]]:
-    """Every gold table, as records, across all systems."""
+def tables(runs: list[Reconciliation]) -> dict[str, Any]:
+    """Every gold table across all systems: records, except ``rates`` (Arrow)."""
     return {
         "coverage": [run.coverage_row() for run in runs],
         "outcomes": [row for run in runs for row in run.outcome_rows()],
         "magnitude": [row for run in runs for row in run.magnitude_rows()],
         "exemplars": [row for run in runs for row in run.exemplar_rows()],
         "refusals": [row for run in runs for row in run.refusal_rows()],
+        "pairs": [row for run in runs for row in run.pair_rows()],
+        "residual": [row for run in runs for row in run.residual_rows()],
+        "rates": pa.concat_tables([run.rate_table() for run in runs]) if runs else pa.table({}),
+        "codes": [row for run in runs for row in run.code_rows()],
     }
 
 
@@ -405,15 +425,20 @@ def write(
         # write replaces nothing. NYP and WMC hit this when their residual went
         # to zero -- last run's exemplars stayed in gold, and verification
         # (correctly) refused them.
-        present = {str(r.get("hospital_slug")) for r in records}
+        if isinstance(records, pa.Table):
+            present = set(records.column("hospital_slug").unique().to_pylist())
+            count = records.num_rows
+        else:
+            present = {str(r.get("hospital_slug")) for r in records}
+            count = len(records)
         for slug in sorted((systems or set()) - present):
             stale = target.child(f"hospital_slug={slug}")
             if stale.exists():
                 stale.filesystem.delete_dir(stale.root)
-        if not records:
+        if not count:
             written[name] = 0
             continue
-        table = pa.Table.from_pylist(records)
+        table = records if isinstance(records, pa.Table) else pa.Table.from_pylist(records)
         ds.write_dataset(
             table,
             base_dir=target.root,

@@ -389,6 +389,7 @@ class TestTheSummaryTables:
             "hospital_slug",
             "system",
             "reason",
+            "facility",
             "carrier",
             "code_type",
             "candidates",

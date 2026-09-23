@@ -81,6 +81,46 @@ jobs:
           print(f"built_at {meta['built_at']}, rows {rows}")
           PY
 
+      - name: Publish the release files before the summary that names them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # rates.parquet and codes.parquet arrive with summary/* but are never
+          # committed: code lookup's rows run to millions, and a month of them in
+          # git history is permanent. They become a GitHub Release, which the
+          # page downloads once and checks against run.json.
+          #
+          # The release is created before summary/ is committed, so the page never
+          # reads a run.json naming a release that does not exist yet.
+          mkdir -p release
+          shopt -s nullglob
+          for f in summary/*.parquet; do mv "$f" release/; done
+          TAG=$(python -c "import json;print(json.load(open('summary/run.json')).get('release',{}).get('tag',''))")
+          if [ -z "$TAG" ]; then
+            echo "run.json names no release; nothing to publish"
+            exit 0
+          fi
+          python - <<'PY'
+          import hashlib, json, pathlib, sys
+          release = json.loads(pathlib.Path("summary/run.json").read_text(encoding="utf-8"))["release"]
+          for name, expected in release["files"].items():
+              path = pathlib.Path("release") / name
+              if not path.exists():
+                  sys.exit(f"run.json names {name}, which was not downloaded")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != expected["sha256"]:
+                  sys.exit(f"{name}: sha256 {digest} does not match run.json")
+          print("release files match run.json")
+          PY
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Same tag already published. The checksums above are what the page
+            # verifies, so re-uploading would only risk replacing matching bytes.
+            echo "release $TAG already exists"
+          else
+            gh release create "$TAG" release/*.parquet               --title "Data $TAG"               --notes "Code lookup data for the page. Checksums are in summary/run.json. Public price transparency files only; no PHI."               --latest=false
+          fi
+
       - name: Commit if anything moved
         run: |
           set -euo pipefail
