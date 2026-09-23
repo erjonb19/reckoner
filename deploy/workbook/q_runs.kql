@@ -1,5 +1,10 @@
 // One row per attempt. A replica that logged job_start and never job_end was
-// killed -- the container's OOM signature, which leaves no exception to log.
+// killed -- the container's OOM signature, which leaves no exception to log --
+// -- or it is still running. The logs cannot tell those apart: a mart slice
+// can run for more than fifteen minutes without writing a line. So an attempt
+// seen in the last hour says so, and names both; the execution's status in
+// Azure is the authority. The first version called seven live rebuilds
+// killed, and the second called a live NYU Langone slice killed.
 let events = ContainerAppConsoleLogs_CL
 | where ContainerJobName_s startswith "reckoner-"
 | extend e = parse_json(Log_s)
@@ -14,10 +19,15 @@ events
             system = take_anyif(tostring(e.system), tostring(e.event) == "mart_selection"),
             build = take_anyif(substring(tostring(e.build_sha), 0, 7), tostring(e.event) == "job_start"),
             peak_rss_mib = max(toint(e.peak_rss_mib)),
+            last_seen = max(TimeGenerated),
             ceiling_mib = take_anyif(toint(e.memory_ceiling_mib), tostring(e.event) == "preflight")
   by job = ContainerJobName_s, execution, attempt
 | where isnotnull(started)
-| extend outcome = case(isnull(ended), "killed (no job_end)", exit_code == 0, "succeeded", strcat("failed, exit ", tostring(exit_code))),
+| extend outcome = case(
+        isnull(ended) and last_seen > ago(60m), "no job_end yet: running, or killed",
+        isnull(ended), "killed (no job_end)",
+        exit_code == 0, "succeeded",
+        strcat("failed, exit ", tostring(exit_code))),
          minutes = round(datetime_diff("second", coalesce(ended, now()), started) / 60.0, 1),
          headroom_mib = ceiling_mib - peak_rss_mib
 | project started, job, execution, attempt, stage, system, outcome, minutes, peak_rss_mib, ceiling_mib, headroom_mib, build

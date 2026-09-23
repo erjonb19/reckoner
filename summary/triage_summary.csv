@@ -1,4 +1,10 @@
-triage_rule,findings,share,priority,why
-systematic_offset,91,0.455,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on"
-unexplained,34,0.17,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call"
-vintage_artifact,75,0.375,2,"the two sides are at least 180 days apart, so the difference may be time rather than contract"
+triage_rule,findings,share,priority,why,system,hospital_slug
+systematic_offset,13,0.52,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on",Montefiore,montefiore-health-system
+systematic_offset,22,0.88,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on",White Plains,white-plains-hospital
+systematic_offset,41,0.82,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on",Mount Sinai,mount-sinai-health-system
+systematic_offset,70,0.9333,3,"the same ratio appears on at least 5 codes in this contract, below the threshold the mart collapses on",Northwell,northwell-health
+unexplained,12,0.48,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call",Montefiore,montefiore-health-system
+unexplained,3,0.12,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call",White Plains,white-plains-hospital
+unexplained,5,0.0667,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call",Northwell,northwell-health
+unexplained,9,0.18,6,"no deterministic rule accounts for this one. This is the queue A1 exists for, and the only rows worth an LLM call",Mount Sinai,mount-sinai-health-system
+vintage_artifact,75,1.0,2,"the two sides are at least 180 days apart, so the difference may be time rather than contract",NYU Langone,nyu-langone-health

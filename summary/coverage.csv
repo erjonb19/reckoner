@@ -1,7 +1,8 @@
-system,hospital_rates,payer_rates,candidates,pairs_formed,comparable_share,material,unexplained_and_material,facilities,carriers,systematic_offsets,assumed_facility_when_unstated,hospital_slug
-Mount Sinai,1348398,18799888,36250415,3370446,0.092977,3011270,60182,7,5,461,True,mount-sinai-health-system
-NYP,504350,3487774,7139863,106852,0.014966,88462,0,3,4,5,True,newyork-presbyterian
-NYU Langone,9300114,10635020,168677578,6539353,0.038768,5895344,86174,4,4,176,True,nyu-langone-health
-Northwell,3001740,54386425,73039833,4552693,0.062332,4022260,116504,24,4,78,True,northwell-health
-WMC,170710,9553511,387030,256608,0.663018,188434,0,7,4,342,True,westchester-medical-center-health-network
-White Plains,350530,357980,1104695,297188,0.269023,136788,20,1,5,19,True,white-plains-hospital
+system,hospital_rates,payer_rates,candidates,pairs_formed,comparable_share,like_class_candidates,like_class_share,material,unexplained_and_material,facilities,carriers,systematic_offsets,assumed_facility_when_unstated,hospital_slug
+Montefiore,2597798,6077925,2597798,427064,0.164395,2487588,0.171678,359707,3760,5,5,3,True,montefiore-health-system
+Mount Sinai,1348398,18799888,1348398,625523,0.463901,1312133,0.476722,570523,54637,7,5,29,True,mount-sinai-health-system
+NYP,504350,3487774,504350,18387,0.036457,480178,0.038292,13523,0,3,4,1,True,newyork-presbyterian
+NYU Langone,9300114,10635020,9300114,2000760,0.215133,7688133,0.26024,1899019,50300,4,4,88,True,nyu-langone-health
+Northwell,3001740,54386425,3001740,426316,0.142023,2523812,0.168917,347732,62169,24,4,16,True,northwell-health
+WMC,170710,9553511,170710,58238,0.341152,170710,0.341152,46228,0,7,4,77,True,westchester-medical-center-health-network
+White Plains,350530,357980,350530,66542,0.189833,336902,0.197511,37386,212,1,5,10,True,white-plains-hospital

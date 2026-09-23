@@ -120,9 +120,9 @@ carry a rate of exactly $0.
 
 **Cross-source coverage is bounded by name overlap, not row counts.** The hospital
 lake holds 15 systems and the payer target list holds 7. All seven appear in both,
-and six reconcile: Mount Sinai, NYU Langone, NewYork-Presbyterian, Northwell, WMC
-and White Plains. Montefiore is ingested but its mart run does not yet fit in
-8 GiB (#47). See `docs/scope.md`.
+and all seven reconcile, each hospital rate compared once against the carrier's
+distribution for the same service and billing class (ADRs 0005, 0006). See
+`docs/scope.md`.
 
 **Deployed (Phase 2, Azure-native per ADR 0003; orchestration per ADR 0004).**
 All East US, all in `rg-reckoner`:
@@ -136,7 +136,8 @@ All East US, all in `rg-reckoner`:
   4 GiB, cron `0 6 1 * *`, image from ghcr.io (no ACR: ~$5/month would trip the
   budget). One stage per execution; `manifest`, `mart`, `triage` and `report` are wired,
   the rest log `stage_not_implemented`. The mart runs as the separate job
-  `reckoner-mart` (4 vCPU / 8 GiB, manual trigger until #47 closes).
+  `reckoner-mart` (4 vCPU / 8 GiB, cron `0 8 1 * *`). Every system fits since
+  #83; the all-systems single execution first runs on 1 October.
 - **Authentication is a user-assigned managed identity**, named explicitly via
   `AZURE_CLIENT_ID`. Not left to `DefaultAzureCredential`: pyarrow's bundled
   Azure C++ chain shells out to the Azure CLI, which no container has. No key,

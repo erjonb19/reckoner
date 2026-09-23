@@ -321,29 +321,36 @@ named.
   mismatch exits non-zero**, so the execution reports Failed rather than Succeeded with a bad
   diff buried in the logs.
 - **Stage 1 checks four layers**: bronze, both silvers and gold.
-- **Stage 2 (`--stage mart`) reconciles silver into gold, one system per execution.**
-  `reckoner-mart` runs at 4 vCPU / 8 GiB, the Consumption maximum, **manual-trigger only**.
-  It verifies only the tables it wrote in the systems it wrote (#75). Before that fix, a
-  correct write was reported as a failure whenever triage had also written to the partition.
+- **Stage 2 (`--stage mart`) reconciles silver into gold.** `reckoner-mart`, 4 vCPU /
+  8 GiB, **scheduled `0 8 1 * *`** again as of 2026-09-23. Since ADRs 0005 and 0006,
+  each hospital rate is compared once, against the carrier's distribution for the same
+  service and billing class. Every system is published by the cloud job:
 
-  | system | pairs | comparable share | peak RSS of 8,192 MiB | published by |
-  |---|---:|---:|---:|---|
-  | WMC | 256,608 | 66.30% | 3,865 | cloud |
-  | White Plains | 297,188 | 26.90% | 1,746 | cloud |
-  | Mount Sinai | 3,370,446 | 9.30% | 4,773 | cloud |
-  | Northwell | 4,552,693 | 6.23% | 7,401 | cloud (retry OOM-killed) |
-  | NYU Langone | 6,539,353 | 3.88% | — | **local run** |
-  | NewYork-Presbyterian | 106,852 | 1.50% | 2,472 | cloud |
-  | Montefiore | — | — | killed at ~6,100 | **not reconciled** |
+  | system | hospital rates | compared | raw share | like-class share | residual | peak RSS of 8,192 MiB |
+  |---|---:|---:|---:|---:|---:|---:|
+  | Mount Sinai | 1,348,398 | 625,523 | 46.39% | 47.67% | 54,637 | 1,960 |
+  | WMC | 170,710 | 58,238 | 34.12% | 34.12% | 0 | 1,674 |
+  | NYU Langone | 9,300,114 | 2,000,760 | 21.51% | 26.02% | 50,300 | 4,029 |
+  | White Plains | 350,530 | 66,542 | 18.98% | 19.75% | 212 | 1,668 |
+  | Montefiore | 2,597,798 | 427,064 | 16.44% | 17.17% | 3,760 | 2,431 |
+  | Northwell | 3,001,740 | 426,316 | 14.20% | 16.89% | 62,169 | 2,198 |
+  | NewYork-Presbyterian | 504,350 | 18,387 | 3.65% | 3.83% | 0 | 1,655 |
 
-  **NYU Langone and Montefiore don't fit.** Streaming the pairs (#69) halved NYU's worst
-  per-slice window, from 8,055 to 3,793 MiB, and it still dies loading its next shard.
-  Profiled one shard at a time, the cost is `hospital_shard`, not the payer side (NYU shard
-  `1`: 7,832 MiB against 1,844). Arrow's pool accounts for only 839 MiB of it, so it is
-  **not** the `to_table` + `group_by` allocation that was suspected. The next measurement
-  belongs in the cloud job. It was stopped locally when the laptop crossed its 12 GB limit.
-  Northwell peaks at 90% of the ceiling and is close behind. Tracked in #47; the schedule
-  stays off.
+  **The OOM is fixed (#47, closed).** A per-step profile in the container (#82) found it:
+  the hospital-side aggregate's `approximate_median` kept a t-digest per group, outside
+  Arrow's pool. On NYU shard `1` that took RSS from 628 MiB after the scan to 6,269 after
+  the aggregate. Pruning and readahead were measured and ruled out. An exact median (#83)
+  took the shard's high-water from 8,028 to 1,634 MiB. It also corrected a bias: on
+  groups of two rates the approximate median returned the lower value in 4.9% of cases.
+
+  **Untested:** the scheduled run does all seven systems in one execution. Per system
+  they sum to 87 minutes against a 7,200 s timeout, and memory carried between systems
+  hasn't been measured. The first run is 1 October.
+
+  Verification caught three gaps in my own earlier fixes during these rebuilds (#85,
+  #87, #89): the mart claiming triage's tables, an emptied table keeping last run's rows,
+  and a triage summary written outside every partition. Each would otherwise have
+  published stale or unverified gold.
 - **Stage 3 (`--stage triage`)** writes the near-miss queue into gold and rewrites the gold
   manifest, which it didn't do before #75.
 - **Stage 4 (`--stage report`)** republishes gold as the summary dataset and the written
@@ -352,7 +359,9 @@ named.
 - **Workbook** — `deploy/workbook/`: run history per attempt, duration per stage, peak RSS
   against the ceiling, manifest match per layer. Every query was run against
   `reckoner-logs`, and a test fails if one filters on an event the code no longer emits.
-  **Not imported**, because saving a workbook creates an Azure resource.
+  **Not imported yet.** The import was approved on 2026-09-23, but the subscription isn't
+  registered for the `Microsoft.Insights` resource provider, and registering it is a
+  subscription-wide setting left to the owner.
 - **Not built:** the `contract`, `verify`, `publish` and `eligibility` stages still log
   `stage_not_implemented`.
 
@@ -393,18 +402,30 @@ Real code, but not yet load-bearing.
   (above). What's missing is labels in `evals/triage_labels.csv`, and after that a
   deliberate decision to spend on a real run. The agent is constructed in code, never
   from a flag, so a model is never called by accident.
+- **A2 v2: an employer-group-to-network crosswalk, built from the TiC index files.**
+  *Motivation:* plan-level matching by string reaches 15.0% of hospital rate rows, and
+  UnitedHealthcare stays **82% unmatchable** (`docs/plan-matching.md`). Hospitals name the
+  employer who bought the plan ("APWU HEALTH PLAN 1027", "SCREEN ACTORS GUILD 1220"), not
+  the network, and no alias table can recover a network from an employer's name.
+  *Source:* each carrier's table-of-contents file lists, for every in-network file, the
+  `reporting_plans` that use it: `plan_name`, `plan_id` (an EIN for employer plans) and
+  `plan_market_type`. `mrf_pipeline/find_files.py` already reads those entries to pick
+  files, then discards them, so the parsed Parquet carries no plan identity.
+  *Build:* keep that index as a small table (employer plan → EIN → in-network file →
+  network label), and match hospital plan strings to employer `plan_name`s: normalised
+  exact first, fuzzy second, with the plan codes some hospitals append as a tiebreak.
+  This reads only the index, never a rate file, so it respects "parse once".
+  *Gate:* the same as today's matcher. Precision on reviewed labels first, with an
+  employer-group label set built from the matches it proposes, because the current 190
+  labels contain none. *What it would unlock:* a plan-level join for the matched share, and
+  a measured answer to whether ADR 0006's distribution grain should give way to plan
+  grain where the plan is known.
 - **A3's generative half.** Blocked by evidence, not capability: no hospital file in the
   corpus is non-conforming.
 - **A4's agent half.** Blocked by build order: every manifest diff so far reports no
   change.
-- **The two open definitions.** The join keys on carrier, not plan (#70), and not on
-  billing class. Billing-class refusals are 70.9% of all candidates. Keyed on it, the
-  pooled share would be 18.15% instead of 5.28%, with no pair gained. Both are decisions,
-  not builds. Plan matching's measured ceiling (14.7% of rows matchable by string)
-  favours #70's option (a).
-- **The remaining OOM** (#47). NYU Langone and Montefiore, measured and diagnosed but not
-  fixed. Until both run in the cloud, the mart schedule stays off and Montefiore stays
-  unreconciled.
+- **Dropping the raw share.** ADR 0005 reports raw and like-class shares side by side
+  for one release. Whether to keep both after that is an open decision.
 - **The `contract`, `verify`, `publish` and `eligibility` job stages.** Each one runs
   locally as a CLI; none is a cloud stage yet.
 - **Key Vault.** Not needed so far: the only credential is a managed identity, and no key,
@@ -415,9 +436,22 @@ Real code, but not yet load-bearing.
 
 ## Findings, with the caveats attached
 
-### Refusals and levers (2026-09-23, six systems)
+### Refusals and levers (2026-09-23, seven systems, ADR 0006 grain)
 
 Reproduce with `python -m pipeline.levers`; details in `docs/refusal-decomposition.md`.
+
+- **17,273,640 hospital rates, 3,622,830 compared: a raw share of 20.97%, and 24.15%
+  like-class.** Every count is now a hospital rate.
+- **The largest fixable lever is payer-name matching**: 5.63% of hospital rates name a
+  payer string that never resolved to a carrier. With billing class settled by
+  definition (ADR 0005), it tops the ranking.
+- **36.78% of comparisons are `plan_unresolved`**: the hospital plan matches none of the
+  networks in the carrier's distribution. That motivates A2 v2 (below).
+
+### Refusals and levers (2026-09-23 morning, six systems, the old pair grain)
+
+Recorded from that morning's summary. The grain has changed since, so these figures no
+longer reproduce; they are kept because the ADR 0005 decision was made on them.
 
 - **286,599,414 candidates, 15,123,140 pairs: a pooled comparable share of 5.28%.**
 - **70.92% of candidates are billing-class refusals**, mostly correct ones. A professional
