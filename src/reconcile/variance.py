@@ -31,6 +31,7 @@ from reconcile.comparability import (
     NotComparable,
     can_compare,
     setting_key,
+    tic_exempt,
 )
 from reconcile.provenance import Provenance, parse_vintage
 
@@ -52,6 +53,12 @@ class Explanation(StrEnum):
     #: The same near-constant ratio across many different services, which is one
     #: fact about a contract rather than one finding per code.
     SYSTEMATIC_OFFSET = "systematic_offset"
+    #: The hospital's rate sits inside the carrier's own published range for the
+    #: code at that facility. The payer publishes several rates for it -- one per
+    #: network or plan -- and the hospital's is one of the prices the payer
+    #: itself discloses, so a difference from the median is not a disagreement
+    #: between the two disclosures. See ADR 0006.
+    WITHIN_PAYER_RANGE = "within_payer_range"
     #: Survived the deterministic checks. A real disagreement, or close to it.
     UNEXPLAINED = "unexplained"
 
@@ -84,6 +91,41 @@ _AGGREGATE_PLAN_CLASSES = frozenset({"commercial_aggregate", "ambiguous_all_prod
 
 
 @dataclass(frozen=True)
+class PayerSpread:
+    """The carrier's comparable rates for one hospital rate's service. ADR 0006.
+
+    One hospital rate is compared against this distribution rather than against
+    each payer rate in turn. The old grain -- one pair per payer rate -- counted
+    a single disagreement once per plan, up to 290 times on one NYU slice.
+    """
+
+    minimum: float
+    median: float
+    maximum: float
+    count: int
+    networks: tuple[str, ...] = ()
+
+    @classmethod
+    def of(cls, rates: list[ComparableRate]) -> PayerSpread:
+        values = sorted(r.rate_dollar or 0.0 for r in rates)
+        return cls(
+            minimum=values[0],
+            median=median(values),
+            maximum=values[-1],
+            count=len(values),
+            networks=tuple(sorted({(r.plan or "").strip() for r in rates} - {""})),
+        )
+
+    def contains(self, rate: float) -> bool:
+        return self.minimum <= rate <= self.maximum
+
+    @property
+    def label(self) -> str:
+        """Every network the distribution spans, as one string."""
+        return "; ".join(self.networks)
+
+
+@dataclass(frozen=True)
 class Variance:
     """One measured disagreement between two rates for the same thing."""
 
@@ -95,6 +137,16 @@ class Variance:
     right: ComparableRate
     explanation: str = str(Explanation.UNEXPLAINED)
     notes: tuple[str, ...] = ()
+    #: The carrier's distribution, when the row compares a hospital rate against
+    #: one (ADR 0006). ``right`` is then its representative, priced at the median.
+    spread: PayerSpread | None = None
+
+    @property
+    def payer_label(self) -> str:
+        """The payer plan the row is about: one network, or all it spans."""
+        if self.spread is not None and len(self.spread.networks) > 1:
+            return self.spread.label
+        return self.right.plan or ""
 
     @property
     def left_rate(self) -> float:
@@ -200,7 +252,9 @@ class VarianceMart:
         )
 
 
-def explain(left: ComparableRate, right: ComparableRate) -> tuple[str, tuple[str, ...]]:
+def explain(
+    left: ComparableRate, right: ComparableRate, spread: PayerSpread | None = None
+) -> tuple[str, tuple[str, ...]]:
     """Assign the deterministic explanation for a pair, before any agent sees it.
 
     Only explanations that can be established from the data are assigned here.
@@ -224,6 +278,19 @@ def explain(left: ComparableRate, right: ComparableRate) -> tuple[str, tuple[str
     ):
         notes.append(f"{left.product_class} vs {right.product_class}")
         return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
+
+    if (
+        spread is not None
+        and spread.count >= 2
+        and spread.maximum > spread.minimum
+        and spread.contains(left.rate_dollar or 0.0)
+    ):
+        across = f" and {len(spread.networks)} networks" if len(spread.networks) > 1 else ""
+        notes.append(
+            f"inside the carrier's own range for this code, ${spread.minimum:,.2f} to "
+            f"${spread.maximum:,.2f} across {spread.count} rates{across}"
+        )
+        return str(Explanation.WITHIN_PAYER_RANGE), tuple(notes)
 
     drift = _drift_could_explain(left, right)
     if drift is not None:
@@ -449,6 +516,186 @@ def iter_cross_source_variance(
         "variance may be a timing artifact; the explanation column says which "
         "pairs that applies to"
     )
+
+
+#: The order :func:`can_compare` checks in, used to break a tie when a hospital
+#: rate's candidates were refused for several reasons in equal number.
+REFUSAL_PRECEDENCE: tuple[str, ...] = tuple(
+    str(reason)
+    for reason in (
+        NotComparable.DIFFERENT_CODE,
+        NotComparable.DIFFERENT_CODE_TYPE,
+        NotComparable.DIFFERENT_SETTING,
+        NotComparable.DIFFERENT_BILLING_CLASS,
+        NotComparable.TIC_EXEMPT_PRODUCT,
+        NotComparable.BILLING_CLASS_UNSTATED,
+        NotComparable.MIXED_RATE_KIND,
+        NotComparable.NOT_DOLLAR_DENOMINATED,
+        NotComparable.MISSING_RATE,
+        NotComparable.ZERO_RATE,
+        NotComparable.INCOMPATIBLE_METHODOLOGY,
+        NotComparable.VINTAGE_TOO_FAR_APART,
+    )
+)
+
+NO_COUNTERPART = "no payer-side counterpart"
+
+
+def billing_key(rate: ComparableRate, assume_facility: frozenset[str]) -> str | None:
+    """The billing class a rate joins on (ADR 0005), or ``None`` if it has none.
+
+    An unstated hospital class is read as ``facility`` only for a facility the
+    data shows publishes no professional rates -- the same scoping
+    :func:`can_compare` applies, now applied at the key.
+    """
+    stated = (rate.billing_class or "").strip().casefold()
+    if stated:
+        return stated
+    if rate.source != "payer" and rate.hospital in assume_facility:
+        return "facility"
+    return None
+
+
+def _representative(rates: list[ComparableRate], spread: PayerSpread) -> ComparableRate:
+    """The payer rate a distribution row is explained against.
+
+    The rate nearest the median, repriced at the median, so its vintage and
+    plan are a real payer rate's rather than an average of several. Its plan is
+    kept only when the distribution spans one network: across several, a plan
+    comparison against any one of them would be arbitrary.
+    """
+    nearest = min(rates, key=lambda r: (abs((r.rate_dollar or 0.0) - spread.median), r.plan or ""))
+    plan = nearest.plan if len(spread.networks) <= 1 else None
+    return replace(nearest, rate_dollar=spread.median, plan=plan)
+
+
+def _precedence(reason: str) -> int:
+    try:
+        return REFUSAL_PRECEDENCE.index(reason)
+    except ValueError:
+        return len(REFUSAL_PRECEDENCE)
+
+
+def iter_distribution_variance(
+    hospital_side: list[ComparableRate],
+    payer_side: list[ComparableRate],
+    *,
+    mart: VarianceMart,
+    max_vintage_days: int = 400,
+    assume_facility_when_unstated: frozenset[str] = frozenset(),
+) -> Iterator[Variance]:
+    """One outcome per hospital rate, compared against the carrier's distribution.
+
+    ADR 0005 puts billing class in the join key. ADR 0006 changes the grain from
+    one pair per payer rate to one comparison per hospital rate. Each hospital
+    rate becomes exactly one outcome -- a row, or one refusal with one reason --
+    decided in this order:
+
+    1. a TiC-exempt product is refused by rule, before anything else;
+    2. no payer rate at that facility, code, carrier and setting in any class
+       is ``no payer-side counterpart``;
+    3. an unstated billing class the facility assumption does not cover is
+       ``billing_class_unstated``;
+    4. counterparts only in the other billing class is
+       ``different_billing_class`` -- what the like-class share leaves out of
+       its denominator;
+    5. like-class counterparts that are all refused take the reason most of
+       them were refused for, ties broken in :data:`REFUSAL_PRECEDENCE` order;
+    6. otherwise the rate is compared against the comparable ones' distribution.
+
+    Like :func:`iter_cross_source_variance`, the mart's counts are complete only
+    once the iterator is exhausted.
+    """
+    mart.provenance.add_source("hospital MRF (45 CFR 180)", rows=len(hospital_side))
+    mart.provenance.add_source("payer TiC", rows=len(payer_side))
+
+    index: dict[tuple[str, str, str, str], dict[str | None, list[ComparableRate]]] = {}
+    for rate in payer_side:
+        code, payer, setting = _key(rate)
+        classes = index.setdefault((rate.hospital.casefold(), code, payer, setting), {})
+        classes.setdefault(billing_key(rate, frozenset()), []).append(rate)
+
+    compared = 0
+    facilities: set[str] = set()
+    for left in hospital_side:
+        carrier, code_type = left.payer, left.code_type or ""
+        reason = _refusal_before_comparing(left, index, assume_facility_when_unstated)
+        if isinstance(reason, str):
+            mart.exclude(reason, carrier=carrier, code_type=code_type)
+            continue
+
+        comparable: list[ComparableRate] = []
+        assumptions: tuple[str, ...] = ()
+        reasons: dict[str, int] = {}
+        for right in reason:
+            verdict = can_compare(
+                left,
+                right,
+                cross_source=True,
+                max_vintage_days=max_vintage_days,
+                assume_facility_when_unstated=assume_facility_when_unstated,
+            )
+            if verdict:
+                comparable.append(right)
+                assumptions = assumptions or verdict.assumptions
+            else:
+                reasons[verdict.reason] = reasons.get(verdict.reason, 0) + 1
+        if not comparable:
+            chosen = max(reasons, key=lambda r: (reasons[r], -_precedence(r)))
+            mart.exclude(chosen, carrier=carrier, code_type=code_type)
+            continue
+
+        spread = PayerSpread.of(comparable)
+        right = _representative(comparable, spread)
+        explanation, notes = explain(left, right, spread)
+        compared += 1
+        facilities.add(left.hospital)
+        yield Variance(
+            code=left.code,
+            code_type=left.code_type,
+            payer=left.payer,
+            setting=left.setting,
+            left=left,
+            right=right,
+            explanation=explanation,
+            notes=(*assumptions, *notes),
+            spread=spread,
+        )
+
+    mart.provenance.rows = compared
+    mart.provenance.hospitals = len(facilities)
+    mart.provenance.extra_caveats.append(
+        "each hospital rate is compared against the carrier's distribution of "
+        "comparable rates for the same code, facility, setting and billing class "
+        "(ADR 0006); hospital files update at least annually and payer files "
+        "monthly, so a variance may be a timing artifact"
+    )
+
+
+def _refusal_before_comparing(
+    left: ComparableRate,
+    index: dict[tuple[str, str, str, str], dict[str | None, list[ComparableRate]]],
+    assume_facility: frozenset[str],
+) -> str | list[ComparableRate]:
+    """Steps 1 to 4: a refusal reason, or the like-class counterparts to compare."""
+    if tic_exempt(left):
+        return str(NotComparable.TIC_EXEMPT_PRODUCT)
+    code, payer, _ = _key(left)
+    facility = left.hospital.casefold()
+    buckets = [
+        index[key]
+        for bucket in _setting_buckets(left)
+        if (key := (facility, code, payer, bucket)) in index
+    ]
+    if not buckets:
+        return NO_COUNTERPART
+    klass = billing_key(left, assume_facility)
+    if klass is None:
+        return str(NotComparable.BILLING_CLASS_UNSTATED)
+    like = [rate for classes in buckets for rate in classes.get(klass, ())]
+    if not like:
+        return str(NotComparable.DIFFERENT_BILLING_CLASS)
+    return like
 
 
 def cross_hospital_variance(

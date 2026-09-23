@@ -245,18 +245,27 @@ def markdown(summary: Summary) -> str:
         "",
         "## Coverage",
         "",
-        "Read the comparable share, not the pair count. It is the fraction of",
-        "candidate pairs that survive the comparability rules; the rest are",
-        "refused for stated reasons, counted below.",
+        "**Read the shares, not the counts.**",
         "",
-        "| system | hospital rates | payer rates | pairs formed | comparable share |"
+        "Each hospital rate is compared once, against the carrier's distribution of",
+        "comparable rates for the same code, facility, setting and billing class",
+        "(ADR 0006). **Compared** counts those hospital rates.",
+        "",
+        "Two shares, side by side for this release (ADR 0005). The **raw** share is",
+        "over every hospital rate. The **like-class** share leaves out rates whose",
+        "only counterparts were the other billing class: a facility charge whose",
+        "insurer publishes only the professional fee has nothing to be compared to.",
+        "",
+        "| system | hospital rates | compared | raw share | like-class share |"
         " material | residual | offsets |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for row in coverage:
+        like = row.get("like_class_share")
         lines.append(
-            f"| {row['system']} | {_fmt(row['hospital_rates'])} | {_fmt(row['payer_rates'])} "
+            f"| {row['system']} | {_fmt(row['hospital_rates'])} "
             f"| {_fmt(row['pairs_formed'])} | {row['comparable_share']:.2%} "
+            f"| {'—' if like in (None, '') else f'{like:.2%}'} "
             f"| {_fmt(row['material'])} | {_fmt(row['unexplained_and_material'])} "
             f"| {_fmt(row['systematic_offsets'])} |"
         )

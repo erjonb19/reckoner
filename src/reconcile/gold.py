@@ -53,7 +53,15 @@ from reconcile.variance import (
     VarianceMart,
     cross_source_variance,
     iter_cross_source_variance,
+    iter_distribution_variance,
 )
+
+#: How a shard's hospital rates meet its payer rates. ``distribution`` is the
+#: published grain (ADR 0006): one outcome per hospital rate, against the
+#: carrier's distribution. ``pair`` is the old one, one pair per payer rate,
+#: kept for the tests that pin the offset machinery down on pairs.
+GRAINS = ("distribution", "pair")
+DIFFERENT_BILLING_CLASS = "different_billing_class"
 
 #: The contract a pair belongs to. Same key :func:`find_systematic_offsets`
 #: groups on, because the whole point is to reproduce its answer exactly.
@@ -91,6 +99,12 @@ class ResidualRow:
     hospital_vintage: str
     payer_vintage: str
     notes: str
+    #: The carrier's distribution this rate was compared against (ADR 0006).
+    #: ``payer_rate`` is its median. Defaults describe a pair-grain row.
+    payer_min: float = 0.0
+    payer_max: float = 0.0
+    payer_count: int = 1
+    inside_payer_range: bool = False
 
     @property
     def contract(self) -> ContractKey:
@@ -162,8 +176,23 @@ class Reconciliation:
         return self.explanation.get("_material", 0)
 
     @property
+    def candidates(self) -> int:
+        return self.pairs_formed + sum(self.excluded.values())
+
+    @property
     def comparable_share(self) -> float:
-        total = self.pairs_formed + sum(self.excluded.values())
+        """Compared, over every candidate: the raw share."""
+        return self.pairs_formed / self.candidates if self.candidates else 0.0
+
+    @property
+    def like_class_candidates(self) -> int:
+        """Candidates less those whose counterparts were all the other billing class."""
+        return self.candidates - self.excluded.get(DIFFERENT_BILLING_CLASS, 0)
+
+    @property
+    def like_class_share(self) -> float:
+        """Compared, over like-class candidates. Reported beside the raw share (ADR 0005)."""
+        total = self.like_class_candidates
         return self.pairs_formed / total if total else 0.0
 
     def add_shard(
@@ -210,7 +239,15 @@ class Reconciliation:
             bucket[0] += 1
             bucket[1] += 1 if row.is_material else 0
 
-            key: ContractKey = (row.left.hospital, row.payer, row.left.plan, row.right.plan)
+            # The payer side of the contract is the row's payer label -- one
+            # network, or every network a distribution spans -- so it is the
+            # same string the residual row carries, and close() matches them.
+            key: ContractKey = (
+                row.left.hospital,
+                row.payer,
+                row.left.plan,
+                row.payer_label or None,
+            )
             contract = self._contracts.setdefault(key, _Contract())
             if row.ratio > 0:
                 contract.ratios.append(row.ratio)
@@ -375,9 +412,11 @@ class Reconciliation:
             "system": self.system,
             "hospital_rates": self.hospital_rates,
             "payer_rates": self.payer_rates,
-            "candidates": self.pairs_formed + sum(self.excluded.values()),
+            "candidates": self.candidates,
             "pairs_formed": self.pairs_formed,
             "comparable_share": round(self.comparable_share, 6),
+            "like_class_candidates": self.like_class_candidates,
+            "like_class_share": round(self.like_class_share, 6),
             "material": self.material,
             "unexplained_and_material": len(self.residual),
             "facilities": len(self.facilities),
@@ -448,6 +487,7 @@ class Reconciliation:
             ("headline", "payer_rates", float(self.payer_rates)),
             ("headline", "pairs_formed", float(self.pairs_formed)),
             ("headline", "comparable_share", round(self.comparable_share, 6)),
+            ("headline", "like_class_share", round(self.like_class_share, 6)),
             ("headline", "material", float(self.material)),
             ("headline", "unexplained_and_material", float(len(self.residual))),
             ("headline", "facilities", float(len(self.facilities))),
@@ -539,7 +579,7 @@ def _as_residual(row: Variance, hospital: str, system: str, slug: str) -> Residu
         setting=row.setting or "",
         billing_class=row.left.billing_class or "",
         hospital_plan=row.left.plan or "",
-        payer_plan=row.right.plan or "",
+        payer_plan=row.payer_label,
         hospital_rate=row.left_rate,
         payer_rate=row.right_rate,
         difference=row.difference,
@@ -549,6 +589,10 @@ def _as_residual(row: Variance, hospital: str, system: str, slug: str) -> Residu
         hospital_vintage=row.left.vintage or "",
         payer_vintage=row.right.vintage or "",
         notes=" | ".join(row.notes),
+        payer_min=row.spread.minimum if row.spread else row.right_rate,
+        payer_max=row.spread.maximum if row.spread else row.right_rate,
+        payer_count=row.spread.count if row.spread else 1,
+        inside_payer_range=bool(row.spread and row.spread.contains(row.left_rate)),
     )
 
 
@@ -558,6 +602,7 @@ def stream_shard(
     *,
     max_vintage_days: int = 400,
     assume_facility_when_unstated: frozenset[str] = frozenset(),
+    grain: str = "distribution",
 ) -> tuple[VarianceMart, Iterator[Variance]]:
     """An empty mart and the pair stream that fills it.
 
@@ -566,8 +611,11 @@ def stream_shard(
     reads the mart's counts. Offsets are deliberately not applied here, for the
     same reason :func:`reconcile_shard` does not apply them.
     """
+    if grain not in GRAINS:
+        raise ValueError(f"unknown grain {grain!r}; expected one of {GRAINS}")
     mart = VarianceMart()
-    rows = iter_cross_source_variance(
+    join = iter_distribution_variance if grain == "distribution" else iter_cross_source_variance
+    rows = join(
         hospital_side,
         payer_side,
         mart=mart,

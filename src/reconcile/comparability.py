@@ -325,6 +325,15 @@ def _tic_exempt(rate: ComparableRate) -> str:
     return rate.product_class if rate.product_class in HOSPITAL_ONLY_CLASSES else ""
 
 
+def tic_exempt(rate: ComparableRate) -> str:
+    """The product class that exempts ``rate`` from Transparency in Coverage, or ``""``.
+
+    Public because the distribution join (ADR 0006) refuses an exempt hospital
+    rate before looking for a counterpart it cannot have.
+    """
+    return _tic_exempt(rate)
+
+
 def _billing_class_unstated(left: ComparableRate, right: ComparableRate) -> str:
     """Refuse a cross-source pair where either side omits its billing class.
 

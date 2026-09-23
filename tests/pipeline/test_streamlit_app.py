@@ -126,7 +126,7 @@ class TestThePageRuns:
     def test_it_tells_the_reader_to_read_the_share(self):
         drawn = render()
 
-        assert any("comparable share, not the pair count" in text for text in drawn)
+        assert any("Read the shares, not the counts" in text for text in drawn)
 
     def test_a_carrier_filter_names_the_refusals_it_had_to_drop(self):
         """Refusals gained carrier grain, except NYU Langone's, which predate it.
