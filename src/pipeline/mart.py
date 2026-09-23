@@ -389,7 +389,12 @@ def write(
     """
     written: dict[str, int] = {}
     for name in TABLES:
-        records = built.get(name, [])
+        # Only the tables this call was given. Reporting a zero for the others
+        # made the mart claim triage's two tables as its own, so verification
+        # counted triage's rows against the mart's and failed a correct write.
+        if name not in built:
+            continue
+        records = built[name]
         target = lake.child(*GOLD_ROOT, name)
         if not records:
             written[name] = 0

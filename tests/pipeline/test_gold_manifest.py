@@ -97,3 +97,40 @@ class TestTriageVerifiesItsOwnTables:
         assert manifest["verified"] is True
         assert manifest["rows_checked"] == 53
         assert manifest["tables_written"] == ["triage_queue", "triage_summary"]
+
+
+class TestTheRealWriteFeedsTheCheck:
+    """Through ``mart.write``, not a hand-written dict.
+
+    #75's tests passed the mart's tables in by hand. The real ``write`` also
+    reported a zero for every table it was not given, so in the cloud the mart
+    claimed triage's tables and failed verification on the three systems that
+    had triage partitions -- while the hand-written test stayed green.
+    """
+
+    def test_write_reports_only_the_tables_it_was_given(self, tmp_path):
+        from pipeline import mart
+
+        written = mart.write(
+            storage.local(tmp_path),
+            {"coverage": [{"hospital_slug": "white-plains-hospital", "n": 1}]},
+        )
+
+        assert set(written) == {"coverage"}
+
+    def test_a_mart_write_verifies_beside_triage_partitions(self, tmp_path):
+        from pipeline import mart
+
+        root = lake(tmp_path)
+        slug = "mount-sinai-health-system"
+        written = mart.write(
+            storage.local(root),
+            {
+                "coverage": [{"hospital_slug": slug, "n": 1}],
+                "outcomes": [{"hospital_slug": slug, "n": i} for i in range(30)],
+            },
+        )
+
+        manifest = gold_manifest(storage.local(root), written, {slug})
+
+        assert manifest["verified"] is True
