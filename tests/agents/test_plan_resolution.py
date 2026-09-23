@@ -121,3 +121,33 @@ class TestUnknown:
         assert match.hospital_networks == {"localplus"}
         assert match.payer_networks == {"ppo"}
         assert match.reasoning
+
+
+class TestCignaOpenAccessPlus:
+    """Cigna's OAP, which the synonym order used to read as Aetna's family.
+
+    Strings from the curated lake and the Cigna payer file. No reviewed label
+    covered them, which is how the error survived an eval at precision 1.0.
+    """
+
+    @pytest.mark.parametrize("plan", ["Cigna Open Access Plus", "CIGNA OPEN ACCESS 1413"])
+    def test_it_matches_the_oap_network(self, plan):
+        assert resolve_plan(plan, "NationalOAP").verdict is PlanVerdict.MATCH
+
+    def test_a_different_cigna_product_still_does_not(self):
+        assert resolve_plan("Cigna PPO", "NationalOAP").verdict is PlanVerdict.NO_MATCH
+
+    def test_open_access_is_not_a_wildcard(self):
+        """Equated with OAP only when the payer names OAP -- never with PPO."""
+        assert resolve_plan("CIGNA OPEN ACCESS 1413", "NationalPPO").verdict is PlanVerdict.NO_MATCH
+
+    def test_aetna_open_access_is_unchanged(self):
+        got = resolve_plan("Aetna Open Access Managed Choice", "OpenAccessManagedChoice")
+
+        assert got.verdict is PlanVerdict.MATCH
+        assert "openaccess" in got.reasoning
+
+    def test_a_plan_naming_open_access_and_another_product_is_still_an_aggregate(self):
+        assert resolve_plan("CIGNA OPEN ACCESS PPO 1465", "NationalOAP").verdict is (
+            PlanVerdict.AGGREGATE
+        )
