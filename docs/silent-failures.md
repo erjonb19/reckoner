@@ -308,6 +308,36 @@ change is the one worth having.
 
 ---
 
+## 12. A column that existed in gold and vanished on the way out
+
+**Symptom.** Refusals were broken down by carrier and code type in #63, with a
+test that the finer rows still summed to the old totals. A week later the
+published `summary/refusals.csv` had four columns -- `system`, `reason`,
+`candidates`, `hospital_slug` -- and no carrier at all. Nothing failed. The
+totals were right, so the test that guarded the change still passed.
+
+**Cause.** Gold is written one system at a time, by whichever image is current.
+WMC and White Plains were built after #63 and their partitions carry `carrier`
+and `code_type`; the other four were built before it and do not. The report
+read the table with `ds.dataset(...)`, which takes its schema from the first
+file it opens and **silently drops any column a later file adds**. The first
+partition in sort order was an old one, so the column disappeared for every
+system, including the two that had it.
+
+**Why it belongs in this file.** The data was in the lake. The loss happened in
+a read, not a write, so every check that looks at what was written -- the
+manifest, the row counts, the footer -- saw a correct table. And the totals are
+exactly what a schema that drops a *dimension* preserves, so the one number
+someone would look at was right.
+
+**Caught by.** Trying to decompose refusals by carrier and finding the grain was
+not there. `pipeline.report._read_unified` now unifies every partition's schema
+before reading, with nulls where a partition predates a column.
+`TestPartitionsWrittenByDifferentImages` names the old partition so it sorts
+first; it fails with `KeyError: 'carrier'` on the previous reader.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:

@@ -27,6 +27,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
 import pyarrow.dataset as ds
 
 from pipeline import vintage
@@ -75,11 +76,34 @@ def read_gold(lake: Location) -> dict[str, list[dict[str, Any]]]:
         if not target.exists():
             out[name] = []
             continue
-        dataset = ds.dataset(
-            target.root, filesystem=target.filesystem, format="parquet", partitioning="hive"
-        )
-        out[name] = dataset.to_table().to_pylist()
+        out[name] = _read_unified(target).to_pylist()
     return out
+
+
+def _read_unified(target: Location) -> pa.Table:
+    """One gold table across every partition, with every partition's columns.
+
+    ``ds.dataset`` takes its schema from the first file it opens and silently
+    drops any column a later file adds. Gold is written a system at a time, by
+    whichever image was current, so partitions legitimately differ: systems
+    rebuilt after refusals gained a carrier had it, systems not yet rebuilt did
+    not, and reading them together dropped the column for all of them. The
+    union keeps it, with nulls where a partition predates it.
+    """
+    dataset = ds.dataset(
+        target.root, filesystem=target.filesystem, format="parquet", partitioning="hive"
+    )
+    schemas = [fragment.physical_schema for fragment in dataset.get_fragments()]
+    if not schemas:
+        return dataset.to_table()
+    unified = pa.unify_schemas([*schemas, dataset.partitioning.schema])
+    return ds.dataset(
+        target.root,
+        schema=unified,
+        filesystem=target.filesystem,
+        format="parquet",
+        partitioning=dataset.partitioning,
+    ).to_table()
 
 
 def _manifest_field(lake: Location, path: tuple[str, ...], field: str) -> str:
