@@ -134,3 +134,54 @@ class TestTheRealWriteFeedsTheCheck:
         manifest = gold_manifest(storage.local(root), written, {slug})
 
         assert manifest["verified"] is True
+
+
+class TestAnEmptiedTableIsCleared:
+    """A system whose residual went to zero must not keep last run's rows.
+
+    Found by verification in the second rebuild: NYP and WMC wrote no
+    exemplars, their old exemplars stayed, and the check refused the stale rows.
+    """
+
+    def test_a_system_with_no_rows_loses_its_old_partition(self, tmp_path):
+        from pipeline import mart
+
+        root = lake(tmp_path)
+        table(root, "exemplars", "white-plains-hospital", 20)
+        table(root, "exemplars", "mount-sinai-health-system", 50)
+
+        written = mart.write(
+            storage.local(root), {"exemplars": []}, systems={"white-plains-hospital"}
+        )
+
+        assert written == {"exemplars": 0}
+        gone = root / "gold" / "exemplars" / "hospital_slug=white-plains-hospital"
+        kept = root / "gold" / "exemplars" / "hospital_slug=mount-sinai-health-system"
+        assert not gone.exists()
+        assert kept.exists(), "another system's partition is never touched"
+
+    def test_it_then_verifies(self, tmp_path):
+        from pipeline import mart
+
+        root = lake(tmp_path)
+        table(root, "exemplars", "white-plains-hospital", 20)
+        written = mart.write(
+            storage.local(root),
+            {"exemplars": [], "coverage": [{"hospital_slug": "white-plains-hospital", "n": 1}]},
+            systems={"white-plains-hospital"},
+        )
+
+        manifest = gold_manifest(storage.local(root), written, {"white-plains-hospital"})
+
+        assert manifest["verified"] is True
+
+    def test_without_systems_nothing_is_deleted(self, tmp_path):
+        """The old call shape stays safe: no systems named, no deletion."""
+        from pipeline import mart
+
+        root = lake(tmp_path)
+        table(root, "exemplars", "white-plains-hospital", 20)
+
+        mart.write(storage.local(root), {"exemplars": []})
+
+        assert (root / "gold" / "exemplars" / "hospital_slug=white-plains-hospital").exists()
