@@ -1,239 +1,239 @@
-system,carrier,code_type,explanation,pairs,material_pairs,hospital_slug
-Montefiore,Aetna,CPT,entity_resolution_suspect,198,198,montefiore-health-system
-Montefiore,Aetna,CPT,plan_unresolved,39470,39470,montefiore-health-system
-Montefiore,Aetna,CPT,vintage_artifact,13847,12547,montefiore-health-system
-Montefiore,Aetna,CPT,within_payer_range,14449,12616,montefiore-health-system
-Montefiore,Aetna,HCPCS,entity_resolution_suspect,89,89,montefiore-health-system
-Montefiore,Aetna,HCPCS,plan_unresolved,5008,5008,montefiore-health-system
-Montefiore,Aetna,HCPCS,vintage_artifact,1128,936,montefiore-health-system
-Montefiore,Aetna,HCPCS,within_payer_range,2049,1820,montefiore-health-system
-Montefiore,Aetna,MS-DRG,entity_resolution_suspect,4,4,montefiore-health-system
-Montefiore,Aetna,MS-DRG,plan_unresolved,2229,2229,montefiore-health-system
-Montefiore,Aetna,MS-DRG,vintage_artifact,2215,1606,montefiore-health-system
-Montefiore,Aetna,MS-DRG,within_payer_range,86,37,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,CPT,entity_resolution_suspect,518,518,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,CPT,granularity_mismatch,23145,23145,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,CPT,plan_unresolved,84746,84746,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,CPT,vintage_artifact,26713,26707,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,CPT,within_payer_range,51261,16344,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,526,526,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,HCPCS,granularity_mismatch,2142,2142,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,HCPCS,plan_unresolved,7819,7819,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,HCPCS,vintage_artifact,2450,2433,montefiore-health-system
-Montefiore,Anthem / Empire BCBS,HCPCS,within_payer_range,4602,1630,montefiore-health-system
-Montefiore,Cigna,CPT,entity_resolution_suspect,7,7,montefiore-health-system
-Montefiore,Cigna,CPT,plan_unresolved,1044,1044,montefiore-health-system
-Montefiore,Cigna,CPT,unexplained,856,856,montefiore-health-system
-Montefiore,Cigna,CPT,vintage_artifact,5275,4627,montefiore-health-system
-Montefiore,Cigna,CPT,within_payer_range,14007,2519,montefiore-health-system
-Montefiore,Cigna,HCPCS,vintage_artifact,6,6,montefiore-health-system
-Montefiore,Cigna,HCPCS,within_payer_range,60,21,montefiore-health-system
-Montefiore,Cigna,MS-DRG,plan_unresolved,4263,4263,montefiore-health-system
-Montefiore,Cigna,MS-DRG,unexplained,2904,2904,montefiore-health-system
-Montefiore,Cigna,MS-DRG,vintage_artifact,903,903,montefiore-health-system
-Montefiore,EmblemHealth,CPT,entity_resolution_suspect,2,2,montefiore-health-system
-Montefiore,EmblemHealth,CPT,plan_unresolved,206,206,montefiore-health-system
-Montefiore,EmblemHealth,CPT,vintage_artifact,67,67,montefiore-health-system
-Montefiore,EmblemHealth,CPT,within_payer_range,80,42,montefiore-health-system
-Montefiore,EmblemHealth,HCPCS,plan_unresolved,156,156,montefiore-health-system
-Montefiore,EmblemHealth,HCPCS,vintage_artifact,5,4,montefiore-health-system
-Montefiore,EmblemHealth,HCPCS,within_payer_range,4,3,montefiore-health-system
-Montefiore,EmblemHealth,MS-DRG,entity_resolution_suspect,4,4,montefiore-health-system
-Montefiore,EmblemHealth,MS-DRG,plan_unresolved,3140,3140,montefiore-health-system
-Montefiore,EmblemHealth,MS-DRG,vintage_artifact,18,12,montefiore-health-system
-Montefiore,EmblemHealth,MS-DRG,within_payer_range,6444,6096,montefiore-health-system
-Montefiore,UnitedHealthcare,CPT,entity_resolution_suspect,7890,7890,montefiore-health-system
-Montefiore,UnitedHealthcare,CPT,plan_unresolved,61458,61458,montefiore-health-system
-Montefiore,UnitedHealthcare,CPT,vintage_artifact,27791,15829,montefiore-health-system
-Montefiore,UnitedHealthcare,HCPCS,entity_resolution_suspect,186,186,montefiore-health-system
-Montefiore,UnitedHealthcare,HCPCS,plan_unresolved,4108,4108,montefiore-health-system
-Montefiore,UnitedHealthcare,HCPCS,vintage_artifact,1486,784,montefiore-health-system
-Mount Sinai,Aetna,HCPCS,entity_resolution_suspect,2848,2848,mount-sinai-health-system
-Mount Sinai,Aetna,HCPCS,granularity_mismatch,11162,11162,mount-sinai-health-system
-Mount Sinai,Aetna,HCPCS,plan_unresolved,30436,30436,mount-sinai-health-system
-Mount Sinai,Aetna,HCPCS,vintage_artifact,448,302,mount-sinai-health-system
-Mount Sinai,Aetna,HCPCS,within_payer_range,40941,30599,mount-sinai-health-system
-Mount Sinai,Aetna,MS-DRG,granularity_mismatch,3874,3874,mount-sinai-health-system
-Mount Sinai,Aetna,MS-DRG,plan_unresolved,4524,4524,mount-sinai-health-system
-Mount Sinai,Aetna,MS-DRG,vintage_artifact,1295,1011,mount-sinai-health-system
-Mount Sinai,Aetna,MS-DRG,within_payer_range,4154,2845,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,1845,1845,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,granularity_mismatch,35665,35665,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,plan_unresolved,169001,169001,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,unexplained,44651,44651,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,vintage_artifact,20440,16669,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,HCPCS,within_payer_range,86568,63190,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,MS-DRG,granularity_mismatch,2221,2221,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,MS-DRG,plan_unresolved,8737,8737,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,MS-DRG,unexplained,3717,3717,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,MS-DRG,within_payer_range,18779,14423,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,entity_resolution_suspect,49,49,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,granularity_mismatch,988,988,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,systematic_offset,1998,1998,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,unexplained,2624,2624,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,vintage_artifact,23,23,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,within_payer_range,9777,5182,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,granularity_mismatch,729,729,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,plan_unresolved,729,729,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,systematic_offset,2187,2187,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,unexplained,3645,3645,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,vintage_artifact,729,729,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,within_payer_range,6561,3646,mount-sinai-health-system
-Mount Sinai,EmblemHealth,MS-DRG,plan_unresolved,83,83,mount-sinai-health-system
-Mount Sinai,EmblemHealth,MS-DRG,within_payer_range,15057,11313,mount-sinai-health-system
-Mount Sinai,UnitedHealthcare,HCPCS,entity_resolution_suspect,1,1,mount-sinai-health-system
-Mount Sinai,UnitedHealthcare,HCPCS,plan_unresolved,44761,44761,mount-sinai-health-system
-Mount Sinai,UnitedHealthcare,HCPCS,within_payer_range,44276,44116,mount-sinai-health-system
-NYP,Aetna,CPT,entity_resolution_suspect,26,26,newyork-presbyterian
-NYP,Aetna,CPT,plan_unresolved,1274,1274,newyork-presbyterian
-NYP,Aetna,CPT,vintage_artifact,2140,1969,newyork-presbyterian
-NYP,Aetna,CPT,within_payer_range,697,585,newyork-presbyterian
-NYP,Aetna,HCPCS,entity_resolution_suspect,44,44,newyork-presbyterian
-NYP,Aetna,HCPCS,plan_unresolved,464,464,newyork-presbyterian
-NYP,Aetna,HCPCS,vintage_artifact,171,74,newyork-presbyterian
-NYP,Aetna,HCPCS,within_payer_range,1423,1150,newyork-presbyterian
-NYP,Aetna,MS-DRG,entity_resolution_suspect,2,2,newyork-presbyterian
-NYP,Aetna,MS-DRG,plan_unresolved,360,360,newyork-presbyterian
-NYP,Aetna,MS-DRG,vintage_artifact,500,414,newyork-presbyterian
-NYP,Aetna,MS-DRG,within_payer_range,29,0,newyork-presbyterian
-NYP,Cigna,CPT,entity_resolution_suspect,1,1,newyork-presbyterian
-NYP,Cigna,CPT,granularity_mismatch,2775,2772,newyork-presbyterian
-NYP,Cigna,HCPCS,granularity_mismatch,18,18,newyork-presbyterian
-NYP,Cigna,MS-DRG,granularity_mismatch,981,713,newyork-presbyterian
-NYP,EmblemHealth,MS-DRG,entity_resolution_suspect,1,1,newyork-presbyterian
-NYP,EmblemHealth,MS-DRG,granularity_mismatch,983,839,newyork-presbyterian
-NYP,EmblemHealth,MS-DRG,plan_unresolved,102,102,newyork-presbyterian
-NYP,UnitedHealthcare,CPT,entity_resolution_suspect,154,154,newyork-presbyterian
-NYP,UnitedHealthcare,CPT,granularity_mismatch,5780,2103,newyork-presbyterian
-NYP,UnitedHealthcare,CPT,plan_unresolved,437,437,newyork-presbyterian
-NYP,UnitedHealthcare,CPT,vintage_artifact,2,2,newyork-presbyterian
-NYP,UnitedHealthcare,HCPCS,entity_resolution_suspect,1,1,newyork-presbyterian
-NYP,UnitedHealthcare,HCPCS,granularity_mismatch,19,15,newyork-presbyterian
-NYP,UnitedHealthcare,HCPCS,plan_unresolved,3,3,newyork-presbyterian
-NYU Langone,Aetna,CPT,entity_resolution_suspect,3648,3648,nyu-langone-health
-NYU Langone,Aetna,CPT,granularity_mismatch,9884,9884,nyu-langone-health
-NYU Langone,Aetna,CPT,plan_unresolved,99677,99677,nyu-langone-health
-NYU Langone,Aetna,CPT,unexplained,19768,19768,nyu-langone-health
-NYU Langone,Aetna,CPT,vintage_artifact,18759,14715,nyu-langone-health
-NYU Langone,Aetna,CPT,within_payer_range,316616,250739,nyu-langone-health
-NYU Langone,Aetna,HCPCS,entity_resolution_suspect,512,512,nyu-langone-health
-NYU Langone,Aetna,HCPCS,granularity_mismatch,224,224,nyu-langone-health
-NYU Langone,Aetna,HCPCS,plan_unresolved,2403,2403,nyu-langone-health
-NYU Langone,Aetna,HCPCS,unexplained,448,448,nyu-langone-health
-NYU Langone,Aetna,HCPCS,vintage_artifact,448,424,nyu-langone-health
-NYU Langone,Aetna,HCPCS,within_payer_range,4393,2676,nyu-langone-health
-NYU Langone,Cigna,CPT,entity_resolution_suspect,2464,2464,nyu-langone-health
-NYU Langone,Cigna,CPT,granularity_mismatch,264,264,nyu-langone-health
-NYU Langone,Cigna,CPT,plan_unresolved,4716,4716,nyu-langone-health
-NYU Langone,Cigna,CPT,unexplained,828,828,nyu-langone-health
-NYU Langone,Cigna,CPT,vintage_artifact,10384,10296,nyu-langone-health
-NYU Langone,Cigna,CPT,within_payer_range,150304,150304,nyu-langone-health
-NYU Langone,Cigna,HCPCS,entity_resolution_suspect,616,616,nyu-langone-health
-NYU Langone,Cigna,HCPCS,vintage_artifact,88,0,nyu-langone-health
-NYU Langone,Cigna,HCPCS,within_payer_range,2024,2024,nyu-langone-health
-NYU Langone,EmblemHealth,CPT,entity_resolution_suspect,459670,459670,nyu-langone-health
-NYU Langone,EmblemHealth,CPT,plan_unresolved,493437,493437,nyu-langone-health
-NYU Langone,EmblemHealth,CPT,vintage_artifact,10304,7997,nyu-langone-health
-NYU Langone,EmblemHealth,HCPCS,entity_resolution_suspect,7969,7969,nyu-langone-health
-NYU Langone,EmblemHealth,HCPCS,plan_unresolved,9217,9217,nyu-langone-health
-NYU Langone,EmblemHealth,HCPCS,vintage_artifact,780,574,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,entity_resolution_suspect,2033,2033,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,plan_unresolved,152806,152806,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,unexplained,28836,28836,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,vintage_artifact,130437,103202,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,within_payer_range,52685,52611,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,entity_resolution_suspect,4,4,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,plan_unresolved,2189,2189,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,unexplained,420,420,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,vintage_artifact,264,186,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,within_payer_range,1241,1238,nyu-langone-health
-Northwell,Aetna,CPT,entity_resolution_suspect,930,930,northwell-health
-Northwell,Aetna,CPT,plan_unresolved,7806,7806,northwell-health
-Northwell,Aetna,CPT,unexplained,15512,15512,northwell-health
-Northwell,Aetna,CPT,vintage_artifact,18667,17602,northwell-health
-Northwell,Aetna,CPT,within_payer_range,22446,20496,northwell-health
-Northwell,Aetna,HCPCS,entity_resolution_suspect,683,683,northwell-health
-Northwell,Aetna,HCPCS,granularity_mismatch,26287,24417,northwell-health
-Northwell,Aetna,HCPCS,plan_unresolved,3512,3512,northwell-health
-Northwell,Aetna,HCPCS,vintage_artifact,418,255,northwell-health
-Northwell,Aetna,HCPCS,within_payer_range,280,248,northwell-health
-Northwell,Aetna,MS-DRG,entity_resolution_suspect,285,285,northwell-health
-Northwell,Aetna,MS-DRG,granularity_mismatch,5390,5096,northwell-health
-Northwell,Aetna,MS-DRG,plan_unresolved,11652,11652,northwell-health
-Northwell,Aetna,MS-DRG,unexplained,19203,19203,northwell-health
-Northwell,Aetna,MS-DRG,vintage_artifact,4910,2593,northwell-health
-Northwell,Aetna,MS-DRG,within_payer_range,328,103,northwell-health
-Northwell,Cigna,CPT,entity_resolution_suspect,346,346,northwell-health
-Northwell,Cigna,CPT,plan_unresolved,1942,1942,northwell-health
-Northwell,Cigna,CPT,unexplained,5155,5155,northwell-health
-Northwell,Cigna,CPT,vintage_artifact,1383,270,northwell-health
-Northwell,Cigna,CPT,within_payer_range,7261,3283,northwell-health
-Northwell,Cigna,HCPCS,entity_resolution_suspect,236,236,northwell-health
-Northwell,Cigna,HCPCS,granularity_mismatch,22532,21056,northwell-health
-Northwell,Cigna,MS-DRG,entity_resolution_suspect,22,22,northwell-health
-Northwell,Cigna,MS-DRG,granularity_mismatch,4452,4137,northwell-health
-Northwell,Cigna,MS-DRG,plan_unresolved,3451,3451,northwell-health
-Northwell,Cigna,MS-DRG,unexplained,4317,4317,northwell-health
-Northwell,Cigna,MS-DRG,vintage_artifact,46,46,northwell-health
-Northwell,Cigna,MS-DRG,within_payer_range,13680,9711,northwell-health
-Northwell,EmblemHealth,CPT,entity_resolution_suspect,136,136,northwell-health
-Northwell,EmblemHealth,CPT,plan_unresolved,272,272,northwell-health
-Northwell,EmblemHealth,CPT,vintage_artifact,663,663,northwell-health
-Northwell,EmblemHealth,CPT,within_payer_range,4505,4505,northwell-health
-Northwell,EmblemHealth,HCPCS,entity_resolution_suspect,3,3,northwell-health
-Northwell,EmblemHealth,HCPCS,granularity_mismatch,138,138,northwell-health
-Northwell,EmblemHealth,MS-DRG,entity_resolution_suspect,685,685,northwell-health
-Northwell,EmblemHealth,MS-DRG,granularity_mismatch,2283,2282,northwell-health
-Northwell,EmblemHealth,MS-DRG,plan_unresolved,5583,5583,northwell-health
-Northwell,EmblemHealth,MS-DRG,vintage_artifact,8900,8900,northwell-health
-Northwell,EmblemHealth,MS-DRG,within_payer_range,74456,25159,northwell-health
-Northwell,UnitedHealthcare,CPT,entity_resolution_suspect,102,102,northwell-health
-Northwell,UnitedHealthcare,CPT,plan_unresolved,38778,38778,northwell-health
-Northwell,UnitedHealthcare,CPT,unexplained,17982,17982,northwell-health
-Northwell,UnitedHealthcare,CPT,vintage_artifact,17802,9792,northwell-health
-Northwell,UnitedHealthcare,HCPCS,entity_resolution_suspect,55,55,northwell-health
-Northwell,UnitedHealthcare,HCPCS,granularity_mismatch,50841,48332,northwell-health
-WMC,Aetna,MS-DRG,entity_resolution_suspect,148,148,westchester-medical-center-health-network
-WMC,Aetna,MS-DRG,plan_unresolved,6538,6521,westchester-medical-center-health-network
-WMC,Aetna,MS-DRG,vintage_artifact,7327,0,westchester-medical-center-health-network
-WMC,Aetna,MS-DRG,within_payer_range,759,16,westchester-medical-center-health-network
-WMC,Anthem / Empire BCBS,MS-DRG,entity_resolution_suspect,634,634,westchester-medical-center-health-network
-WMC,Anthem / Empire BCBS,MS-DRG,plan_unresolved,11971,11971,westchester-medical-center-health-network
-WMC,Anthem / Empire BCBS,MS-DRG,within_payer_range,11494,8891,westchester-medical-center-health-network
-WMC,Cigna,MS-DRG,systematic_offset,3479,3479,westchester-medical-center-health-network
-WMC,EmblemHealth,MS-DRG,entity_resolution_suspect,29,29,westchester-medical-center-health-network
-WMC,EmblemHealth,MS-DRG,plan_unresolved,32,32,westchester-medical-center-health-network
-WMC,EmblemHealth,MS-DRG,within_payer_range,15827,14507,westchester-medical-center-health-network
-White Plains,Aetna,CPT,plan_unresolved,1134,1134,white-plains-hospital
-White Plains,Aetna,CPT,vintage_artifact,5974,2258,white-plains-hospital
-White Plains,Aetna,CPT,within_payer_range,5154,6,white-plains-hospital
-White Plains,Aetna,HCPCS,plan_unresolved,126,126,white-plains-hospital
-White Plains,Aetna,HCPCS,vintage_artifact,302,114,white-plains-hospital
-White Plains,Aetna,HCPCS,within_payer_range,430,0,white-plains-hospital
-White Plains,Aetna,MS-DRG,plan_unresolved,105,105,white-plains-hospital
-White Plains,Aetna,MS-DRG,vintage_artifact,994,661,white-plains-hospital
-White Plains,Aetna,MS-DRG,within_payer_range,199,0,white-plains-hospital
-White Plains,Anthem / Empire BCBS,CPT,entity_resolution_suspect,3426,3426,white-plains-hospital
-White Plains,Anthem / Empire BCBS,CPT,granularity_mismatch,5910,5910,white-plains-hospital
-White Plains,Anthem / Empire BCBS,CPT,plan_unresolved,41,41,white-plains-hospital
-White Plains,Anthem / Empire BCBS,CPT,vintage_artifact,7,7,white-plains-hospital
-White Plains,Anthem / Empire BCBS,CPT,within_payer_range,18051,17814,white-plains-hospital
-White Plains,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,14,14,white-plains-hospital
-White Plains,Anthem / Empire BCBS,HCPCS,granularity_mismatch,587,587,white-plains-hospital
-White Plains,Anthem / Empire BCBS,HCPCS,plan_unresolved,6,6,white-plains-hospital
-White Plains,Anthem / Empire BCBS,HCPCS,within_payer_range,2342,2336,white-plains-hospital
-White Plains,Cigna,MS-DRG,plan_unresolved,20,20,white-plains-hospital
-White Plains,Cigna,MS-DRG,unexplained,212,212,white-plains-hospital
-White Plains,Cigna,MS-DRG,vintage_artifact,477,215,white-plains-hospital
-White Plains,Cigna,MS-DRG,within_payer_range,639,333,white-plains-hospital
-White Plains,EmblemHealth,CPT,plan_unresolved,45,45,white-plains-hospital
-White Plains,EmblemHealth,CPT,vintage_artifact,39,39,white-plains-hospital
-White Plains,EmblemHealth,MS-DRG,plan_unresolved,113,113,white-plains-hospital
-White Plains,EmblemHealth,MS-DRG,vintage_artifact,7,5,white-plains-hospital
-White Plains,EmblemHealth,MS-DRG,within_payer_range,1218,1188,white-plains-hospital
-White Plains,UnitedHealthcare,CPT,entity_resolution_suspect,252,252,white-plains-hospital
-White Plains,UnitedHealthcare,CPT,plan_unresolved,304,304,white-plains-hospital
-White Plains,UnitedHealthcare,CPT,vintage_artifact,17069,0,white-plains-hospital
-White Plains,UnitedHealthcare,HCPCS,entity_resolution_suspect,28,28,white-plains-hospital
-White Plains,UnitedHealthcare,HCPCS,plan_unresolved,87,87,white-plains-hospital
-White Plains,UnitedHealthcare,HCPCS,vintage_artifact,1230,0,white-plains-hospital
+system,carrier,code_type,explanation,pairs,material_pairs,facility,hospital_slug
+Montefiore,Aetna,CPT,entity_resolution_suspect,198,198,,montefiore-health-system
+Montefiore,Aetna,CPT,plan_unresolved,39470,39470,,montefiore-health-system
+Montefiore,Aetna,CPT,vintage_artifact,13847,12547,,montefiore-health-system
+Montefiore,Aetna,CPT,within_payer_range,14449,12616,,montefiore-health-system
+Montefiore,Aetna,HCPCS,entity_resolution_suspect,89,89,,montefiore-health-system
+Montefiore,Aetna,HCPCS,plan_unresolved,5008,5008,,montefiore-health-system
+Montefiore,Aetna,HCPCS,vintage_artifact,1128,936,,montefiore-health-system
+Montefiore,Aetna,HCPCS,within_payer_range,2049,1820,,montefiore-health-system
+Montefiore,Aetna,MS-DRG,entity_resolution_suspect,4,4,,montefiore-health-system
+Montefiore,Aetna,MS-DRG,plan_unresolved,2229,2229,,montefiore-health-system
+Montefiore,Aetna,MS-DRG,vintage_artifact,2215,1606,,montefiore-health-system
+Montefiore,Aetna,MS-DRG,within_payer_range,86,37,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,CPT,entity_resolution_suspect,518,518,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,CPT,granularity_mismatch,23145,23145,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,CPT,plan_unresolved,84746,84746,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,CPT,vintage_artifact,26713,26707,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,CPT,within_payer_range,51261,16344,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,526,526,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,HCPCS,granularity_mismatch,2142,2142,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,HCPCS,plan_unresolved,7819,7819,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,HCPCS,vintage_artifact,2450,2433,,montefiore-health-system
+Montefiore,Anthem / Empire BCBS,HCPCS,within_payer_range,4602,1630,,montefiore-health-system
+Montefiore,Cigna,CPT,entity_resolution_suspect,7,7,,montefiore-health-system
+Montefiore,Cigna,CPT,plan_unresolved,1044,1044,,montefiore-health-system
+Montefiore,Cigna,CPT,unexplained,856,856,,montefiore-health-system
+Montefiore,Cigna,CPT,vintage_artifact,5275,4627,,montefiore-health-system
+Montefiore,Cigna,CPT,within_payer_range,14007,2519,,montefiore-health-system
+Montefiore,Cigna,HCPCS,vintage_artifact,6,6,,montefiore-health-system
+Montefiore,Cigna,HCPCS,within_payer_range,60,21,,montefiore-health-system
+Montefiore,Cigna,MS-DRG,plan_unresolved,4263,4263,,montefiore-health-system
+Montefiore,Cigna,MS-DRG,unexplained,2904,2904,,montefiore-health-system
+Montefiore,Cigna,MS-DRG,vintage_artifact,903,903,,montefiore-health-system
+Montefiore,EmblemHealth,CPT,entity_resolution_suspect,2,2,,montefiore-health-system
+Montefiore,EmblemHealth,CPT,plan_unresolved,206,206,,montefiore-health-system
+Montefiore,EmblemHealth,CPT,vintage_artifact,67,67,,montefiore-health-system
+Montefiore,EmblemHealth,CPT,within_payer_range,80,42,,montefiore-health-system
+Montefiore,EmblemHealth,HCPCS,plan_unresolved,156,156,,montefiore-health-system
+Montefiore,EmblemHealth,HCPCS,vintage_artifact,5,4,,montefiore-health-system
+Montefiore,EmblemHealth,HCPCS,within_payer_range,4,3,,montefiore-health-system
+Montefiore,EmblemHealth,MS-DRG,entity_resolution_suspect,4,4,,montefiore-health-system
+Montefiore,EmblemHealth,MS-DRG,plan_unresolved,3140,3140,,montefiore-health-system
+Montefiore,EmblemHealth,MS-DRG,vintage_artifact,18,12,,montefiore-health-system
+Montefiore,EmblemHealth,MS-DRG,within_payer_range,6444,6096,,montefiore-health-system
+Montefiore,UnitedHealthcare,CPT,entity_resolution_suspect,7890,7890,,montefiore-health-system
+Montefiore,UnitedHealthcare,CPT,plan_unresolved,61458,61458,,montefiore-health-system
+Montefiore,UnitedHealthcare,CPT,vintage_artifact,27791,15829,,montefiore-health-system
+Montefiore,UnitedHealthcare,HCPCS,entity_resolution_suspect,186,186,,montefiore-health-system
+Montefiore,UnitedHealthcare,HCPCS,plan_unresolved,4108,4108,,montefiore-health-system
+Montefiore,UnitedHealthcare,HCPCS,vintage_artifact,1486,784,,montefiore-health-system
+Mount Sinai,Aetna,HCPCS,entity_resolution_suspect,2848,2848,,mount-sinai-health-system
+Mount Sinai,Aetna,HCPCS,granularity_mismatch,11162,11162,,mount-sinai-health-system
+Mount Sinai,Aetna,HCPCS,plan_unresolved,30436,30436,,mount-sinai-health-system
+Mount Sinai,Aetna,HCPCS,vintage_artifact,448,302,,mount-sinai-health-system
+Mount Sinai,Aetna,HCPCS,within_payer_range,40941,30599,,mount-sinai-health-system
+Mount Sinai,Aetna,MS-DRG,granularity_mismatch,3874,3874,,mount-sinai-health-system
+Mount Sinai,Aetna,MS-DRG,plan_unresolved,4524,4524,,mount-sinai-health-system
+Mount Sinai,Aetna,MS-DRG,vintage_artifact,1295,1011,,mount-sinai-health-system
+Mount Sinai,Aetna,MS-DRG,within_payer_range,4154,2845,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,1845,1845,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,granularity_mismatch,35665,35665,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,plan_unresolved,169001,169001,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,unexplained,44651,44651,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,vintage_artifact,20440,16669,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,within_payer_range,86568,63190,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,granularity_mismatch,2221,2221,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,plan_unresolved,8737,8737,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,unexplained,3717,3717,,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,within_payer_range,18779,14423,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,entity_resolution_suspect,49,49,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,granularity_mismatch,988,988,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,systematic_offset,1998,1998,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,unexplained,2624,2624,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,vintage_artifact,23,23,,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,within_payer_range,9777,5182,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,granularity_mismatch,729,729,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,plan_unresolved,729,729,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,systematic_offset,2187,2187,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,unexplained,3645,3645,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,vintage_artifact,729,729,,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,within_payer_range,6561,3646,,mount-sinai-health-system
+Mount Sinai,EmblemHealth,MS-DRG,plan_unresolved,83,83,,mount-sinai-health-system
+Mount Sinai,EmblemHealth,MS-DRG,within_payer_range,15057,11313,,mount-sinai-health-system
+Mount Sinai,UnitedHealthcare,HCPCS,entity_resolution_suspect,1,1,,mount-sinai-health-system
+Mount Sinai,UnitedHealthcare,HCPCS,plan_unresolved,44761,44761,,mount-sinai-health-system
+Mount Sinai,UnitedHealthcare,HCPCS,within_payer_range,44276,44116,,mount-sinai-health-system
+NYP,Aetna,CPT,entity_resolution_suspect,26,26,,newyork-presbyterian
+NYP,Aetna,CPT,plan_unresolved,1274,1274,,newyork-presbyterian
+NYP,Aetna,CPT,vintage_artifact,2140,1969,,newyork-presbyterian
+NYP,Aetna,CPT,within_payer_range,697,585,,newyork-presbyterian
+NYP,Aetna,HCPCS,entity_resolution_suspect,44,44,,newyork-presbyterian
+NYP,Aetna,HCPCS,plan_unresolved,464,464,,newyork-presbyterian
+NYP,Aetna,HCPCS,vintage_artifact,171,74,,newyork-presbyterian
+NYP,Aetna,HCPCS,within_payer_range,1423,1150,,newyork-presbyterian
+NYP,Aetna,MS-DRG,entity_resolution_suspect,2,2,,newyork-presbyterian
+NYP,Aetna,MS-DRG,plan_unresolved,360,360,,newyork-presbyterian
+NYP,Aetna,MS-DRG,vintage_artifact,500,414,,newyork-presbyterian
+NYP,Aetna,MS-DRG,within_payer_range,29,0,,newyork-presbyterian
+NYP,Cigna,CPT,entity_resolution_suspect,1,1,,newyork-presbyterian
+NYP,Cigna,CPT,granularity_mismatch,2775,2772,,newyork-presbyterian
+NYP,Cigna,HCPCS,granularity_mismatch,18,18,,newyork-presbyterian
+NYP,Cigna,MS-DRG,granularity_mismatch,981,713,,newyork-presbyterian
+NYP,EmblemHealth,MS-DRG,entity_resolution_suspect,1,1,,newyork-presbyterian
+NYP,EmblemHealth,MS-DRG,granularity_mismatch,983,839,,newyork-presbyterian
+NYP,EmblemHealth,MS-DRG,plan_unresolved,102,102,,newyork-presbyterian
+NYP,UnitedHealthcare,CPT,entity_resolution_suspect,154,154,,newyork-presbyterian
+NYP,UnitedHealthcare,CPT,granularity_mismatch,5780,2103,,newyork-presbyterian
+NYP,UnitedHealthcare,CPT,plan_unresolved,437,437,,newyork-presbyterian
+NYP,UnitedHealthcare,CPT,vintage_artifact,2,2,,newyork-presbyterian
+NYP,UnitedHealthcare,HCPCS,entity_resolution_suspect,1,1,,newyork-presbyterian
+NYP,UnitedHealthcare,HCPCS,granularity_mismatch,19,15,,newyork-presbyterian
+NYP,UnitedHealthcare,HCPCS,plan_unresolved,3,3,,newyork-presbyterian
+NYU Langone,Aetna,CPT,entity_resolution_suspect,3648,3648,,nyu-langone-health
+NYU Langone,Aetna,CPT,granularity_mismatch,9884,9884,,nyu-langone-health
+NYU Langone,Aetna,CPT,plan_unresolved,99677,99677,,nyu-langone-health
+NYU Langone,Aetna,CPT,unexplained,19768,19768,,nyu-langone-health
+NYU Langone,Aetna,CPT,vintage_artifact,18759,14715,,nyu-langone-health
+NYU Langone,Aetna,CPT,within_payer_range,316616,250739,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,entity_resolution_suspect,512,512,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,granularity_mismatch,224,224,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,plan_unresolved,2403,2403,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,unexplained,448,448,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,vintage_artifact,448,424,,nyu-langone-health
+NYU Langone,Aetna,HCPCS,within_payer_range,4393,2676,,nyu-langone-health
+NYU Langone,Cigna,CPT,entity_resolution_suspect,2464,2464,,nyu-langone-health
+NYU Langone,Cigna,CPT,granularity_mismatch,264,264,,nyu-langone-health
+NYU Langone,Cigna,CPT,plan_unresolved,4716,4716,,nyu-langone-health
+NYU Langone,Cigna,CPT,unexplained,828,828,,nyu-langone-health
+NYU Langone,Cigna,CPT,vintage_artifact,10384,10296,,nyu-langone-health
+NYU Langone,Cigna,CPT,within_payer_range,150304,150304,,nyu-langone-health
+NYU Langone,Cigna,HCPCS,entity_resolution_suspect,616,616,,nyu-langone-health
+NYU Langone,Cigna,HCPCS,vintage_artifact,88,0,,nyu-langone-health
+NYU Langone,Cigna,HCPCS,within_payer_range,2024,2024,,nyu-langone-health
+NYU Langone,EmblemHealth,CPT,entity_resolution_suspect,459670,459670,,nyu-langone-health
+NYU Langone,EmblemHealth,CPT,plan_unresolved,493437,493437,,nyu-langone-health
+NYU Langone,EmblemHealth,CPT,vintage_artifact,10304,7997,,nyu-langone-health
+NYU Langone,EmblemHealth,HCPCS,entity_resolution_suspect,7969,7969,,nyu-langone-health
+NYU Langone,EmblemHealth,HCPCS,plan_unresolved,9217,9217,,nyu-langone-health
+NYU Langone,EmblemHealth,HCPCS,vintage_artifact,780,574,,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,entity_resolution_suspect,2033,2033,,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,plan_unresolved,152806,152806,,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,unexplained,28836,28836,,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,vintage_artifact,130437,103202,,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,within_payer_range,52685,52611,,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,entity_resolution_suspect,4,4,,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,plan_unresolved,2189,2189,,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,unexplained,420,420,,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,vintage_artifact,264,186,,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,within_payer_range,1241,1238,,nyu-langone-health
+Northwell,Aetna,CPT,entity_resolution_suspect,930,930,,northwell-health
+Northwell,Aetna,CPT,plan_unresolved,7806,7806,,northwell-health
+Northwell,Aetna,CPT,unexplained,15512,15512,,northwell-health
+Northwell,Aetna,CPT,vintage_artifact,18667,17602,,northwell-health
+Northwell,Aetna,CPT,within_payer_range,22446,20496,,northwell-health
+Northwell,Aetna,HCPCS,entity_resolution_suspect,683,683,,northwell-health
+Northwell,Aetna,HCPCS,granularity_mismatch,26287,24417,,northwell-health
+Northwell,Aetna,HCPCS,plan_unresolved,3512,3512,,northwell-health
+Northwell,Aetna,HCPCS,vintage_artifact,418,255,,northwell-health
+Northwell,Aetna,HCPCS,within_payer_range,280,248,,northwell-health
+Northwell,Aetna,MS-DRG,entity_resolution_suspect,285,285,,northwell-health
+Northwell,Aetna,MS-DRG,granularity_mismatch,5390,5096,,northwell-health
+Northwell,Aetna,MS-DRG,plan_unresolved,11652,11652,,northwell-health
+Northwell,Aetna,MS-DRG,unexplained,19203,19203,,northwell-health
+Northwell,Aetna,MS-DRG,vintage_artifact,4910,2593,,northwell-health
+Northwell,Aetna,MS-DRG,within_payer_range,328,103,,northwell-health
+Northwell,Cigna,CPT,entity_resolution_suspect,346,346,,northwell-health
+Northwell,Cigna,CPT,plan_unresolved,1942,1942,,northwell-health
+Northwell,Cigna,CPT,unexplained,5155,5155,,northwell-health
+Northwell,Cigna,CPT,vintage_artifact,1383,270,,northwell-health
+Northwell,Cigna,CPT,within_payer_range,7261,3283,,northwell-health
+Northwell,Cigna,HCPCS,entity_resolution_suspect,236,236,,northwell-health
+Northwell,Cigna,HCPCS,granularity_mismatch,22532,21056,,northwell-health
+Northwell,Cigna,MS-DRG,entity_resolution_suspect,22,22,,northwell-health
+Northwell,Cigna,MS-DRG,granularity_mismatch,4452,4137,,northwell-health
+Northwell,Cigna,MS-DRG,plan_unresolved,3451,3451,,northwell-health
+Northwell,Cigna,MS-DRG,unexplained,4317,4317,,northwell-health
+Northwell,Cigna,MS-DRG,vintage_artifact,46,46,,northwell-health
+Northwell,Cigna,MS-DRG,within_payer_range,13680,9711,,northwell-health
+Northwell,EmblemHealth,CPT,entity_resolution_suspect,136,136,,northwell-health
+Northwell,EmblemHealth,CPT,plan_unresolved,272,272,,northwell-health
+Northwell,EmblemHealth,CPT,vintage_artifact,663,663,,northwell-health
+Northwell,EmblemHealth,CPT,within_payer_range,4505,4505,,northwell-health
+Northwell,EmblemHealth,HCPCS,entity_resolution_suspect,3,3,,northwell-health
+Northwell,EmblemHealth,HCPCS,granularity_mismatch,138,138,,northwell-health
+Northwell,EmblemHealth,MS-DRG,entity_resolution_suspect,685,685,,northwell-health
+Northwell,EmblemHealth,MS-DRG,granularity_mismatch,2283,2282,,northwell-health
+Northwell,EmblemHealth,MS-DRG,plan_unresolved,5583,5583,,northwell-health
+Northwell,EmblemHealth,MS-DRG,vintage_artifact,8900,8900,,northwell-health
+Northwell,EmblemHealth,MS-DRG,within_payer_range,74456,25159,,northwell-health
+Northwell,UnitedHealthcare,CPT,entity_resolution_suspect,102,102,,northwell-health
+Northwell,UnitedHealthcare,CPT,plan_unresolved,38778,38778,,northwell-health
+Northwell,UnitedHealthcare,CPT,unexplained,17982,17982,,northwell-health
+Northwell,UnitedHealthcare,CPT,vintage_artifact,17802,9792,,northwell-health
+Northwell,UnitedHealthcare,HCPCS,entity_resolution_suspect,55,55,,northwell-health
+Northwell,UnitedHealthcare,HCPCS,granularity_mismatch,50841,48332,,northwell-health
+WMC,Aetna,MS-DRG,entity_resolution_suspect,148,148,,westchester-medical-center-health-network
+WMC,Aetna,MS-DRG,plan_unresolved,6538,6521,,westchester-medical-center-health-network
+WMC,Aetna,MS-DRG,vintage_artifact,7327,0,,westchester-medical-center-health-network
+WMC,Aetna,MS-DRG,within_payer_range,759,16,,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,entity_resolution_suspect,634,634,,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,plan_unresolved,11971,11971,,westchester-medical-center-health-network
+WMC,Anthem / Empire BCBS,MS-DRG,within_payer_range,11494,8891,,westchester-medical-center-health-network
+WMC,Cigna,MS-DRG,systematic_offset,3479,3479,,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,entity_resolution_suspect,29,29,,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,plan_unresolved,32,32,,westchester-medical-center-health-network
+WMC,EmblemHealth,MS-DRG,within_payer_range,15827,14507,,westchester-medical-center-health-network
+White Plains,Aetna,CPT,plan_unresolved,1134,1134,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,CPT,vintage_artifact,5974,2258,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,CPT,within_payer_range,5154,6,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,HCPCS,plan_unresolved,126,126,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,HCPCS,vintage_artifact,302,114,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,HCPCS,within_payer_range,430,0,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,MS-DRG,plan_unresolved,105,105,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,MS-DRG,vintage_artifact,994,661,White Plains Hospital,white-plains-hospital
+White Plains,Aetna,MS-DRG,within_payer_range,199,0,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,entity_resolution_suspect,3426,3426,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,granularity_mismatch,5910,5910,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,plan_unresolved,41,41,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,vintage_artifact,7,7,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,CPT,within_payer_range,18051,17814,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,entity_resolution_suspect,14,14,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,granularity_mismatch,587,587,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,plan_unresolved,6,6,White Plains Hospital,white-plains-hospital
+White Plains,Anthem / Empire BCBS,HCPCS,within_payer_range,2342,2336,White Plains Hospital,white-plains-hospital
+White Plains,Cigna,MS-DRG,plan_unresolved,20,20,White Plains Hospital,white-plains-hospital
+White Plains,Cigna,MS-DRG,unexplained,212,212,White Plains Hospital,white-plains-hospital
+White Plains,Cigna,MS-DRG,vintage_artifact,477,215,White Plains Hospital,white-plains-hospital
+White Plains,Cigna,MS-DRG,within_payer_range,639,333,White Plains Hospital,white-plains-hospital
+White Plains,EmblemHealth,CPT,plan_unresolved,45,45,White Plains Hospital,white-plains-hospital
+White Plains,EmblemHealth,CPT,vintage_artifact,39,39,White Plains Hospital,white-plains-hospital
+White Plains,EmblemHealth,MS-DRG,plan_unresolved,113,113,White Plains Hospital,white-plains-hospital
+White Plains,EmblemHealth,MS-DRG,vintage_artifact,7,5,White Plains Hospital,white-plains-hospital
+White Plains,EmblemHealth,MS-DRG,within_payer_range,1218,1188,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,entity_resolution_suspect,252,252,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,plan_unresolved,304,304,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,CPT,vintage_artifact,17069,0,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,entity_resolution_suspect,28,28,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,plan_unresolved,87,87,White Plains Hospital,white-plains-hospital
+White Plains,UnitedHealthcare,HCPCS,vintage_artifact,1230,0,White Plains Hospital,white-plains-hospital

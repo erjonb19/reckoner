@@ -1,0 +1,43 @@
+# The ledger theme for the analyst page (docs/design/streamlit-redesign.md).
+# Paper, ink and ruled lines, because the page's job is a reconciliation: two
+# columns of figures that should agree. Colour is spent on meaning only --
+# hospital, insurer, inside the range, unexplained -- and each pair was checked
+# with the dataviz palette validator against its own surface.
+
+[theme]
+font = "Inter Tight:https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap, sans-serif"
+headingFont = "Source Serif 4:https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap, serif"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap, monospace"
+baseRadius = "2px"
+buttonRadius = "2px"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.light]
+primaryColor = "#1A5E96"
+backgroundColor = "#F7F6F2"
+secondaryBackgroundColor = "#EEECE5"
+textColor = "#1D2433"
+borderColor = "#D9D6CC"
+dataframeBorderColor = "#D9D6CC"
+dataframeHeaderBackgroundColor = "#EEECE5"
+linkColor = "#1A5E96"
+redColor = "#A33B3B"
+greenColor = "#4A7C59"
+chartCategoricalColors = ["#B4532A", "#1A5E96", "#4A7C59", "#A33B3B", "#6B6F7A"]
+
+[theme.dark]
+primaryColor = "#4F93D0"
+backgroundColor = "#15181E"
+secondaryBackgroundColor = "#1D2129"
+textColor = "#E7E4DC"
+borderColor = "#343A45"
+dataframeBorderColor = "#343A45"
+dataframeHeaderBackgroundColor = "#1D2129"
+linkColor = "#4F93D0"
+redColor = "#D06A6A"
+greenColor = "#6FA57F"
+chartCategoricalColors = ["#C96A3E", "#4F93D0", "#6FA57F", "#D06A6A", "#9A9EA8"]
+
+[client]
+toolbarMode = "viewer"

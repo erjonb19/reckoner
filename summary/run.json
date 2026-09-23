@@ -1,10 +1,10 @@
 {
- "built_at": "2026-09-23T18:43:24+00:00",
- "build_sha": "61ff5a1b788a7a5e9f9770cd4a8be96f3e6f33c8",
+ "built_at": "2026-09-23T20:37:48+00:00",
+ "build_sha": "preview",
  "bronze_ingest_date": "2026-09-13",
  "silver_hospital_published_at": "2026-09-23T03:48:09+00:00",
  "silver_payer_published_at": "2026-09-15T12:15:37+00:00",
- "gold_published_at": "2026-09-23T18:41:46+00:00",
+ "gold_published_at": "2026-09-23T20:37:00+00:00",
  "systems": [
   "Montefiore",
   "Mount Sinai",
@@ -40,7 +40,7 @@
  ],
  "caveats": [
   "All summary data derives from public hospital (45 CFR 180) and payer (Transparency in Coverage) price transparency files. No PHI.",
-  "Gold for NYU Langone comes from a local run; Mount Sinai, Northwell and NewYork-Presbyterian come from cloud executions of reckoner-mart. NYU Langone exceeds the 8 GiB Consumption ceiling; tracked in issue #47."
+  "PREVIEW: facility-grain tables (pairs, residual, code lookup) cover White Plains Hospital only. The other six systems gain them at the 1 October scheduled run."
  ],
  "rows_per_table": {
   "coverage": 7,
@@ -48,8 +48,25 @@
   "magnitude": 17,
   "exemplars": 250,
   "refusals": 637,
+  "pairs": 26,
+  "residual": 100,
   "triage_queue": 250,
   "triage_summary": 9,
   "vintage_alignment": 10
+ },
+ "release": {
+  "tag": "preview-2026-09-23",
+  "files": {
+   "codes.parquet": {
+    "sha256": "1dbfb34b9d62fc4907bb9eb3c31c9d972a3e4055f02e3ccd7e75f8fc15211c97",
+    "bytes": 481529,
+    "rows": 66741
+   },
+   "rates.parquet": {
+    "sha256": "45898cfec24f155bfa88690286bac112b35c0b5e6348fae0e484b94997fc532a",
+    "bytes": 343373,
+    "rows": 48728
+   }
+  }
  }
 }
