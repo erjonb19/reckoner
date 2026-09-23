@@ -15,15 +15,19 @@ query filters on an event name the job no longer emits. Without that check, a
 renamed event would leave a panel reading "no results", which looks exactly
 like a quiet month.
 
-## Importing it
+## Where it lives
 
-**Not done from here.** Saving a workbook creates an Azure resource, and that's
-your call. To open it without saving: Azure portal → Monitor → Workbooks → New →
-Advanced editor (`</>`) → paste the JSON → Apply. It asks for the workspace:
-choose `reckoner-logs`. Save it only if you want it kept.
+Imported on 2026-09-23 as the shared workbook **"Reckoner pipeline"** in
+`rg-reckoner` (Azure portal → Monitor → Workbooks). The import set the
+workspace picker's default to `reckoner-logs`. The committed JSON names no
+resource, so it still opens against any workspace. The imported queries were
+read back and are identical to the committed file.
 
-Each query was run against `reckoner-logs` with `az monitor log-analytics query`
-before being committed. The import itself has not been tried.
+To update it after changing a `.kql` file: rebuild the JSON with
+`python scripts/build_workbook.py`, then paste it into the workbook's
+Advanced editor, or re-run the same ARM `PUT`. The resource name is fixed, a
+UUID derived from `reckoner-pipeline-workbook`, so a re-import replaces the
+workbook rather than duplicating it.
 
 ## Running a panel without the portal
 

@@ -344,7 +344,7 @@ named.
   groups of two rates the approximate median returned the lower value in 4.9% of cases.
 
   **Untested:** the scheduled run does all seven systems in one execution. Per system
-  they sum to 87 minutes against a 7,200 s timeout, and memory carried between systems
+  they sum to 87 minutes against a 10,800 s timeout (raised from 7,200 on 2026-09-23), and memory carried between systems
   hasn't been measured. The first run is 1 October.
 
   Verification caught three gaps in my own earlier fixes during these rebuilds (#85,
@@ -359,9 +359,9 @@ named.
 - **Workbook** — `deploy/workbook/`: run history per attempt, duration per stage, peak RSS
   against the ceiling, manifest match per layer. Every query was run against
   `reckoner-logs`, and a test fails if one filters on an event the code no longer emits.
-  **Not imported yet.** The import was approved on 2026-09-23, but the subscription isn't
-  registered for the `Microsoft.Insights` resource provider, and registering it is a
-  subscription-wide setting left to the owner.
+  **Imported** on 2026-09-23 as the shared workbook "Reckoner pipeline" in `rg-reckoner`,
+  after the owner registered the `Microsoft.Insights` provider. Its queries were read back
+  and are identical to the committed file.
 - **Not built:** the `contract`, `verify`, `publish` and `eligibility` stages still log
   `stage_not_implemented`.
 

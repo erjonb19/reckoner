@@ -45,3 +45,7 @@ correct gold but exited 1, which led to #75.
 | 7 | A2 v2 in BUILT_VS_PLANNED | An employer-group → network crosswalk from the TiC index's `reporting_plans` (plan_name, EIN), which `mrf_pipeline` reads and discards today. Motivated by UHC at 82% unmatchable. |
 | | Grant | About 84% of September's Container Apps grant used (≈150,500 of 180,000 vCPU-s), mostly on today's two rebuilds. Still free. |
 | | A1 | No model run, as instructed. **Your labels:** the queue changed grain with ADR 0006, so labels written against the old queue will partly show as `unmatched`. I sent a notification before building it. |
+| 5 | Import the workbook (after the provider registration) | **Done.** "Reckoner pipeline" in `rg-reckoner`, four panels, queries read back identical to the committed file, workspace defaulting to `reckoner-logs`. |
+| | replicaTimeout 180 minutes | **Done** by ARM PATCH; schedule, sizing and identity read back unchanged. Worst case with one retry is about 86,000 vCPU-s, half of October's grant. Recorded in `job.mart.yaml`. |
+| | Grant | No full seven-system reruns before 1 October unless something breaks; single-system runs only if needed. |
+
