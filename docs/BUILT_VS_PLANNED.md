@@ -7,7 +7,14 @@ not fully working is listed under planned, not built.
 **This is a personal project.** It is deployed, scheduled, tested and monitored, but no
 real users and no business decisions depend on it. Nothing here is production experience.
 
-Last updated: 2026-09-09.
+Last updated: 2026-09-23.
+
+**Since the last revision (2026-09-09 → 2026-09-23):** three more hospital systems
+ingested (15 in the lake, 6 reconciled), a gold layer published by a cloud job, a
+generated report and a public page, A1's agent loop and eval harness, a refusal
+decomposition, a report-only fuzzy plan matcher, and a Log Analytics workbook. The
+sections below are updated in place; the older findings further down are kept, dated,
+because they are still true of what they measured.
 
 ---
 
@@ -26,7 +33,11 @@ Working, tested, and reproducible from the repository.
   `LOAD_AUDIT` row per batch written whether the batch succeeds or fails.
 - Facility resolution (`facility.py`) and regional peer grouping (`region.py`).
 
-**Measured:** 156,484,277 curated rate lines across **12 health systems**.
+**Measured:** 184,424,339 curated rate lines across **15 health systems**. The last
+three (White Plains, the Westchester Medical Center network, Montefiore; 27,940,062
+rows) were fetched by hand, because both sites block automated access. They were served
+to the unchanged ingest over localhost, so they went through the same parse, quarantine,
+checksum and `LOAD_AUDIT` path as the other twelve.
 
 ### Medicare benchmark (Phase 2)
 
@@ -53,11 +64,33 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 - System-range comparison with implausibility guards — `system_range.py`.
 - **A committed runner** — `src/reconcile/mart_cli.py`. Before it, every real-data figure
   came from throwaway scripts and no number in any write-up could be re-derived.
+- **Gold, sharded and shard-invariant** — `src/reconcile/gold.py`, `src/pipeline/mart.py`.
+  One system per execution, sharded by code prefix, then facility, then carrier, with the
+  pairs streamed rather than collected. Every split is exact: the join key contains each
+  split dimension, so no pair straddles one. Offsets are fixed once over the whole system
+  at `close()`.
+- **Reproducible across images, measured.** Mount Sinai, Northwell and NYP were rebuilt on
+  2026-09-23 with a newer image. `coverage`, `outcomes`, `exemplars`, `magnitude` and the
+  triage queue came out identical to the earlier builds. Only `refusals` changed, gaining
+  the carrier grain added in between.
+- **Report and page** — `src/pipeline/report.py` publishes gold as `summary/*.csv`,
+  `summary/run.json` (with a no-PHI caveat) and `docs/reconciliation-report.md`.
+  `streamlit_app.py` reads only those files and makes no network calls; it is live at
+  <https://reckoner-ny.streamlit.app>.
+- **Refusal decomposition** — `src/pipeline/levers.py`, `docs/refusal-decomposition.md`.
+  Every refusal, by reason, system and carrier, with the lever that could recover it.
+  It won't write the document unless candidates equal pairs plus refusals for every
+  system, and they are equal for all six.
+- **Vintage alignment** — `src/pipeline/vintage.py`: the gap between the two sides per
+  hospital and carrier, reported as a distribution rather than a single figure.
 
 ### Cross-source reconciliation scope
 
-- `docs/scope.md` — four systems are in reconciliation scope; the other eight are hospital-side
-  only **by design**, having never been payer-side targets. Not a gap.
+- `docs/scope.md` — **six systems reconcile**: Mount Sinai, Northwell, NYU Langone,
+  NewYork-Presbyterian, WMC and White Plains. A seventh, Montefiore, is ingested and
+  verified in silver but not reconciled, because its cloud run is OOM-killed (see below).
+  The other eight are hospital-side only **by design**, having never been payer-side
+  targets. Not a gap.
 - **`--assume-facility-when-unstated`** reads an absent hospital `billing_class` as `facility`,
   scoped by `reconcile.curated.facility_only_hospitals` — computed from the data, so a system
   that publishes any professional row is excluded automatically. Excludes exactly Maimonides
@@ -123,6 +156,29 @@ Aetna (ALIC group + NY individual), Cigna, Empire BCBS, EmblemHealth. Vintages s
 - Ranking is symmetric in direction (0.5× ranks with 2×) and caps the evidence weight, so
   the fan-out cannot buy priority through repetition.
 - 15 tests.
+
+**Near-miss rules, as a job stage.** `src/pipeline/triage.py` (`--stage triage`) runs over
+gold's exemplars with five rules whose thresholds are deliberately looser than the mart's.
+They catch findings that fell just the wrong side of a line. On the published queue they
+account for **166 of 200** findings: 91 near-offset and 75 vintage. **34 stay
+`unexplained`**, and those are what the agent exists for.
+
+**The agent loop is built; no model has been run.** `src/agents/triage_agent.py` has:
+
+- a proposal from a fixed vocabulary of eight causes, which must cite its evidence fields;
+- a deterministic `validate` that checks the vocabulary and the cited fields, and
+  preconditions where a cause has one (a vintage artifact needs a 30-day gap, a units
+  mismatch needs a ratio of 3× or more);
+- retries bounded at three, only for rate limits, 5xx, connection errors and unparseable
+  output, with the rejection reason fed back to the model;
+- a human queue for anything refused, low-confidence or out of attempts;
+- a cost and latency on every attempt, including failed ones. An unpriced model costs
+  `None`, not $0.
+
+`src/agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`, which
+**ships empty**, so the eval reports *not measured* and the gate holds.
+`docs/labelling-a1.md` explains how to fill it. 62 tests drive the loop with a scripted
+stub. The block is labels, not code.
 
 Two hypotheses about the residual were tested and **both failed**, which is why neither is a
 rule: ratios do not cluster near integers (8.5% within 5% of one, so not a units multiple),
@@ -209,11 +265,20 @@ named.
   an error — `src/agents/evals.py`. Results appended, never overwritten.
 - 190 reviewed labels — `evals/plan_matching.jsonl`.
 - Per-call cost and latency logged (`CallCost`), so the agent's price is a number.
+- **A fuzzy plan pass, report-only** — `src/agents/plan_fuzzy.py`, `docs/plan-matching.md`.
+  It uses aliases with confidence tiers, and nothing in the mart calls it. Measured over
+  the real plan space: plan-level matchable share goes **13.87% → 14.72%** of hospital rate
+  rows. Comparable-share lift is **0.00 pp, by construction**, because an unresolved plan is
+  an explanation, never a refusal. Precision on the reviewed set is unchanged (0 false
+  positives), but none of those labels covers a case the pass changes. 25 proposed
+  labels are waiting unreviewed in `evals/plan_matching_proposed.jsonl`.
 
 ### Engineering
 
-- **867 tests**, all passing. Parser tests are
+- **1,134 tests**, all passing. Parser tests are
   built from real files, not from the CMS spec.
+- `docs/silent-failures.md` — 13 bugs that reported success and were wrong, each with the
+  check that now catches it.
 - `mypy strict`, `ruff` with a broad rule selection, CI gating every push in both repos.
 
 ---
@@ -230,8 +295,13 @@ named.
     derived from bronze rather than from the parser a second time. Compaction falls out of the
     key: EmblemHealth's 98 files, one per plan, share a carrier and a vintage and become one.
     118 files in, 14 out, and 22% smaller than bronze on the same rows.
-  - **Total 4.747 GB of a 5 GB free tier**, 229 files. The layout ADR 0003 describes is
-    complete; nothing further is planned against that allowance.
+  - **silver/hospital_rates is now 122 files, 184,424,339 rows**, republished and verified
+    with the three new systems.
+  - **gold/** — seven tables per system, written by two stages: the mart writes five and
+    triage writes two.
+  - **Total 5.282 GB, 0.282 GB over the 5 GB free tier: $0.0056 a month, measured.** The
+    pre-write projection said $0.079. It errs high by design, because it doesn't model
+    partitions being replaced.
 - **Container Apps Job `reckoner-pipeline`** — schedule `0 6 1 * *`, 2 vCPU / 4 GiB, image from
   ghcr.io, authenticating with a user-assigned managed identity. One green run on demand;
   the first scheduled firing is 1 October.
@@ -243,38 +313,48 @@ named.
   list price, $0.00 after the monthly free grant** (0.04% of it). The $0.10/hour environment
   management meter does **not** apply — verified Consumption-only profile, no private
   endpoint, no VNet (ADR 0004).
-- **Stage 1 (`--stage manifest`) is wired.** It diffs all three layers against the manifests
+- **Stage 1 (`--stage manifest`) is wired.** It diffs every layer against the manifests
   that described them — files, rows and bytes per carrier and per hospital — and emits one
   `manifest_group` record per group plus a `manifest_summary`, carrying the Log Analytics cap
   status so a capped day is visible rather than silent. Row counts come from the Parquet
   footers, not the blob listing: a file can be the right size and the wrong content. **A
   mismatch exits non-zero**, so the execution reports Failed rather than Succeeded with a bad
   diff buried in the logs.
-- **Stage 2 (`--stage mart`) reconciles silver into gold.** Four systems, sharded by leading
-  code character and then by facility, writing five tables under `gold/` with the same
-  manifest-and-verify shape as the silver layers. 262,860 residual findings across
-  3,370,446 / 4,552,693 / 6,539,353 / 106,852 pairs. Mount Sinai's figures match the
-  unsharded `mart_cli` run exactly, which is the shard-invariance property holding on real
-  data rather than on a fixture.
-- **Three of four systems are published by the cloud job; NYU Langone is not.** That split is
-  the honest state and is stated rather than implied. `reckoner-mart` reconciles one system
-  per execution (`RECKONER_SYSTEM`), at 4 vCPU / 8 GiB, **manual-trigger only**:
+- **Stage 1 checks four layers**: bronze, both silvers and gold.
+- **Stage 2 (`--stage mart`) reconciles silver into gold, one system per execution.**
+  `reckoner-mart` runs at 4 vCPU / 8 GiB, the Consumption maximum, **manual-trigger only**.
+  It verifies only the tables it wrote in the systems it wrote (#75). Before that fix, a
+  correct write was reported as a failure whenever triage had also written to the partition.
 
-  | system | peak RSS of 8,192 MiB | Arrow high-water | cloud execution |
-  |---|---|---|---|
-  | NewYork-Presbyterian | 2,425 | 1,481 | Succeeded |
-  | Mount Sinai | 4,747 | 1,450 | Succeeded |
-  | Northwell | 6,424 | 3,772 | Succeeded |
-  | NYU Langone | — | — | **OOM-killed** |
+  | system | pairs | comparable share | peak RSS of 8,192 MiB | published by |
+  |---|---:|---:|---:|---|
+  | WMC | 256,608 | 66.30% | 3,865 | cloud |
+  | White Plains | 297,188 | 26.90% | 1,746 | cloud |
+  | Mount Sinai | 3,370,446 | 9.30% | 4,773 | cloud |
+  | Northwell | 4,552,693 | 6.23% | 7,401 | cloud (retry OOM-killed) |
+  | NYU Langone | 6,539,353 | 3.88% | — | **local run** |
+  | NewYork-Presbyterian | 106,852 | 1.50% | 2,472 | cloud |
+  | Montefiore | — | — | killed at ~6,100 | **not reconciled** |
 
-  NYU Langone has the largest payer side (15.3M rows) and exceeds 8 GiB even alone, on a
-  ceiling that is the Consumption maximum. Its gold partition is still the one written by a
-  local run, which completes. Every figure the cloud produced matches that local run exactly.
-
-  The schedule stays off until all four succeed, because a monthly job that reliably fails
-  teaches whoever reads it to ignore the real alarm. Tracked in issue #47; the remaining
-  lever is finer sharding for that one system, which is structural.
-- **Not built:** the contract, publish and verify stages still log `stage_not_implemented`.
+  **NYU Langone and Montefiore don't fit.** Streaming the pairs (#69) halved NYU's worst
+  per-slice window, from 8,055 to 3,793 MiB, and it still dies loading its next shard.
+  Profiled one shard at a time, the cost is `hospital_shard`, not the payer side (NYU shard
+  `1`: 7,832 MiB against 1,844). Arrow's pool accounts for only 839 MiB of it, so it is
+  **not** the `to_table` + `group_by` allocation that was suspected. The next measurement
+  belongs in the cloud job. It was stopped locally when the laptop crossed its 12 GB limit.
+  Northwell peaks at 90% of the ceiling and is close behind. Tracked in #47; the schedule
+  stays off.
+- **Stage 3 (`--stage triage`)** writes the near-miss queue into gold and rewrites the gold
+  manifest, which it didn't do before #75.
+- **Stage 4 (`--stage report`)** republishes gold as the summary dataset and the written
+  report. It reads the gold schema as the union across partitions (#74). Previously a
+  column added in a newer partition was silently dropped for every system.
+- **Workbook** — `deploy/workbook/`: run history per attempt, duration per stage, peak RSS
+  against the ceiling, manifest match per layer. Every query was run against
+  `reckoner-logs`, and a test fails if one filters on an event the code no longer emits.
+  **Not imported**, because saving a workbook creates an Azure resource.
+- **Not built:** the `contract`, `verify`, `publish` and `eligibility` stages still log
+  `stage_not_implemented`.
 
 ## Scaffolded
 
@@ -309,31 +389,48 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
-- **A1's LLM triager.** The queue now exists and has real volume; what is missing is the
-  model that proposes *why* an item disagrees, and the labels to score it against. Those
-  labels come from working the queue, so this is the one agent whose block is a matter of
-  effort rather than of evidence.
-- **A3's generative half.** Blocked by evidence, not capability: see above.
-- **A4's agent half.** Blocked by build order, not capability: see above.
-- **Ops tables.** `ops.pipeline_runs`, `ops.dq_results` — no telemetry mart, no AIOps layer.
-- **Scheduled loads, backfill command, telemetry.** Phase 2 is now Azure-native rather than
-  Fabric — ADLS Gen2 as the store, DuckDB/Polars as the engine, Container Apps Jobs for
-  scheduling, Key Vault for secrets, Azure Monitor for telemetry. See ADR 0003. None of the
-  scheduling, secrets or telemetry layer is built yet.
-- **Fabric is dropped, not deferred.** The Montefiore tenant blocks workspace creation, the
-  trial refused to activate in a personal tenant, and the paid F2 fallback failed on a zero
-  regional quota in East US. ADR 0002's decision to write no Fabric-specific code meant this
-  cost nothing to reverse: the seam, the publisher, the manifest, the contract and its load
-  gate all target ADLS and are unaffected.
-- **Hospital-side files for WMC and White Plains, and possibly Montefiore.** All three are
-  parsed on the payer side and absent from the hospital lake, so their payer rows cannot
-  reconcile. Adding their MRFs would take the reconciliation from four systems to six or
-  seven. **Not in scope for Phase 2** — see [scope.md](scope.md).
-- **README.** Absent.
+- **A1's model run.** The loop, gate, human queue, cost log and eval harness are built
+  (above). What's missing is labels in `evals/triage_labels.csv`, and after that a
+  deliberate decision to spend on a real run. The agent is constructed in code, never
+  from a flag, so a model is never called by accident.
+- **A3's generative half.** Blocked by evidence, not capability: no hospital file in the
+  corpus is non-conforming.
+- **A4's agent half.** Blocked by build order: every manifest diff so far reports no
+  change.
+- **The two open definitions.** The join keys on carrier, not plan (#70), and not on
+  billing class. Billing-class refusals are 70.9% of all candidates. Keyed on it, the
+  pooled share would be 18.15% instead of 5.28%, with no pair gained. Both are decisions,
+  not builds. Plan matching's measured ceiling (14.7% of rows matchable by string)
+  favours #70's option (a).
+- **The remaining OOM** (#47). NYU Langone and Montefiore, measured and diagnosed but not
+  fixed. Until both run in the cloud, the mart schedule stays off and Montefiore stays
+  unreconciled.
+- **The `contract`, `verify`, `publish` and `eligibility` job stages.** Each one runs
+  locally as a CLI; none is a cloud stage yet.
+- **Key Vault.** Not needed so far: the only credential is a managed identity, and no key,
+  SAS token or connection string exists anywhere.
+- **Fabric is dropped, not deferred.** See ADR 0003.
 
 ---
 
 ## Findings, with the caveats attached
+
+### Refusals and levers (2026-09-23, six systems)
+
+Reproduce with `python -m pipeline.levers`; details in `docs/refusal-decomposition.md`.
+
+- **286,599,414 candidates, 15,123,140 pairs: a pooled comparable share of 5.28%.**
+- **70.92% of candidates are billing-class refusals**, mostly correct ones. A professional
+  rate meets an institutional one because the join doesn't key on billing class. That is
+  a definition to decide, not a lever to pull.
+- **20.16% are TiC-exempt products** (Medicare Advantage, Medicaid). Correctly refused, by
+  rule.
+- **Plan matching and vintage tolerance recover nothing** under the current join. Plan
+  matching moves the 42.5% of pairs explained only as `plan_unresolved`, not the share.
+- **A high share is a smaller file, not a better result.** WMC's 66.30% comes from 256,608
+  pairs, which is fewer than Mount Sinai's refusals alone.
+
+### Earlier findings (2026-09-10, range mode, four systems)
 
 Numbers reproduce via `python -m reconcile.mart_cli --hospital <H> --system <S>
 --payer-root ../mrf_pipeline/payer_parquet --mode range`.
@@ -458,6 +555,22 @@ against an unsharded one — on NYP they agree to full precision on every field.
   and the runner passed no map between them, so every hospital row was excluded as having no
   counterpart. The mode whose docstring calls it "what produces the refusal profile"
   produced nothing at all, and nothing noticed because no test covered it against real data.
+
+- **Gold verification reported correct writes as failures** (#75). The mart counted the
+  triage stage's rows in the same partitions as its own. Found by the workbook's first
+  query, while the portal still said *Running*.
+- **The report dropped a column for every system** (#74). The first partition it opened
+  predated the column. Silent failure #12.
+- **The page's filter tests never filtered** (#76). The test fake answered sidebar
+  selections with itself. Silent failure #13.
+- **The job-exit tests wrote a file into the repository**, and it was committed twice
+  (#77).
+
+## Known-stale claims corrected on 2026-09-23
+
+- This file claimed 12 systems, four reconciled, 867 tests, and "README: absent". It
+  listed WMC and White Plains hospital files as not started and A1's agent as not started.
+  All of those are corrected above.
 
 ## Known-stale claims corrected on 2026-09-09
 

@@ -3,6 +3,16 @@
 Two lines per item, in the order worked. Items that need a decision or a login
 from you are marked **STOP**.
 
+**Done:** 9, 2, 10 (item 3), 11, 14, plus four fixes found along the way (#74,
+#75, #76's second commit, #77). **Stopped:** item 4, when the laptop crossed 12 GB
+during local profiling; the diagnosis is below. **Needs you, not blocking:**
+labels for A1, review of 25 proposed plan labels, the workbook import, and the two
+join-key definitions.
+
+Nothing was spent beyond the free grant, no Azure resource was created, and no
+data was deleted. Six cloud mart executions ran: three succeeded and three wrote
+correct gold but exited 1, which led to #75.
+
 | # | item | outcome |
 |---|---|---|
 | 9 | A1 scaffold | `agents/triage_agent.py`: propose → deterministic `validate` → bounded retries (3, doubling backoff, rejection reason fed back) → human queue. Every attempt, failed ones included, is logged with tokens, cost and latency; an unpriced model costs `None`, not $0. `agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`. 62 tests, stubbed model, no API call made. |
@@ -19,3 +29,5 @@ from you are marked **STOP**.
 | | | **Needs you, not blocking**: none of the 190 reviewed labels covers a case the pass changes, so its precision on new matches is unmeasured. 25 proposed labels are in `evals/plan_matching_proposed.jsonl`, unreviewed. Also found, not fixed: `resolve_plan` misreads Cigna "Open Access Plus" as Aetna's family. It moves no result today. For #70 this favours option (a): the strings are nearly exhausted. |
 | 11 | Log Analytics workbook | `deploy/workbook/`: four KQL panels (run history per attempt with `killed (no job_end)` as the OOM signature, duration per stage, peak RSS against the ceiling with the worst slice named, manifest match per layer). All four were run against the live workspace. The JSON is built from the `.kql` files, and a test fails on drift or on a query for an event the code doesn't emit. No resource IDs are committed. |
 | | | **Import not done.** Saving a workbook creates an Azure resource, so that's yours; the steps are in `deploy/workbook/README.md`. It already earned itself: its first query found the reruns failing while the portal said Running, which led to #75. |
+| 14 | BUILT_VS_PLANNED, ADR index | `BUILT_VS_PLANNED.md` updated to measured state as of today: 15 systems, 6 reconciled, gold/report/triage stages, A1 loop built but unrun, fuzzy plan pass, workbook, the OOM diagnosis, and four new corrections. The old claims are logged as corrected, not silently replaced. `docs/adr/README.md` indexes the four ADRs and lists the three open decisions that have no record yet. |
+| | | CLAUDE.md's "Current phase" facts were stale too (12 systems, 4 reconcilable, 93 silver files, one stage wired) and are corrected in the same PR, since the file names itself as the first thing to fix when it drifts. |

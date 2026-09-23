@@ -273,8 +273,16 @@ so it is stated here rather than left to be discovered.
   deployed, and why its Secrets box stays empty.
 - [`docs/BUILT_VS_PLANNED.md`](docs/BUILT_VS_PLANNED.md) — built / scaffolded /
   not started. Check here before believing a claim made anywhere else.
-- [`docs/adr/`](docs/adr/) — numbered design decisions, including dropping Fabric
-  (ADR 0003) and the orchestration and job sizing (ADR 0004).
+- [`docs/refusal-decomposition.md`](docs/refusal-decomposition.md) — why 94.7%
+  of candidates never become pairs, by reason, system and carrier, and which fixes
+  could move that. Mostly they can't: 70.9% is a billing-class definition.
+- [`docs/plan-matching.md`](docs/plan-matching.md) — what fuzzy plan matching buys,
+  measured before anything depends on it: +0.85 points of plan coverage, and 0.00
+  of comparable share.
+- [`docs/labelling-a1.md`](docs/labelling-a1.md) — how to fill the label file A1's
+  eval reads. It ships empty, and the eval says "not measured" until it isn't.
+- [`docs/adr/`](docs/adr/README.md) — numbered design decisions, with an index and
+  the open decisions that don't have a record yet.
 - [`docs/coverage.md`](docs/coverage.md), [`docs/scope.md`](docs/scope.md) — the
   coverage matrix and the caveats, including negative results: two plausible
   explanations for the cross-source gap that the data disproved.
