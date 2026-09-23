@@ -87,14 +87,8 @@ class TestWhatItMustNotMatch:
         assert is_government(plan)
 
     def test_a_rules_no_match_is_never_overruled(self):
-        """Disagreeing product tokens outrank a name.
-
-        This case is also a known rules error: "Open Access Plus" is Cigna's OAP,
-        but the rules read "open access" first, as Aetna's family. It is left to
-        a reviewed change to resolve_plan, not quietly corrected here, because
-        the mart calls the rules and a fix there moves results.
-        """
-        got = fuzzy_resolve("Cigna Open Access Plus", "NationalOAP")
+        """Disagreeing product tokens outrank a name."""
+        got = fuzzy_resolve("Cigna PPO", "NationalOAP")
 
         assert got.verdict is PlanVerdict.NO_MATCH
         assert got.tier == "rules"

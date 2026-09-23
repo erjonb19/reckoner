@@ -61,10 +61,22 @@ PRODUCT_TOKENS = frozenset(
 _SYNONYMS = {
     "localplus": "localplus",
     "local plus": "localplus",
+    # Before "open access": Cigna's Open Access Plus is OAP, and reading the
+    # shorter phrase first turned it into Aetna's family and a NO_MATCH against
+    # Cigna's own NationalOAP network.
+    "openaccessplus": "oap",
+    "open access plus": "oap",
     "openaccess": "openaccess",
     "open access": "openaccess",
     "oap": "oap",
 }
+
+#: Tokens that name the same network *once the carrier is fixed*. Cigna's only
+#: open-access product is OAP, so a Cigna hospital plan written "Open Access"
+#: means NationalOAP. Aetna's Open Access family never meets a Cigna network,
+#: because the join is gated on carrier before this matcher is asked -- which
+#: is the only reason treating them as one is safe.
+_SAME_NETWORK = {"openaccess": "oap"}
 
 #: A word that names no network at all. A plan called only "Commercial" says the
 #: market, not the contract, so it cannot be matched to one network out of six.
@@ -172,6 +184,8 @@ def resolve_plan(plan_raw: str | None, network: str | None) -> PlanMatch:
             f"the hospital plan covers {len(hospital)} networks: {', '.join(sorted(hospital))}",
         )
 
+    if "oap" in payer and hospital == frozenset({"openaccess"}):
+        hospital = frozenset({_SAME_NETWORK["openaccess"]})
     shared = hospital & payer
     if shared:
         return PlanMatch(

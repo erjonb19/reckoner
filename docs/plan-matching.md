@@ -70,18 +70,20 @@ matches and 20 family cases, all `reviewed: false`. They need a person to check
 them before the pass can be scored on what it actually does. Sign-off follows
 the same process as `plan_matching.jsonl`.
 
-## A rules error, found and not fixed
+## A rules error, found and since fixed
 
-`resolve_plan` reads "open access" as Aetna's Open Access family before it
-can read "open access plus" as Cigna's OAP. So "Cigna Open Access Plus" is
-judged a `NO_MATCH` against `NationalOAP`. No hospital writes that string
-verbatim, but "CIGNA OPEN ACCESS 1413" (32,552 rows) goes down the same path.
+`resolve_plan` read "open access" as Aetna's Open Access family before it could
+read "open access plus" as Cigna's OAP. That made "Cigna Open Access Plus" a
+`NO_MATCH` against `NationalOAP`. The same separation made "CIGNA OPEN ACCESS
+1413" (32,552 rows) a `NO_MATCH`, even though Cigna's only open-access product
+is OAP.
 
-It changes no result today, because `explain()` files `NO_MATCH` under
-`plan_unresolved` along with `UNKNOWN`. It is also left alone deliberately: the
-mart calls `resolve_plan`, and a fix there is a reviewed change to results, not
-something to slip into a report-only pass. The fuzzy pass never overrules a
-rules `NO_MATCH`, and a test holds it to that.
+Fixed on 2026-09-23. "open access plus" is now read as OAP first, and a hospital
+plan naming only "open access" matches an OAP network. That second rule is safe
+only because the join is gated on carrier, so an Aetna open-access plan never
+meets a Cigna network. The reviewed eval is unchanged at 17 true matches and 0
+false positives. None of its labels covered these strings, which is how the
+error survived a precision of 1.0.
 
 A related point: `explain()` treats "these are known to be different contracts"
 (`NO_MATCH`) the same as "we can't tell" (`UNKNOWN`). The first is arguably a
