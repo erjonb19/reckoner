@@ -301,7 +301,29 @@ def explain(
         )
         return str(Explanation.VINTAGE_ARTIFACT), tuple(notes)
 
-    if _plans_differ(left, right):
+    if (
+        spread is not None
+        and len(spread.networks) > 1
+        and left.plan
+        and _across_sources(left, right)
+    ):
+        # A distribution across several networks has no single plan to compare
+        # with. The question is still asked -- is the hospital's plan any of
+        # them? -- because skipping it turned every TPA or employer plan that
+        # matches none of the carrier's networks into an "unexplained" finding.
+        verdicts = [resolve_plan(left.plan, network) for network in spread.networks]
+        if any(v.verdict is PlanVerdict.MATCH for v in verdicts):
+            pass
+        elif any(v.verdict is PlanVerdict.AGGREGATE for v in verdicts):
+            notes.append(next(v.reasoning for v in verdicts if v.verdict is PlanVerdict.AGGREGATE))
+            return str(Explanation.GRANULARITY_MISMATCH), tuple(notes)
+        else:
+            notes.append(
+                f"hospital plan {left.plan!r} not matched to any of the carrier's "
+                f"{len(spread.networks)} networks"
+            )
+            return str(Explanation.PLAN_UNRESOLVED), tuple(notes)
+    elif _plans_differ(left, right):
         if _across_sources(left, right):
             # The two sides name plans differently -- a hospital by product, a
             # payer file by network -- so a raw string difference proves nothing.

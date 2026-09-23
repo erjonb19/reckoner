@@ -243,3 +243,53 @@ class TestTheResidualCarriesTheDistribution:
             250.0,
             1,
         )
+
+
+class TestThePlanQuestionAcrossNetworks:
+    """Asked of every network in the distribution, not skipped.
+
+    Written after the first rebuild on this grain: skipping the plan check for
+    multi-network distributions sent Mount Sinai's residual from 1.8% to 55% of
+    what formed. Its first exemplar is the case below, verbatim from the lake:
+    an administrator plan, six times below every Aetna network's rate.
+    """
+
+    AETNA = ("Epo", "NY", "OpenAccessElectChoice", "OpenAccessManagedChoice", "Ppo")
+
+    def aetna(self, rate: float, network: str) -> ComparableRate:
+        return payer(rate, plan=network, payer="Aetna")
+
+    def test_a_plan_matching_no_network_is_unresolved_not_a_finding(self):
+        left = hospital(
+            rate=2_503.98, payer="Aetna", plan="Aetna Signature Administrators/Tpa - Msq"
+        )
+        right = [self.aetna(15_437.4 + i * 600, n) for i, n in enumerate(self.AETNA)]
+
+        rows, _ = run([left], right)
+
+        assert rows[0].explanation == Explanation.PLAN_UNRESOLVED
+        assert "any of the carrier's 5 networks" in rows[0].notes[-1]
+
+    def test_a_plan_matching_one_network_is_a_finding_outside_the_whole_range(self):
+        left = hospital(rate=2_503.98, payer="Aetna", plan="Aetna PPO - Msq")
+        right = [self.aetna(15_437.4 + i * 600, n) for i, n in enumerate(self.AETNA)]
+
+        rows, _ = run([left], right)
+
+        assert rows[0].explanation == Explanation.UNEXPLAINED
+
+    def test_a_plan_naming_several_networks_is_granularity(self):
+        left = hospital(rate=2_503.98, payer="Aetna", plan="Aetna Hmo/Pos/Epo - Msq")
+        right = [self.aetna(15_437.4 + i * 600, n) for i, n in enumerate(self.AETNA)]
+
+        rows, _ = run([left], right)
+
+        assert rows[0].explanation == Explanation.GRANULARITY_MISMATCH
+
+    def test_inside_the_range_is_still_decided_first(self):
+        left = hospital(rate=16_000.0, payer="Aetna", plan="Aetna Signature Administrators/Tpa")
+        right = [self.aetna(15_437.4 + i * 600, n) for i, n in enumerate(self.AETNA)]
+
+        rows, _ = run([left], right)
+
+        assert rows[0].explanation == Explanation.WITHIN_PAYER_RANGE
