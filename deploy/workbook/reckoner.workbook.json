@@ -1,0 +1,157 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Reckoner pipeline\n\nBuilt from the job's structured logs (`ContainerAppConsoleLogs_CL`, one JSON event per line). Every query here is also a file in `deploy/workbook/` and can be run on its own. Log Analytics keeps 31 days."
+      },
+      "name": "intro"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "workspace",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "label": "Log Analytics workspace",
+            "type": 5,
+            "isRequired": true,
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": []
+            }
+          },
+          {
+            "id": "timerange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 2592000000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### Run history\n\nOne row per attempt. **killed (no job_end)** is the out-of-memory signature: the container is stopped before Python can log anything. An execution's status in the portal can read *Running* while its attempts here have already failed, because replicas retry."
+      },
+      "name": "q_runs-note"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// One row per attempt. A replica that logged job_start and never job_end was\n// killed -- the container's OOM signature, which leaves no exception to log.\nlet events = ContainerAppConsoleLogs_CL\n| where ContainerJobName_s startswith \"reckoner-\"\n| extend e = parse_json(Log_s)\n| where isnotempty(e.event)\n| extend attempt = ContainerGroupName_s,\n         execution = replace_regex(ContainerGroupName_s, @\"-[a-z0-9]+$\", \"\");\nevents\n| summarize started = minif(TimeGenerated, tostring(e.event) == \"job_start\"),\n            ended = maxif(TimeGenerated, tostring(e.event) == \"job_end\"),\n            exit_code = take_anyif(toint(e.exit_code), tostring(e.event) == \"job_end\"),\n            stage = take_anyif(tostring(e.stage), tostring(e.event) == \"job_start\"),\n            system = take_anyif(tostring(e.system), tostring(e.event) == \"mart_selection\"),\n            build = take_anyif(substring(tostring(e.build_sha), 0, 7), tostring(e.event) == \"job_start\"),\n            peak_rss_mib = max(toint(e.peak_rss_mib)),\n            ceiling_mib = take_anyif(toint(e.memory_ceiling_mib), tostring(e.event) == \"preflight\")\n  by job = ContainerJobName_s, execution, attempt\n| where isnotnull(started)\n| extend outcome = case(isnull(ended), \"killed (no job_end)\", exit_code == 0, \"succeeded\", strcat(\"failed, exit \", tostring(exit_code))),\n         minutes = round(datetime_diff(\"second\", coalesce(ended, now()), started) / 60.0, 1),\n         headroom_mib = ceiling_mib - peak_rss_mib\n| project started, job, execution, attempt, stage, system, outcome, minutes, peak_rss_mib, ceiling_mib, headroom_mib, build\n| order by started desc",
+        "size": 0,
+        "title": "Run history",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "table"
+      },
+      "name": "q_runs"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### Duration per stage\n\nCompleted stages only. A killed stage has no `stage_end` and appears in the run history instead, not here."
+      },
+      "name": "q_stage_duration-note"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Wall-clock per completed stage. A killed stage has no stage_end and is\n// absent here by design; it appears in the run history as killed.\nContainerAppConsoleLogs_CL\n| where ContainerJobName_s startswith \"reckoner-\"\n| extend e = parse_json(Log_s)\n| where tostring(e.event) == \"stage_end\"\n| project TimeGenerated, stage = tostring(e.stage), seconds = todouble(e.seconds), exit_code = toint(e.exit_code)\n| summarize runs = count(), median_s = percentile(seconds, 50), max_s = max(seconds), failures = countif(exit_code != 0) by stage\n| order by stage asc",
+        "size": 0,
+        "title": "Duration per stage",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "table"
+      },
+      "name": "q_stage_duration"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### Peak memory against the ceiling\n\nThe process peak never falls, so it cannot say where memory went. The worst per-slice window names the slice."
+      },
+      "name": "q_memory-note"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Peak resident memory per attempt against the container ceiling, and the\n// slice with the worst window. The process peak never falls, so on its own it\n// cannot name where memory went; the per-slice window can.\nlet events = ContainerAppConsoleLogs_CL\n| where ContainerJobName_s startswith \"reckoner-\"\n| extend e = parse_json(Log_s)\n| extend ev = tostring(e.event);\nlet worst = events\n| where ev == \"mart_shard\"\n| summarize arg_max(toint(e.rss_window_peak_mib), shard = tostring(e.shard)) by attempt = ContainerGroupName_s\n| project attempt, worst_slice = shard, worst_slice_window_mib = e_rss_window_peak_mib;\nevents\n| where ev in (\"preflight\", \"mart_shard\", \"stage_end\", \"memwatch_peak\")\n| summarize started = min(TimeGenerated),\n            ceiling_mib = take_anyif(toint(e.memory_ceiling_mib), ev == \"preflight\"),\n            process_peak_mib = max(toint(coalesce(e.peak_rss_mib, e.sampled_peak_rss_mib)))\n  by attempt = ContainerGroupName_s, job = ContainerJobName_s\n| join kind=leftouter worst on attempt\n| extend used_pct = round(100.0 * process_peak_mib / ceiling_mib, 1)\n| project started, job, attempt, ceiling_mib, process_peak_mib, used_pct, worst_slice_window_mib, worst_slice\n| order by started desc",
+        "size": 0,
+        "title": "Peak memory against the ceiling",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "table"
+      },
+      "name": "q_memory"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### Manifest match per layer\n\nStage 1's verdict per layer per run. A layer present in one run and absent from the next means the run checked fewer layers."
+      },
+      "name": "q_manifest-note"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Stage 1's verdict per layer per run. A layer checked in one run and absent\n// in the next is itself a finding: the run checked fewer layers than before.\nContainerAppConsoleLogs_CL\n| where ContainerJobName_s startswith \"reckoner-\"\n| extend e = parse_json(Log_s)\n| where tostring(e.event) == \"manifest_summary\"\n| project TimeGenerated, run = ContainerGroupName_s, layer = tostring(e.layer),\n          matches = tobool(e.matches),\n          expected_rows = tolong(e.expected_rows), observed_rows = tolong(e.observed_rows),\n          expected_files = toint(e.expected_files), observed_files = toint(e.observed_files)\n| extend row_drift = observed_rows - expected_rows\n| order by TimeGenerated desc, layer asc",
+        "size": 0,
+        "title": "Manifest match per layer",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "table"
+      },
+      "name": "q_manifest"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

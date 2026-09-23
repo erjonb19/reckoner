@@ -1,0 +1,9 @@
+// Wall-clock per completed stage. A killed stage has no stage_end and is
+// absent here by design; it appears in the run history as killed.
+ContainerAppConsoleLogs_CL
+| where ContainerJobName_s startswith "reckoner-"
+| extend e = parse_json(Log_s)
+| where tostring(e.event) == "stage_end"
+| project TimeGenerated, stage = tostring(e.stage), seconds = todouble(e.seconds), exit_code = toint(e.exit_code)
+| summarize runs = count(), median_s = percentile(seconds, 50), max_s = max(seconds), failures = countif(exit_code != 0) by stage
+| order by stage asc
