@@ -470,7 +470,7 @@ class TestStreamingIsIdentical:
         collected.close()
 
         streamed = Reconciliation(hospital=SYSTEM, system=SYSTEM, hospital_slug="ms")
-        mart, rows = stream_shard(left, right)
+        mart, rows = stream_shard(left, right, grain="pair")
         streamed.add_shard("1", mart, rows=rows)
         streamed.close()
 

@@ -78,16 +78,21 @@ coverage, outcomes, magnitude, exemplars, refusals = st.tabs(
 with coverage:
     st.subheader("What reconciles at all")
     st.markdown(
-        "**Read the comparable share, not the pair count.** It is the fraction of "
-        "candidate pairs that survive the comparability rules. Everything else is "
-        "refused for a stated reason, counted under *Refusals*."
+        "**Read the shares, not the counts.** Each hospital rate is compared once, "
+        "against the insurer's range of rates for the same service. The *raw* share "
+        "is over every hospital rate; the *like-class* share leaves out rates whose "
+        "only counterparts were the other billing class. Everything refused is "
+        "counted, with its reason, under *Refusals*."
     )
     rows = view.funnel(data, system=system)
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if rows:
         st.bar_chart(
-            {r["system"]: r["comparable_share"] for r in rows},
-            y_label="comparable share",
+            {
+                "raw share": {r["system"]: r["comparable_share"] for r in rows},
+                "like-class share": {r["system"]: r.get("like_class_share") or 0.0 for r in rows},
+            },
+            y_label="share of hospital rates",
         )
 
 with outcomes:

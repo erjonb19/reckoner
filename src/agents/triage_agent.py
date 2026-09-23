@@ -86,6 +86,12 @@ EVIDENCE_FIELDS: tuple[str, ...] = (
     *KEY_FIELDS,
     "hospital_rate",
     "payer_rate",
+    # The carrier's distribution the hospital rate was compared against
+    # (ADR 0006). payer_rate is its median.
+    "payer_min",
+    "payer_max",
+    "payer_count",
+    "inside_payer_range",
     "ratio",
     "relative_difference",
     "hospital_vintage",

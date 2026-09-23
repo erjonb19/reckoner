@@ -212,7 +212,7 @@ class TestTheMarkdown:
         """The pair counts are the most impressive and least informative number."""
         text = markdown(build(storage.local(gold(tmp_path))))
 
-        assert "comparable share, not the pair count" in text
+        assert "Read the shares, not the counts" in text
         assert "9.30%" in text
 
     def test_refusals_declare_their_grain(self, tmp_path):
