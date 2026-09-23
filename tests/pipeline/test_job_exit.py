@@ -13,6 +13,7 @@ about each.
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Never
 
 import pyarrow.fs as pafs
@@ -41,14 +42,21 @@ def diff(
 
 
 @pytest.fixture
-def stubbed(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, dict[str, object]]]:
-    """Run the stage without touching a network, capturing what it logs."""
+def stubbed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[tuple[str, dict[str, object]]]:
+    """Run the stage without touching a network, capturing what it logs.
+
+    The lake is ``tmp_path``. It was the relative path ``lake``, and stage 1
+    writes its verdict file into the lake, so every test run wrote
+    ``lake/_meta/last_manifest_run.json`` into the repository -- where it was
+    committed twice before anyone noticed.
+    """
     emitted: list[tuple[str, dict[str, object]]] = []
     monkeypatch.setattr(
         reckoner_job, "log", lambda event, **fields: emitted.append((event, fields))
     )
     monkeypatch.setattr(
-        "storage.resolve", lambda *a, **k: Location(root="lake", filesystem=pafs.LocalFileSystem())
+        "storage.resolve",
+        lambda *a, **k: Location(root=str(tmp_path / "lake"), filesystem=pafs.LocalFileSystem()),
     )
     monkeypatch.setattr(manifest_check, "latest_ingest_date", lambda location: "2026-09-13")
     monkeypatch.setattr(cap, "ingestion_status", lambda *a, **k: CapProbe(RESPECT_QUOTA))
