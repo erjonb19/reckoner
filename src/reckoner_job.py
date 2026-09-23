@@ -27,6 +27,7 @@ import os
 import sys
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pyarrow
 
@@ -246,6 +247,92 @@ def run_manifest() -> int:
     return 0
 
 
+#: The load profiler's variants: which filter and scanner options
+#: ``hospital_shard`` runs with. One per execution, because the process
+#: high-water never falls and so cannot be compared within one process.
+LOAD_VARIANTS: dict[str, dict[str, bool]] = {
+    "baseline": {"pruned": False, "readahead": True},
+    "no-readahead": {"pruned": False, "readahead": False},
+    "pruned": {"pruned": True, "readahead": True},
+    "pruned-no-readahead": {"pruned": True, "readahead": False},
+}
+
+
+def proc_status_mib(field: str) -> int | None:
+    """One ``/proc/self/status`` memory field in MiB: VmRSS now, VmHWM ever."""
+    try:
+        for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+            if line.startswith(f"{field}:"):
+                return int(line.split()[1]) // 1024
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+def run_load_profile() -> int:
+    """Profile one shard's hospital-side load, and write nothing.
+
+    Set ``RECKONER_PROFILE_LOAD`` to a variant from :data:`LOAD_VARIANTS`, with
+    ``RECKONER_SYSTEM`` and ``RECKONER_SHARD``. Each step of the load logs the
+    current RSS, the process high-water and Arrow's pool, so the step where
+    memory appears -- and whether Arrow can see it -- is in the logs by name.
+
+    Exists because the memory in question is invisible from outside. NYU
+    Langone's shard 1 peaked near 8 GB with Arrow's pool at 839 MiB, and a
+    watcher sampling the whole slice cannot say which call in it was expensive.
+    """
+    import pyarrow as pa
+
+    from pipeline import mart
+    from reconcile.silver import hospital_shard, open_hospital_silver
+    from storage import resolve
+
+    variant = os.environ.get("RECKONER_PROFILE_LOAD", "").strip()
+    settings = LOAD_VARIANTS.get(variant)
+    if settings is None:
+        log("load_profile_refused", variant=variant, known=sorted(LOAD_VARIANTS))
+        return 1
+    chosen = mart.select(os.environ.get("RECKONER_SYSTEM"))
+    if len(chosen) != 1:
+        log("load_profile_refused", detail="set RECKONER_SYSTEM to exactly one system")
+        return 1
+    spec = chosen[0]
+    shard = os.environ.get("RECKONER_SHARD", "1").strip()
+    pool = pa.default_memory_pool()
+    started = time.monotonic()
+
+    def step(name: str, **fields: object) -> None:
+        log(
+            "load_profile",
+            variant=variant,
+            system=spec.slug,
+            shard=shard,
+            step=name,
+            seconds=round(time.monotonic() - started, 1),
+            rss_mib=proc_status_mib("VmRSS"),
+            hwm_mib=proc_status_mib("VmHWM"),
+            arrow_live_mib=round(pool.bytes_allocated() / 2**20, 1),
+            arrow_max_mib=round(pool.max_memory() / 2**20, 1),
+            arrow_backend=pool.backend_name,
+            **fields,
+        )
+
+    step("process_start")
+    dataset = open_hospital_silver(resolve())
+    step("dataset_open")
+    rates = hospital_shard(
+        dataset,
+        spec.hospital,
+        mart.SHARED_CODE_TYPES,
+        shard,
+        slug=spec.slug if settings["pruned"] else None,
+        readahead=settings["readahead"],
+        on_step=step,
+    )
+    step("done", rates=len(rates))
+    return 0
+
+
 def run_mart() -> int:
     """Stage 2: reconcile silver into gold.
 
@@ -257,6 +344,9 @@ def run_mart() -> int:
     from pipeline.memwatch import MemoryWatch
     from reconcile.gold import Reconciliation
     from storage import publish, resolve
+
+    if os.environ.get("RECKONER_PROFILE_LOAD", "").strip():
+        return run_load_profile()
 
     location = resolve()
 
