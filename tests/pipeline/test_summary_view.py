@@ -222,3 +222,38 @@ class TestProvenanceIsShown:
             "Gold",
         }
         assert set(staleness({}).values()) == {"unknown"}
+
+
+ROWS = [
+    {"system": "NYU Langone", "reason": "zero_rate", "carrier": "", "candidates": "90"},
+    {"system": "Mount Sinai", "reason": "zero_rate", "carrier": "Aetna", "candidates": "5"},
+    {"system": "Mount Sinai", "reason": "zero_rate", "carrier": "", "candidates": "2"},
+]
+
+
+class TestUnattributedRefusals:
+    """A carrier filter drops blank-carrier rows; the page must say whose."""
+
+    def test_it_counts_what_a_carrier_filter_dropped_by_system(self):
+        from pipeline.summary_view import unattributed_excluded
+
+        got = unattributed_excluded(ROWS, system=ALL, carrier="Aetna", code_type=ALL)
+
+        assert got == {"Mount Sinai": 2, "NYU Langone": 90}
+
+    def test_no_filter_drops_nothing(self):
+        from pipeline.summary_view import unattributed_excluded
+
+        assert unattributed_excluded(ROWS, system=ALL, carrier=ALL, code_type=ALL) == {}
+
+    def test_a_system_filter_alone_drops_nothing_unattributed(self):
+        from pipeline.summary_view import unattributed_excluded
+
+        assert unattributed_excluded(ROWS, system="NYU Langone", carrier=ALL, code_type=ALL) == {}
+
+    def test_it_respects_the_system_filter(self):
+        from pipeline.summary_view import unattributed_excluded
+
+        got = unattributed_excluded(ROWS, system="Mount Sinai", carrier="Aetna", code_type=ALL)
+
+        assert got == {"Mount Sinai": 2}

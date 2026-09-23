@@ -65,8 +65,8 @@ system = side.selectbox("Health system", choices["system"])
 carrier = side.selectbox("Carrier", choices["carrier"])
 code_type = side.selectbox("Code type", choices["code_type"])
 side.caption(
-    "Filters apply to every view except refusals, which is counted at system "
-    "grain. The view says so where that happens."
+    "Filters apply to every view. Where a view cannot answer one, or a filter "
+    "drops rows it cannot attribute, the view says so."
 )
 
 selected = {"system": system, "carrier": carrier, "code_type": code_type}
@@ -143,9 +143,17 @@ with refusals:
         )
     else:
         st.caption(
-            "A blank carrier or code type means the comparability layer refused "
-            "the candidate before it could attribute one, which is recorded "
-            "rather than guessed at."
+            "A blank carrier or code type means the refusal was recorded without "
+            "one: either before carrier grain existed, or before the candidate "
+            "could be attributed. It is left blank rather than guessed at."
+        )
+    dropped = view.unattributed_excluded(data.table("refusals"), **selected)
+    if dropped:
+        st.warning(
+            "This filter excludes refusals recorded without a carrier or code type: "
+            + ", ".join(f"{system} ({count:,} candidates)" for system, count in dropped.items())
+            + ". Their gold predates carrier grain, so the totals below are missing them.",
+            icon="⚠",
         )
     st.dataframe(rows, use_container_width=True, hide_index=True)
     if rows:

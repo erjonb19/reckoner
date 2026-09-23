@@ -9,11 +9,12 @@ not -- is a pure function that can be held down by a test.
 the strongest available form of "no ADLS credentials in the app": there is
 nothing to authenticate with because there is nothing to reach.
 
-**Two of the three filters do not apply to refusals.** The comparability layer
-counts a refusal without retaining the refused candidate's carrier or code type,
-so that view answers at system grain only. It says so rather than silently
-ignoring the controls, because a filter that looks applied and is not is the
-failure this project has catalogued ten times.
+**Refusals carry carrier and code type, except where gold predates that.**
+They were counted at system grain until #63. A system whose gold has not been
+rebuilt since still has blank carriers, and a carrier filter drops those rows.
+The page names the systems it dropped rather than showing a smaller total as
+if it were the answer, because a filter that looks applied and is not is the
+failure this project has catalogued more than ten times.
 """
 
 from __future__ import annotations
@@ -179,6 +180,26 @@ def inapplicable_filters(rows: list[dict[str, Any]], **chosen: str) -> list[str]
     return sorted(name for name, value in chosen.items() if value != ALL and name not in columns)
 
 
+def unattributed_excluded(rows: list[dict[str, Any]], **chosen: str) -> dict[str, int]:
+    """Candidates a filter dropped because the filtered column is blank, by system.
+
+    A blank carrier is not "no carrier"; it is a refusal recorded before carrier
+    grain existed. Filtering on Aetna rightly excludes it, and the reader has to
+    be told that the total they are looking at excludes it too.
+    """
+    active = [name for name, value in chosen.items() if value != ALL and name != "system"]
+    if not active:
+        return {}
+    dropped: dict[str, int] = {}
+    for row in rows:
+        if chosen.get("system", ALL) not in (ALL, str(row.get("system"))):
+            continue
+        if any(name in row and not str(row[name] or "").strip() for name in active):
+            key = str(row.get("system"))
+            dropped[key] = dropped.get(key, 0) + int(float(row.get("candidates") or 0))
+    return dict(sorted(dropped.items()))
+
+
 def funnel(dataset: Dataset, *, system: str = ALL) -> list[dict[str, Any]]:
     """The coverage view: rows read, pairs formed, what survived."""
     return apply_filters(dataset.table("coverage"), system=system)
@@ -235,5 +256,6 @@ __all__ = [
     "options",
     "outcomes_chart",
     "staleness",
+    "unattributed_excluded",
     "widest",
 ]

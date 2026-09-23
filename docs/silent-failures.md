@@ -338,6 +338,33 @@ first; it fails with `KeyError: 'carrier'` on the previous reader.
 
 ---
 
+## 13. A filtered render that never filtered
+
+**Symptom.** `test_it_renders_with_every_filter_narrowed` passed from the day
+the page shipped. So did `test_it_states_the_refusals_grain`, which asserted the
+page warned that carrier and code-type filters don't apply to refusals.
+
+**Cause.** The page reads its filters from `st.sidebar.selectbox`. The test's
+fake Streamlit answered `st.selectbox` with the requested choice, but its
+`sidebar` was a generic recorder that answered *every* call with itself. So each
+"narrowed" render passed a recorder object as the carrier. Nothing was
+filtered. The grain warning fired because a recorder is never equal to "All",
+so every filter looked selected and none looked applicable.
+
+**Why it belongs in this file.** Both tests were green for the wrong reason. The
+second one was asserting a limitation that #63 had already removed. It went red
+only when the data changed: refusals gained carrier grain, so the columns
+existed, and the accidental path stopped firing.
+
+**Caught by.** Regenerating `summary/` with carrier-grain refusals. The fake's
+sidebar now routes to the same handler as `st.selectbox`.
+`test_a_selection_actually_reaches_the_page` renders once unfiltered and once
+filtered, and asserts that only the filtered render warns that NYU Langone's
+refusals, which predate carrier grain, were dropped. A fake that ignored
+selections would fail it.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
