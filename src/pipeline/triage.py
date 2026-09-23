@@ -230,7 +230,9 @@ def queue(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "triage_rule": rule.name,
                 "triage_priority": rule.priority,
                 "triage_why": rule.why,
-                "vintage_gap_days": "" if gap is None else gap,
+                # Null, not "": a blank string in a column of ints cannot become
+                # Arrow, and the first rows without a vintage crashed the write.
+                "vintage_gap_days": gap,
             }
         )
     return sorted(

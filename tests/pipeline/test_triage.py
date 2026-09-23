@@ -182,3 +182,23 @@ class TestTheSummary:
         counted = summarise(queue([finding()]))
 
         assert "A1 exists for" in counted[0]["why"]
+
+
+class TestTheQueueBecomesArrow:
+    """Written after the stage crashed on the first rows with no payer vintage.
+
+    Every earlier row had both vintages, so the gap column was always an int
+    and a blank-string fallback never met Arrow. The distribution grain
+    produced the first unknown gap, and the write failed.
+    """
+
+    def test_a_queue_mixing_known_and_unknown_gaps_converts(self):
+        import pyarrow as pa
+
+        rows = queue([finding(), finding(code="99214", payer_vintage="")])
+
+        table = pa.Table.from_pylist(rows)
+
+        gaps = table.column("vintage_gap_days").to_pylist()
+        assert None in gaps
+        assert any(isinstance(g, int) for g in gaps)
