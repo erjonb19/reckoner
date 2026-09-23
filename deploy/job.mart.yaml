@@ -36,11 +36,16 @@ properties:
     triggerType: Schedule
     # 180 minutes, raised from 120 on 2026-09-23. The seven systems sum to about
     # 87 minutes run one at a time; the margin is for a slow month, not a
-    # prediction. With replicaRetryLimit 1 the worst case is two full attempts,
-    # 360 minutes at 4 vCPU: about 86,000 vCPU-seconds, half a month's free grant.
+    # prediction. Worst case is one full attempt, 180 minutes at 4 vCPU: about
+    # 43,000 vCPU-seconds, a quarter of a month's free grant.
     # Applied to the live job by ARM PATCH of the configuration only.
     replicaTimeout: 10800
-    replicaRetryLimit: 1
+    # No retries, since 2026-09-23. A retry runs the same code on the same data,
+    # so it fails the same way: every retry this job has made (OOMs, the
+    # verification bugs of #85 and #87) repeated its first attempt's failure,
+    # and a full-length one would spend another quarter of the month's grant to
+    # learn nothing. A failed run is visible in the workbook and gets fixed.
+    replicaRetryLimit: 0
     scheduleTriggerConfig:
       cronExpression: "0 8 1 * *"
       parallelism: 1
