@@ -80,6 +80,56 @@ class TestItRepublishesRatherThanRecomputes:
         assert summary.tables["exemplars"] == []
 
 
+class TestPartitionsWrittenByDifferentImages:
+    """Gold is written a system at a time, by whichever image was current.
+
+    Written after the report dropped the refusals' carrier column for every
+    system: two systems rebuilt after it existed had it, four built before did
+    not, and the dataset reader took its schema from the first file it opened.
+    """
+
+    def write(self, root: Path, slug: str, rows: list[dict[str, object]]) -> None:
+        target = root / "gold" / "refusals" / f"hospital_slug={slug}"
+        target.mkdir(parents=True)
+        pq.write_table(pa.Table.from_pylist(rows), target / "part-0.parquet")
+
+    def test_a_column_one_partition_adds_survives_the_read(self, tmp_path):
+        # "a-..." sorts first, so it is the file a naive reader takes its schema from.
+        self.write(tmp_path, "a-old", [{"system": "Old", "reason": "zero_rate", "candidates": 5}])
+        self.write(
+            tmp_path,
+            "b-new",
+            [
+                {
+                    "system": "New",
+                    "reason": "zero_rate",
+                    "carrier": "Aetna",
+                    "code_type": "CPT",
+                    "candidates": 3,
+                }
+            ],
+        )
+
+        rows = {r["system"]: r for r in build(storage.local(tmp_path)).tables["refusals"]}
+
+        assert rows["New"]["carrier"] == "Aetna"
+        assert rows["New"]["code_type"] == "CPT"
+        assert rows["Old"]["carrier"] is None, "unknown, not an empty string that reads as none"
+        assert rows["Old"]["hospital_slug"] == "a-old"
+
+    def test_the_totals_are_unchanged_by_the_union(self, tmp_path):
+        self.write(tmp_path, "a-old", [{"system": "Old", "reason": "zero_rate", "candidates": 5}])
+        self.write(
+            tmp_path,
+            "b-new",
+            [{"system": "New", "reason": "zero_rate", "carrier": "X", "candidates": 3}],
+        )
+
+        rows = build(storage.local(tmp_path)).tables["refusals"]
+
+        assert sum(r["candidates"] for r in rows) == 8
+
+
 class TestProvenance:
     def test_the_phi_caveat_is_always_present(self, tmp_path):
         summary = build(storage.local(gold(tmp_path)))
