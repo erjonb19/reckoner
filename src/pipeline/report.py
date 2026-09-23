@@ -29,6 +29,7 @@ from typing import Any
 
 import pyarrow.dataset as ds
 
+from pipeline import vintage
 from pipeline.mart import GOLD_ROOT, RECONCILABLE, TABLES
 from storage import Location
 
@@ -129,6 +130,10 @@ def metadata(
 
 def build(lake: Location, *, build_sha: str = "", caveats: tuple[str, ...] = ()) -> Summary:
     tables = read_gold(lake)
+    # Derived here rather than in the mart: it is a reading of the pairs that
+    # formed, not a new measurement, so it costs one pass over a table already
+    # in hand and cannot disagree with the rows it describes.
+    tables["vintage_alignment"] = vintage.alignment(tables.get("exemplars", []))
     return Summary(
         tables=tables, metadata=metadata(lake, tables, build_sha=build_sha, caveats=caveats)
     )
@@ -284,6 +289,33 @@ def markdown(summary: Summary) -> str:
             f"| `{row['code']}` | ${row['hospital_rate']:,.0f} | ${row['payer_rate']:,.0f} "
             f"| {row['relative_difference']:+.0%}{flag} |"
         )
+
+    aligned = summary.tables.get("vintage_alignment", [])
+    if aligned:
+        headline = vintage.summarise(summary.tables.get("exemplars", []))
+        lines += [
+            "",
+            "## How far apart in time the two sides are",
+            "",
+            "Vintage mismatch is structural: hospital files update at least annually,",
+            "payer files monthly. A variance may be a timing artifact rather than a",
+            f"disagreement. Pairs more than {vintage.MAX_VINTAGE_DAYS} days apart are refused",
+            "before they reach here, so `beyond limit` should read zero — a non-zero",
+            "count means something got through that should not have.",
+            "",
+            f"Across all pairs: median **{headline['median_gap_days']} days**, "
+            f"p90 {headline['p90_gap_days']}, max {headline['max_gap_days']}, "
+            f"{headline['unknown_vintage_pairs']:,} with a vintage missing on one side.",
+            "",
+            "| system | carrier | pairs | median | p90 | max | unknown | beyond limit |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
+        for row in sorted(aligned, key=lambda r: -r["pairs"])[:20]:
+            lines.append(
+                f"| {row['system']} | {row['carrier']} | {_fmt(row['pairs'])} "
+                f"| {row['median_gap_days']} | {row['p90_gap_days']} | {row['max_gap_days']} "
+                f"| {_fmt(row['unknown_vintage_pairs'])} | {_fmt(row['beyond_limit'])} |"
+            )
 
     lines += [
         "",

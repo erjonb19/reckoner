@@ -93,11 +93,19 @@ class TestProvenance:
         assert summary.metadata["caveats"] == [PROVENANCE_CAVEAT, "NYU Langone is local."]
 
     def test_it_records_which_systems_arrived_against_which_were_expected(self, tmp_path):
-        """One system present out of four is exactly the state worth seeing."""
+        """One system present out of many is exactly the state worth seeing.
+
+        Asserted against RECONCILABLE rather than a literal count: the set grows
+        when hospital files arrive, and a test that had to be edited each time
+        would be testing the edit rather than the behaviour.
+        """
+        from pipeline.mart import RECONCILABLE
+
         summary = build(storage.local(gold(tmp_path)))
 
         assert summary.metadata["systems"] == ["Mount Sinai"]
-        assert len(summary.metadata["systems_expected"]) == 4
+        assert len(summary.metadata["systems_expected"]) == len(RECONCILABLE)
+        assert len(summary.metadata["systems"]) < len(summary.metadata["systems_expected"])
 
     def test_the_assumption_is_recorded_per_system(self, tmp_path):
         summary = build(storage.local(gold(tmp_path)))
