@@ -546,7 +546,7 @@ def run_triage() -> int:
         return 1
 
     ranked = triage.queue(rows)
-    counted = triage.summarise(ranked)
+    counted = triage.summarise_by_system(ranked)
     # Every system gold covers, not only those with findings: a system whose
     # residual is now empty must lose its old queue, not keep it.
     covered = location.child(*mart.GOLD_ROOT, "coverage")

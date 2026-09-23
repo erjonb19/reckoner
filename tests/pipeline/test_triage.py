@@ -17,6 +17,7 @@ from pipeline.triage import (
     classify,
     queue,
     summarise,
+    summarise_by_system,
     vintage_gap_days,
 )
 
@@ -202,3 +203,39 @@ class TestTheQueueBecomesArrow:
         gaps = table.column("vintage_gap_days").to_pylist()
         assert None in gaps
         assert any(isinstance(g, int) for g in gaps)
+
+
+class TestTheSummaryIsPerSystem:
+    """Written after the summary landed outside every gold partition."""
+
+    def test_every_row_names_its_system(self):
+        rows = queue(
+            [
+                finding(hospital_slug="mount-sinai-health-system", system="Mount Sinai"),
+                finding(code="99214", hospital_slug="white-plains-hospital", system="White Plains"),
+            ]
+        )
+
+        got = summarise_by_system(rows)
+
+        assert {r["hospital_slug"] for r in got} == {
+            "mount-sinai-health-system",
+            "white-plains-hospital",
+        }
+        assert all(r["system"] for r in got)
+
+    def test_per_system_counts_sum_to_the_pooled_ones(self):
+        rows = queue(
+            [
+                finding(hospital_slug="a", system="A"),
+                finding(code="2", hospital_slug="b", system="B"),
+                finding(code="3", hospital_slug="b", system="B"),
+            ]
+        )
+
+        pooled = {r["triage_rule"]: r["findings"] for r in summarise(rows)}
+        split: dict[str, int] = {}
+        for r in summarise_by_system(rows):
+            split[r["triage_rule"]] = split.get(r["triage_rule"], 0) + r["findings"]
+
+        assert split == pooled

@@ -265,6 +265,26 @@ def summarise(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def summarise_by_system(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """:func:`summarise`, once per system, each row carrying its system.
+
+    Gold is partitioned by ``hospital_slug``. A summary with no slug landed at
+    the table's root, outside every partition, where the manifest's per-system
+    verification could never count it -- and the triage stage failed its own
+    check on the first run after that check was added.
+    """
+    by_system: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (str(row.get("hospital_slug") or ""), str(row.get("system") or ""))
+        by_system.setdefault(key, []).append(row)
+    out: list[dict[str, Any]] = []
+    for (slug, system), members in sorted(by_system.items()):
+        out.extend(
+            {**summary, "hospital_slug": slug, "system": system} for summary in summarise(members)
+        )
+    return out
+
+
 __all__ = [
     "IMPLAUSIBLE_RATIO",
     "MARGINAL_RELATIVE_DIFFERENCE",
@@ -276,5 +296,6 @@ __all__ = [
     "queue",
     "ratio_clusters",
     "summarise",
+    "summarise_by_system",
     "vintage_gap_days",
 ]
