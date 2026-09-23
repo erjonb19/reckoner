@@ -26,6 +26,7 @@ batch at a time and the batches are dropped.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pyarrow.compute as pc
@@ -125,22 +126,48 @@ def payer_files_from_silver(dataset: ds.Dataset) -> list[PayerFile]:
     return files
 
 
+#: Called at each step of a hospital shard load with the step's name and what it
+#: produced. The mart passes nothing; the load profiler passes a function that
+#: reads memory, which is how the step holding the memory gets a name.
+LoadHook = Callable[..., None]
+
+
 def hospital_shard(
     dataset: ds.Dataset,
     hospital: str,
     code_types: tuple[str, ...],
     shard: str = "",
+    *,
+    slug: str | None = None,
+    readahead: bool = True,
+    on_step: LoadHook | None = None,
 ) -> list[ComparableRate]:
     """Aggregated hospital rates for one system and one code shard.
 
     Sharding on the leading character of the code is the memory bound, not a
     narrowing of the question: the join key contains the code, so no pair
     straddles a shard and the totals stay exact.
+
+    ``slug`` adds the ``hospital_slug`` partition to the filter. The rows are
+    the same -- a system's name and its slug identify the same partition --
+    but a filter on the ``hospital`` column cannot skip a directory, so without
+    it every shard load reads every system's files in silver and discards the
+    rest. ``readahead=False`` cuts the scanner's fragment and batch readahead to
+    the minimum of one. Both exist to be measured before either is made the default.
     """
     where = (ds.field("hospital") == hospital) & (ds.field("code_type").isin(list(code_types)))
+    if slug:
+        where = where & (ds.field("hospital_slug") == slug)
     if shard:
         where = where & pc.starts_with(ds.field("code"), shard)
-    scanned = dataset.to_table(columns=list(NEEDED_COLUMNS), filter=where)
+    # One, not zero: pyarrow 25's scanner deadlocks with a readahead of 0 --
+    # to_table never returns -- which a test found before a cloud run could
+    # have hung on it for the job's full timeout.
+    options: dict[str, int] = {} if readahead else {"fragment_readahead": 1, "batch_readahead": 1}
+    step = on_step or (lambda *_a, **_k: None)
+    step("start", files=len(dataset.files))
+    scanned = dataset.to_table(columns=list(NEEDED_COLUMNS), filter=where, **options)
+    step("scanned", rows=scanned.num_rows, table_mib=round(scanned.nbytes / 2**20, 1))
     if scanned.num_rows == 0:
         return []
     table = scanned.group_by(_HOSPITAL_KEYS).aggregate(
@@ -150,8 +177,12 @@ def hospital_shard(
             ("methodology", "min"),
         ]
     )
+    step("aggregated", rows=table.num_rows, table_mib=round(table.nbytes / 2**20, 1))
     del scanned
-    return hosp_to_rates(table)
+    step("scan_released")
+    rates = hosp_to_rates(table)
+    step("converted", rates=len(rates))
+    return rates
 
 
 def payer_shard(
