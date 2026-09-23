@@ -34,11 +34,12 @@ opposite of what a labelled set is for.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from agents.plan_resolution import PlanVerdict, resolve_plan
+from agents.plan_resolution import PlanMatch, PlanVerdict, resolve_plan
 
 #: Separates the hospital plan from the payer network inside a label key.
 KEY_SEPARATOR = " || "
@@ -146,7 +147,9 @@ class PlanScore:
 
 
 def score_plan_matcher(
-    eval_set: PlanEvalSet, name: str = "rule-based"
+    eval_set: PlanEvalSet,
+    name: str = "rule-based",
+    resolver: Callable[[str | None, str | None], PlanMatch] = resolve_plan,
 ) -> tuple[PlanScore, list[tuple[PlanLabel, str]]]:
     """Score the matcher and return the disagreements alongside the numbers.
 
@@ -164,7 +167,7 @@ def score_plan_matcher(
     misses: list[tuple[PlanLabel, str]] = []
 
     for label in eval_set.labels:
-        got = resolve_plan(label.plan_raw, label.network).verdict
+        got = resolver(label.plan_raw, label.network).verdict
         expected_match = label.expected == str(PlanVerdict.MATCH)
         got_match = got is PlanVerdict.MATCH
 
