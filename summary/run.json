@@ -1,21 +1,26 @@
 {
- "built_at": "2026-09-18T02:29:58+00:00",
- "build_sha": "aa5c3defb7b16afdf03c99a0e20cd50ed9e1df83",
+ "built_at": "2026-09-23T04:12:26+00:00",
+ "build_sha": "afa2904984f48e660c22bd8c23eae5aa9219d7e8",
  "bronze_ingest_date": "2026-09-13",
- "silver_hospital_published_at": "2026-09-15T03:50:29+00:00",
+ "silver_hospital_published_at": "2026-09-23T03:48:09+00:00",
  "silver_payer_published_at": "2026-09-15T12:15:37+00:00",
- "gold_published_at": "2026-09-18T01:00:18+00:00",
+ "gold_published_at": "2026-09-23T04:08:17+00:00",
  "systems": [
   "Mount Sinai",
   "NYP",
   "Northwell",
-  "NYU Langone"
+  "NYU Langone",
+  "WMC",
+  "White Plains"
  ],
  "systems_expected": [
   "Mount Sinai",
   "Northwell",
   "NYU Langone",
-  "NYP"
+  "NYP",
+  "White Plains",
+  "WMC",
+  "Montefiore"
  ],
  "code_types": [
   "CPT",
@@ -27,17 +32,22 @@
   "mount-sinai-health-system",
   "newyork-presbyterian",
   "northwell-health",
-  "nyu-langone-health"
+  "nyu-langone-health",
+  "westchester-medical-center-health-network",
+  "white-plains-hospital"
  ],
  "caveats": [
   "All summary data derives from public hospital (45 CFR 180) and payer (Transparency in Coverage) price transparency files. No PHI.",
   "Gold for NYU Langone comes from a local run; Mount Sinai, Northwell and NewYork-Presbyterian come from cloud executions of reckoner-mart. NYU Langone exceeds the 8 GiB Consumption ceiling; tracked in issue #47."
  ],
  "rows_per_table": {
-  "coverage": 4,
-  "outcomes": 125,
-  "magnitude": 14,
-  "exemplars": 200,
-  "refusals": 22
+  "coverage": 6,
+  "outcomes": 164,
+  "magnitude": 15,
+  "exemplars": 220,
+  "refusals": 152,
+  "triage_queue": 200,
+  "triage_summary": 3,
+  "vintage_alignment": 9
  }
 }
