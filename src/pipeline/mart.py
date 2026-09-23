@@ -88,6 +88,17 @@ RECONCILABLE = (
     SystemSpec("Northwell Health", "Northwell", "northwell-health"),
     SystemSpec("NYU Langone Health", "NYU Langone", "nyu-langone-health"),
     SystemSpec("NewYork-Presbyterian", "NYP", "newyork-presbyterian"),
+    # Added once the hospital files arrived. Both sites block automated access,
+    # so the MRFs were fetched by hand and ingested from data/Inbox -- see
+    # docs/scope.md. Montefiore was previously out of scope and is in now with
+    # permission.
+    SystemSpec("White Plains Hospital", "White Plains", "white-plains-hospital"),
+    SystemSpec(
+        "Westchester Medical Center Health Network",
+        "WMC",
+        "westchester-medical-center-health-network",
+    ),
+    SystemSpec("Montefiore Health System", "Montefiore", "montefiore-health-system"),
 )
 
 #: One table per grain, each partitioned by ``hospital_slug``. Names match the
