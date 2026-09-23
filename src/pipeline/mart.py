@@ -378,7 +378,11 @@ def tables(runs: list[Reconciliation]) -> dict[str, list[dict[str, Any]]]:
 
 
 def write(
-    lake: Location, built: dict[str, list[dict[str, Any]]], *, compression: str = "zstd"
+    lake: Location,
+    built: dict[str, list[dict[str, Any]]],
+    *,
+    systems: set[str] | None = None,
+    compression: str = "zstd",
 ) -> dict[str, int]:
     """Write each table to ``gold/<table>/``, partitioned by system.
 
@@ -396,6 +400,16 @@ def write(
             continue
         records = built[name]
         target = lake.child(*GOLD_ROOT, name)
+        # A system this write owns but that has no rows in this table any more
+        # keeps its previous partition unless it is removed here: an empty
+        # write replaces nothing. NYP and WMC hit this when their residual went
+        # to zero -- last run's exemplars stayed in gold, and verification
+        # (correctly) refused them.
+        present = {str(r.get("hospital_slug")) for r in records}
+        for slug in sorted((systems or set()) - present):
+            stale = target.child(f"hospital_slug={slug}")
+            if stale.exists():
+                stale.filesystem.delete_dir(stale.root)
         if not records:
             written[name] = 0
             continue

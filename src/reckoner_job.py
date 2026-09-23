@@ -440,7 +440,7 @@ def run_mart() -> int:
         return 1
 
     built = mart.tables(runs)
-    written = mart.write(location, built)
+    written = mart.write(location, built, systems={run.hospital_slug for run in runs})
     log("mart_written", systems=[run.hospital_slug for run in runs], **written)
 
     # Same manifest-and-verify shape as the two silver layers, so one stage-1
@@ -547,12 +547,24 @@ def run_triage() -> int:
 
     ranked = triage.queue(rows)
     counted = triage.summarise(ranked)
-    written = mart.write(location, {"triage_queue": ranked, "triage_summary": counted})
+    # Every system gold covers, not only those with findings: a system whose
+    # residual is now empty must lose its old queue, not keep it.
+    covered = location.child(*mart.GOLD_ROOT, "coverage")
+    systems = {
+        str(row.get("hospital_slug"))
+        for row in ds.dataset(
+            covered.root, filesystem=covered.filesystem, format="parquet", partitioning="hive"
+        )
+        .to_table(columns=["hospital_slug"])
+        .to_pylist()
+    }
+    written = mart.write(
+        location, {"triage_queue": ranked, "triage_summary": counted}, systems=systems
+    )
     # Triage writes into gold, so it rewrites gold's manifest -- otherwise the
     # next stage-1 check finds files no manifest describes and fails on them.
     from storage import publish
 
-    systems = {str(row.get("hospital_slug")) for row in ranked if row.get("hospital_slug")}
     manifest = mart.gold_manifest(location, written, systems)
     publish.write_manifest(location, manifest, path=mart.GOLD_MANIFEST)
     log(
