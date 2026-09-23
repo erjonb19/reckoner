@@ -12,6 +12,13 @@ misalignment between the two as a barrier to price transparency.
 This is a personal project — deployed, scheduled, monitored and tested, but
 serving no users and supporting no one's decisions.
 
+> **What changed on September 23, 2026.** The unit of every published count moved
+> from payer-rate pairs to hospital rates. Billing class is now part of the join
+> key ([ADR 0005](docs/adr/0005-billing-class-in-the-join-key.md)), and each hospital
+> rate is compared once against the insurer's range of rates for the same service
+> ([ADR 0006](docs/adr/0006-compare-against-the-carrier-distribution.md)). Numbers
+> from before and after that date are not comparable.
+
 ---
 
 ## Start here
@@ -160,7 +167,7 @@ groups. An exact median replaced it (#83), and the same shard load fell from
 
 The monthly schedule is back (`0 8 1 * *`). **One thing is untested:** the
 scheduled run does all seven systems in one execution. Per system they sum to
-about 87 minutes against a 120-minute timeout, and memory carried from one
+about 87 minutes against a 180-minute timeout, and memory carried from one
 system to the next hasn't been measured. The first real run is 1 October. If it
 fails, gold is untouched, because the mart writes only at the end, and the
 workbook's run history shows it.
