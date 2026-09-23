@@ -20,11 +20,6 @@ dependencies = [
     # ManagedIdentityCredential. An older pyarrow that does not accept it would
     # fall back to a credential chain that cannot authenticate in a container.
     "pyarrow>=25.0",
-    # reconcile.aggregate computes exact per-group medians with one numpy sort.
-    # It replaced approximate_median, whose per-group t-digests OOM-killed the
-    # mart. It was installed here only transitively, which CI and the image
-    # would not have, so the dependency is declared rather than assumed.
-    "numpy>=1.26",
     "openpyxl>=3.1",
     "PyYAML>=6.0",
 ]
