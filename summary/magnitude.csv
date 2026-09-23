@@ -1,16 +1,18 @@
 system,carrier,code_type,residual_pairs,median_relative_difference,p90_relative_difference,median_abs_difference_usd,implausible_pairs,hospital_slug
-Mount Sinai,Anthem / Empire BCBS,HCPCS,50035,0.779675,1.353033,2340.5,0,mount-sinai-health-system
-Mount Sinai,Anthem / Empire BCBS,MS-DRG,6538,0.3518,0.536428,11008.37,0,mount-sinai-health-system
-Mount Sinai,Cigna,HCPCS,693,0.271192,0.283012,77.04,0,mount-sinai-health-system
-Mount Sinai,Cigna,MS-DRG,2916,0.356912,0.410521,9992.36,0,mount-sinai-health-system
-NYU Langone,Aetna,CPT,59414,0.58042,2.2223,3969.0,0,nyu-langone-health
-NYU Langone,Aetna,HCPCS,760,0.534752,2.27083,3937.0,0,nyu-langone-health
-NYU Langone,Cigna,CPT,568,1.251402,5.792354,1644.89,0,nyu-langone-health
-NYU Langone,UnitedHealthcare,CPT,25112,0.237767,0.631344,1733.56,0,nyu-langone-health
-NYU Langone,UnitedHealthcare,HCPCS,320,0.239268,1.244819,3526.12,0,nyu-langone-health
-Northwell,Aetna,CPT,74850,0.588362,2.938151,1960.0,0,northwell-health
-Northwell,Aetna,MS-DRG,14815,0.326219,0.710888,13042.0,0,northwell-health
-Northwell,Cigna,CPT,4978,3.02285,5.962365,228.36,0,northwell-health
-Northwell,Cigna,MS-DRG,3879,0.25366,0.82508,14970.29,0,northwell-health
+Montefiore,Cigna,CPT,856,0.563114,1.952586,215.97,0,montefiore-health-system
+Montefiore,Cigna,MS-DRG,2904,0.37352,0.459874,17417.98,0,montefiore-health-system
+Mount Sinai,Anthem / Empire BCBS,HCPCS,44651,0.852286,1.342853,2487.0,0,mount-sinai-health-system
+Mount Sinai,Anthem / Empire BCBS,MS-DRG,3717,0.548786,0.760317,14871.46,0,mount-sinai-health-system
+Mount Sinai,Cigna,HCPCS,2624,0.295193,0.307245,70.22,0,mount-sinai-health-system
+Mount Sinai,Cigna,MS-DRG,3645,0.282282,0.699362,10331.7,0,mount-sinai-health-system
+NYU Langone,Aetna,CPT,19768,0.559533,1.701629,3937.0,0,nyu-langone-health
+NYU Langone,Aetna,HCPCS,448,0.516392,2.418702,3937.0,0,nyu-langone-health
+NYU Langone,Cigna,CPT,828,1.125701,5.413134,1479.86,0,nyu-langone-health
+NYU Langone,UnitedHealthcare,CPT,28836,1.119994,1.459527,2853.88,0,nyu-langone-health
+NYU Langone,UnitedHealthcare,HCPCS,420,1.432168,1.460135,9212.13,0,nyu-langone-health
+Northwell,Aetna,CPT,15512,0.482624,3.196979,239.83,0,northwell-health
+Northwell,Aetna,MS-DRG,19203,0.245765,0.643153,12232.0,0,northwell-health
+Northwell,Cigna,CPT,5155,2.9025,5.660868,198.0,0,northwell-health
+Northwell,Cigna,MS-DRG,4317,0.300503,1.146122,12934.62,0,northwell-health
 Northwell,UnitedHealthcare,CPT,17982,0.147256,0.335033,820.0,0,northwell-health
-White Plains,Cigna,MS-DRG,20,0.160621,0.248031,7602.24,0,white-plains-hospital
+White Plains,Cigna,MS-DRG,212,0.163183,0.250401,8293.04,0,white-plains-hospital

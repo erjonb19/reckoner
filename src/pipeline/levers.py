@@ -11,14 +11,13 @@ Three things about the arithmetic, because each would mislead if left unsaid:
 * **Lift is an upper bound.** It assumes every refused candidate of a reason
   becomes a pair. Nothing resolves fully, and feasibility is where that is
   discounted -- as a stated judgement, not a measurement.
-* **Candidates are counted after the carrier-level fan-out** (#70). A hospital
-  rate meeting 290 plan-level payer rates is 290 candidates. Every reason is
-  inflated the same way, so the reasons compare fairly with each other; none of
-  them compares to a count of distinct rates.
-* **``no payer-side counterpart`` is counted once per hospital rate**, not per
-  comparison -- there was nothing to compare against. Resolving one would
-  create one or more comparisons, so its lift is a floor on the numerator while
-  the denominator grows with it.
+* **Every count is a hospital rate** (ADR 0006). Each hospital rate is exactly
+  one outcome -- compared against the carrier's distribution, or refused once
+  for one reason -- so the reasons, the pairs and the denominator share a unit.
+  Before ADR 0006 candidates were counted after a carrier-level fan-out, and
+  ``no payer-side counterpart`` was the only reason counted per hospital rate.
+* **Billing-class refusals are a definition, not a lever** (ADR 0005). They
+  are reported, and the like-class share leaves them out of its denominator.
 
 Levers that cannot move the share are reported with a lift of zero rather than
 left out. Plan matching is the important one: an unresolved plan is an
@@ -58,11 +57,11 @@ class Lever:
 #: Each refusal reason the comparability layer can emit, and what would fix it.
 BY_REASON: dict[str, Lever] = {
     "different_billing_class": Lever(
-        "billing class",
-        "low",
-        "mostly a professional rate meeting an institutional one, which are different "
-        "services. Only the share where the hospital left billing class blank and the "
-        "mart assumed facility is recoverable, and gold does not record that share",
+        "none (ADR 0005)",
+        "none",
+        "the hospital rate's only counterparts are the other billing class -- a facility "
+        "charge against a professional fee. The join keys on billing class, so these are "
+        "never compared, and the like-class share leaves them out of its denominator",
     ),
     "billing_class_unstated": Lever(
         "billing class",
@@ -332,6 +331,32 @@ def _pct(value: float) -> str:
     return f"{value:.2%}"
 
 
+def _setting_and_vintage(d: Decomposition) -> list[str]:
+    """What the data says about the two levers that were once always zero.
+
+    Computed, not asserted: the first version of this document stated neither
+    had refused anything, and the next rebuild refused 0.23% for vintage.
+    """
+    counts = {
+        reason: sum(_int(r["candidates"]) for r in d.refusals if r["reason"] == reason)
+        for reason in ("vintage_too_far_apart", "different_setting")
+    }
+    lines = [
+        f"**Vintage tolerance** covers {counts['vintage_too_far_apart']:,} hospital rates "
+        f"refused as `vintage_too_far_apart` "
+        f"({_pct(counts['vintage_too_far_apart'] / d.candidates if d.candidates else 0.0)}).",
+    ]
+    if counts["different_setting"]:
+        lines.append(f"**Setting** refused {counts['different_setting']:,} as `different_setting`.")
+    else:
+        lines += [
+            "**Setting** refused nothing as `different_setting`: setting is part of the",
+            "join key, so a setting mismatch surfaces as `no payer-side counterpart`",
+            "instead, inside the in-corpus row below.",
+        ]
+    return lines
+
+
 def markdown(d: Decomposition, *, generated_from: str = "summary/") -> str:
     share = d.pairs / d.candidates if d.candidates else 0.0
     unattributed = sum(_int(r["candidates"]) for r in d.refusals if not r.get("carrier"))
@@ -350,13 +375,18 @@ def markdown(d: Decomposition, *, generated_from: str = "summary/") -> str:
         "",
         "- **Lift is an upper bound**: every refused candidate of a reason becoming a pair.",
         "  Feasibility discounts it, and feasibility is a stated judgement, not a measurement.",
-        "- **Candidates are counted after the carrier-level fan-out (#70).** A hospital rate",
-        "  meeting 290 plan-level payer rates is 290 candidates, for every reason alike.",
-        "- **`no payer-side counterpart` is counted per hospital rate**, not per comparison.",
-        "  Resolving one creates one or more comparisons, so its lift is a floor.",
-        f"- {unattributed:,} candidates carry no carrier ({', '.join(stale)}): gold written",
-        "  before #63 and not yet rebuilt. They are shown as `(not attributed)`, never",
-        "  guessed.",
+        "- **Every count is a hospital rate** (ADR 0006): each is compared once against",
+        "  the carrier's distribution, or refused once for one reason.",
+        "- **Billing-class refusals are a definition** (ADR 0005), shown as `none` below.",
+        "  The like-class share in the per-system table leaves them out.",
+    ]
+    if unattributed:
+        lines += [
+            f"- {unattributed:,} candidates carry no carrier ({', '.join(stale)}): gold written",
+            "  before #63 and not yet rebuilt. They are shown as `(not attributed)`, never",
+            "  guessed.",
+        ]
+    lines += [
         "",
         "## Levers, ranked by lift x feasibility",
         "",
@@ -373,16 +403,12 @@ def markdown(d: Decomposition, *, generated_from: str = "summary/") -> str:
         "Weights: high 0.8, medium 0.5, low 0.2, none 0.",
         "",
         "**Plan matching lifts comparable share by zero, by construction.** An unresolved",
-        "plan is an explanation on a pair that formed, never a refusal: the join keys on",
-        f"carrier, not plan. What it moves is the {_pct(d.plan_unresolved_share())} of pairs",
-        "whose only explanation is `plan_unresolved`, making them explained or unexplained.",
-        "Under #70's option (b), with plan in the join key, it would also cut the fan-out",
-        "and shrink the denominator. That is a change of definition, measured separately.",
+        "plan is an explanation on a comparison that formed, never a refusal. What it",
+        f"moves is the {_pct(d.plan_unresolved_share())} of comparisons whose only",
+        "explanation is `plan_unresolved`: the hospital's plan matched none of the",
+        "networks in the carrier's distribution (ADR 0006).",
         "",
-        "**Vintage tolerance and setting normalization lift it by zero here** because no",
-        "candidate was refused as `vintage_too_far_apart` or `different_setting`. Setting",
-        "is part of the join key, so a setting mismatch surfaces as `no payer-side",
-        "counterpart` instead, inside the in-corpus row below.",
+        *_setting_and_vintage(d),
         "",
         "## Every reason",
         "",
@@ -405,8 +431,8 @@ def markdown(d: Decomposition, *, generated_from: str = "summary/") -> str:
         "",
         "## Per system",
         "",
-        "| system | candidates | share now | expected with levers | billing-class refusals "
-        "| share if the join keyed on billing class |",
+        "| system | candidates | raw share | expected with levers | billing-class refusals "
+        "| like-class share |",
         "|---|---:|---:|---:|---:|---:|",
     ]
     for row in d.per_system():
@@ -424,14 +450,11 @@ def markdown(d: Decomposition, *, generated_from: str = "summary/") -> str:
         "*Expected* weights each refused candidate by its lever's feasibility. It is a",
         "judgement dressed as a number, and is here only so the levers can be ranked.",
         "",
-        f"**The billing-class column is the finding.** {_pct(billing_total / d.candidates)} of",
-        "every candidate is a professional rate meeting an institutional one, or the reverse.",
-        "The join keys on facility, code, carrier and setting but not billing class, so it",
-        "builds these comparisons and then refuses them. That is the same shape as #70: the",
-        "denominator is inflated by construction. Keyed on billing class, the pooled share",
-        f"would be {_pct(keyed)} rather than {_pct(d.pairs / d.candidates)}, with **no pair",
-        "gained**. So billing class tops the lever table by size, but most of it isn't",
-        "recoverable. It is a definition to decide, beside #70, not a fix to build.",
+        f"**Billing class.** {_pct(billing_total / d.candidates)} of hospital rates found",
+        "counterparts only in the other billing class. ADR 0005 keys the join on billing",
+        "class, so they are refused once and never compared. The pooled like-class share",
+        f"is {_pct(keyed)}; the raw share is {_pct(d.pairs / d.candidates)}. Both are reported,",
+        "side by side, for this release.",
         "",
         "## By system and carrier, for the reasons that matter",
         "",

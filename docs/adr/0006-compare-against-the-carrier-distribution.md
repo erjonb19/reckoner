@@ -12,7 +12,7 @@ the carrier published for that code at that facility. On one NYU Langone slice,
 rates on each side. One disagreement was counted once per plan.
 
 Option (b) was to put the matched plan in the key. `docs/plan-matching.md`
-measured what the plan strings allow: **14.7% of hospital rate rows** can be
+measured what the plan strings allow: **15.0% of hospital rate rows** can be
 matched to a network by name. UnitedHealthcare stays 82% unmatchable, because
 hospitals name employer groups, not networks. Option (b) would leave most rates
 without a counterpart.

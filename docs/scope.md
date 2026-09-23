@@ -1,38 +1,36 @@
 # Reconciliation scope
 
-The reconciliation covers **six health systems**, with a seventh ingested and
-waiting on a cloud run. That is a design boundary, not a gap, and this file
-exists so it is not mistaken for one later.
+The reconciliation covers **seven health systems**: every system that appears in
+both the hospital lake and the payer target list. That is a design boundary, not
+a gap, and this file exists so it is not mistaken for one later.
 
-## The six that reconcile today
+## The seven that reconcile
 
-Ordered by comparable share, which is the number worth reading.
+Each hospital rate is compared once against the carrier's distribution of rates
+for the same service (ADR 0006), and only against rates of its own billing class
+(ADR 0005). Ordered by raw share:
 
-| system | hospital lake | payer system | pairs | comparable share |
-|---|---|---|---:|---:|
-| WMC | Westchester Medical Center Health Network | WMC | 256,608 | 66.30% |
-| White Plains | White Plains Hospital | White Plains | 297,188 | 26.90% |
-| Mount Sinai | Mount Sinai Health System | Mount Sinai | 3,370,446 | 9.30% |
-| Northwell | Northwell Health | Northwell | 4,552,693 | 6.23% |
-| NYU Langone | NYU Langone Health | NYU Langone | 6,539,353 | 3.88% |
-| NewYork-Presbyterian | NewYork-Presbyterian | NYP | 106,852 | 1.50% |
+| system | hospital rates | compared | raw share | like-class share | residual | offsets |
+|---|---:|---:|---:|---:|---:|---:|
+| Mount Sinai | 1,348,398 | 625,523 | 46.39% | 47.67% | 54,637 | 29 |
+| WMC | 170,710 | 58,238 | 34.12% | 34.12% | 0 | 77 |
+| NYU Langone | 9,300,114 | 2,000,760 | 21.51% | 26.02% | 50,300 | 88 |
+| White Plains | 350,530 | 66,542 | 18.98% | 19.75% | 212 | 10 |
+| Montefiore | 2,597,798 | 427,064 | 16.44% | 17.17% | 3,760 | 3 |
+| Northwell | 3,001,740 | 426,316 | 14.20% | 16.89% | 62,169 | 16 |
+| NewYork-Presbyterian | 504,350 | 18,387 | 3.65% | 3.83% | 0 | 1 |
+| **all seven** | **17,273,640** | **3,622,830** | **20.97%** | **24.15%** | **171,078** | |
 
 Empire does not reach NewYork-Presbyterian, which is why that system sees five
 carriers rather than six.
 
-**WMC and White Plains reconcile far better than the systems that came first**,
-and the reason is worth stating rather than celebrating: both publish a smaller,
-tidier file. A high comparable share means few candidates were refused, not that
-more was learned — WMC's 256,608 pairs are fewer than Mount Sinai's refusals
-alone. Read the share alongside the pair count, never instead of it.
+**A high share is not a better result.** WMC's 34% comes from 58,238 comparisons,
+about a tenth of Mount Sinai's. The share says how much survived the rules; the
+counts say how much there was. Read them together.
 
-## Montefiore: ingested, not yet reconciled
-
-13,076,293 rows are in the lake and in silver, verified. The cloud mart run for
-it was OOM-killed at 6,106 MiB of 8,192 after 20 slices -- the same shape as NYU
-Langone, tracked in issue #47. Nothing is wrong with the data; the job does not
-yet fit. Its gold partition is absent rather than stale, which is the honest
-state and is visible in `run.json` as a system expected and not present.
+**Montefiore reconciles** as of 2026-09-23. Its cloud run was OOM-killed until
+the hospital-side aggregate stopped keeping a t-digest per group (#83, #47). It
+now peaks at 2,431 MiB of 8,192.
 
 ## The eight that are hospital-side only
 
@@ -47,7 +45,7 @@ any. Their data is still worth holding — it is 51M rows of hospital-side price
 and the within-system and regional comparisons use it — but cross-source
 reconciliation is not a question that can be asked of it.
 
-## The three payer-side systems now have hospital data
+## The three payer-side systems that were added
 
 Montefiore (374 NPIs), WMC (41) and White Plains (22) were parsed on the payer
 side and absent from the hospital lake, so their payer rows could not reconcile

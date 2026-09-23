@@ -1,10 +1,11 @@
 hospital_slug,system,carrier,pairs,median_gap_days,min_gap_days,p90_gap_days,max_gap_days,unknown_vintage_pairs,beyond_limit,max_vintage_days
+montefiore-health-system,Montefiore,Cigna,25,122,122,122,122,0,0,400
 mount-sinai-health-system,Mount Sinai,Anthem / Empire BCBS,25,153,153,153,153,0,0,400
 mount-sinai-health-system,Mount Sinai,Cigna,25,122,122,122,122,0,0,400
-northwell-health,Northwell,Aetna,25,127,127,127,127,0,0,400
+northwell-health,Northwell,Aetna,25,127,66,127,127,0,0,400
 northwell-health,Northwell,Cigna,25,123,123,123,123,0,0,400
 northwell-health,Northwell,UnitedHealthcare,25,123,123,123,123,0,0,400
 nyu-langone-health,NYU Langone,Aetna,25,216,216,216,216,0,0,400
 nyu-langone-health,NYU Langone,Cigna,25,212,212,212,212,0,0,400
 nyu-langone-health,NYU Langone,UnitedHealthcare,25,212,212,212,212,0,0,400
-white-plains-hospital,White Plains,Cigna,20,,,,,20,0,400
+white-plains-hospital,White Plains,Cigna,25,,,,,25,0,400

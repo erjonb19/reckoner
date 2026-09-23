@@ -57,130 +57,35 @@ page shows are the dataset's rather than the wake-up's. Deployment steps are in
 
 ### What actually reconciles
 
-Six of fifteen health systems reconcile today, ordered by the number that
-matters. A seventh, Montefiore, is ingested and waiting on a job that fits.
+All seven systems that appear in both disclosures reconcile, every one of them
+published by the cloud job. Each hospital rate is compared once, against the
+insurer's range of rates for the same service at the same facility, setting and
+billing class (ADR 0005, ADR 0006).
 
-| system | pairs formed | comparable share | residual findings | offsets |
-|---|---|---|---|---|
-| WMC | 256,608 | 66.30% | 0 | 342 |
-| White Plains | 297,188 | 26.90% | 20 | 19 |
-| Mount Sinai | 3,370,446 | 9.30% | 60,182 | 461 |
-| Northwell | 4,552,693 | 6.23% | 116,504 | 78 |
-| NYU Langone | 6,539,353 | 3.88% | 86,174 | 176 |
-| NewYork-Presbyterian | 106,852 | 1.50% | 0 | 5 |
+| system | hospital rates | compared | raw share | like-class share | residual | offsets |
+|---|---:|---:|---:|---:|---:|---:|
+| Mount Sinai | 1,348,398 | 625,523 | 46.39% | 47.67% | 54,637 | 29 |
+| WMC | 170,710 | 58,238 | 34.12% | 34.12% | 0 | 77 |
+| NYU Langone | 9,300,114 | 2,000,760 | 21.51% | 26.02% | 50,300 | 88 |
+| White Plains | 350,530 | 66,542 | 18.98% | 19.75% | 212 | 10 |
+| Montefiore | 2,597,798 | 427,064 | 16.44% | 17.17% | 3,760 | 3 |
+| Northwell | 3,001,740 | 426,316 | 14.20% | 16.89% | 62,169 | 16 |
+| NewYork-Presbyterian | 504,350 | 18,387 | 3.65% | 3.83% | 0 | 1 |
+| **all seven** | **17,273,640** | **3,622,830** | **20.97%** | **24.15%** | **171,078** | |
 
-WMC's 66% is not a better result than Mount Sinai's 9%; it is a smaller, tidier
-file. Its 256,608 pairs are fewer than Mount Sinai's refusals alone. The share
-says how much survived the rules, the pair count says how much there was.
+**Read the shares, not the counts.** The raw share is over every hospital rate;
+the like-class share leaves out rates whose only counterparts were the other
+billing class, a facility charge against a professional fee. Both are shown for
+this release. The rest are refused for stated reasons, published in
+`gold/refusals`. The **residual** is the finding: rates that are material *and*
+unexplained after every deterministic rule, including the new one, that the
+hospital's rate sits inside the insurer's own published range. **Offsets** are
+contracts where one constant ratio covers many services: one fact about two base
+rates, not one finding per code.
 
-**Read the comparable share, not the pair count.** Between 1.5% and 9.3% of
-candidate pairs survive the comparability rules; the rest are refused for stated
-reasons, published in `gold/refusals`. The **residual** is the finding: pairs
-that are material *and* unexplained after every deterministic rule has had its
-say. **Offsets** are contracts where one constant ratio covers many services —
-one fact about two base rates, not one finding per code.
-
----
-
-## The two rules, and why it matters
-
-|  | Hospital (45 CFR 180) | Payer (Transparency in Coverage) |
-|---|---|---|
-| Who publishes | hospitals | insurers |
-| Plans covered | **every** payer and plan the hospital contracts with, including Medicare Advantage, Medicaid managed care and CHP | commercial group and individual **only** — CMS exempts Medicare, MA, Medicaid and Medicaid MCO |
-| File size | tens to hundreds of MB | 100 GB to 1 TB+ |
-| Updated | at least annually | monthly |
-
-The consequence runs through everything here: **Medicare Advantage and Medicaid
-rates exist only in hospital-side files.** Any claim otherwise is a bug.
-
----
-
-## Architecture
-
-Three storage layers plus a control layer, on ADLS Gen2. Everything else reads
-from it; no engine ever holds the only copy.
-
-```mermaid
-flowchart TD
-    subgraph sources["Public filings"]
-        TIC["Payer TiC files<br/>100 GB - 1 TB"]
-        MRF["Hospital MRFs<br/>cms-hpt.txt discovery"]
-    end
-
-    TIC -->|"streaming parse, NY filter<br/>(mrf_pipeline, separate repo)"| BRONZE
-    MRF -->|"CMS template parser"| SILVERH
-
-    BRONZE["<b>BRONZE</b><br/>bronze/payer_tic<br/>as landed, 118 files, 56.8M rows"]
-    BRONZE -->|"conform: lowercase billing_class,<br/>zstd, compact 98 files to 1"| SILVERP
-
-    SILVERP["<b>SILVER</b> payer_rates<br/>carrier / vintage<br/>14 files, 56.8M rows"]
-    SILVERH["<b>SILVER</b> hospital_rates<br/>hospital_slug / code_type / vintage<br/>93 files, 156.5M rows"]
-
-    SILVERP --> MART
-    SILVERH --> MART
-    MART{{"comparability rules<br/>variance mart<br/>systematic-offset collapse"}}
-    MART --> GOLD
-
-    GOLD["<b>GOLD</b><br/>coverage, outcomes, magnitude,<br/>exemplars, refusals"]
-    GOLD --> REPORT["<b>report stage</b><br/>summary/*.csv + run.json"]
-    REPORT --> PAGE["Streamlit page<br/>no network calls"]
-    REPORT --> MD["docs/reconciliation-report.md"]
-
-    META[("<b>CONTROL</b> _meta/<br/>a manifest per layer")]
-    BRONZE -.-> META
-    SILVERP -.-> META
-    SILVERH -.-> META
-    GOLD -.-> META
-    META ==>|"stage 1 re-counts every file's rows<br/>from its Parquet footer,<br/>exits non-zero on drift"| CHECK{{"drift check<br/>monthly"}}
-
-    style META fill:#fff3cd,stroke:#856404
-    style CHECK fill:#fff3cd,stroke:#856404
-    style GOLD fill:#d4edda,stroke:#155724
-```
-
-<details>
-<summary>The same thing as plain text, for anywhere Mermaid does not render</summary>
-
-```
-  mrf_pipeline (separate repo)              hospital MRFs
-  100 GB-1 TB TiC files                     cms-hpt.txt discovery
-          │  streaming parse, NY filter             │  CMS template parser
-          ▼                                         ▼
-  ┌───────────────────────────────────────────────────────────┐
-  │  BRONZE   bronze/payer_tic/ingest_date=…/carrier=…        │
-  │           as landed, byte-faithful, 118 files             │
-  └───────────────────────────────────────────────────────────┘
-          │  conform: lowercase billing_class, zstd, compact
-          ▼
-  ┌───────────────────────────────────────────────────────────┐
-  │  SILVER   silver/hospital_rates/hospital_slug/code_type/… │
-  │           silver/payer_rates/carrier/vintage              │
-  │           conformed, partitioned for the questions asked  │
-  └───────────────────────────────────────────────────────────┘
-          │  comparability rules, variance mart, offset collapse
-          ▼
-  ┌───────────────────────────────────────────────────────────┐
-  │  GOLD     gold/{coverage,outcomes,magnitude,exemplars,    │
-  │           refusals}  — the residual and its denominators  │
-  └───────────────────────────────────────────────────────────┘
-          │
-          ▼
-  ┌───────────────────────────────────────────────────────────┐
-  │  +1  CONTROL   _meta/…/upload_manifest.json               │
-  │      every layer's manifest; the monthly job diffs all    │
-  │      four against what is actually there, and exits       │
-  │      non-zero when they disagree                          │
-  └───────────────────────────────────────────────────────────┘
-```
-
-</details>
-
-The control layer is not a storage layer, which is why it is drawn apart. It is the
-thing that makes the other three trustworthy: a manifest per layer, and a
-scheduled job that re-counts every file's rows from its Parquet footer and fails
-loudly when the count has moved. A layer nobody checks is a layer nobody can
-cite.
+These figures are not comparable with anything published before 2026-09-23. The
+unit changed from one pair per payer rate to one comparison per hospital rate,
+which removed a fan-out of up to 290 comparisons per rate.
 
 ### What is actually in it
 
@@ -236,31 +141,34 @@ in the image.**
 | Fabric capacity probes (created and deleted in error; see ADR 0004) | $0.0177 |
 | **total** | **$0.033** |
 
-4.747 GB against a 5 GB free tier. Container Apps executions fall inside the
+5.282 GB against a 5 GB free tier: 0.282 GB over, about 0.6 cents a month. Container Apps executions fall inside the
 monthly free grant of 180,000 vCPU-seconds and 360,000 GiB-seconds — a manifest
 run uses 0.04% of it. The $0.10/hour environment management meter does not apply,
 confirmed against the invoice rather than inferred from configuration: Cost
 Management returns **no Container Apps meter of any kind**, and zero-cost meters
 do appear in that output, so the absence is real.
 
-### Honest status: the cloud mart
+### Status: the cloud mart
 
-The `mart` stage is correct and completes **locally**; the gold layer above was
-produced by a local run. It has **never completed in a container**. Four
-executions were OOM-killed, at 4 GiB and again at 8 GiB — the Consumption profile
-ceiling, with no larger machine to move to.
+Every system's gold is now produced by the `reckoner-mart` job in a container.
+Until 2026-09-23 NYU Langone's came from a local run and Montefiore had none.
+Both were OOM-killed at the 8 GiB Consumption ceiling. A per-step memory profile
+in the container found the cause. The hospital-side aggregate kept a t-digest
+per group, allocated outside Arrow's memory pool, about 6 GB for 586,207
+groups. An exact median replaced it (#83), and the same shard load fell from
+8,028 MiB to 1,634. The largest system now peaks near 4.3 GB.
 
-A single slice of 395,462 payer rates reaches 7.1 GB, which those objects cannot
-account for, and the cause is not yet known. Four structural reductions took the
-peak from 9,808 MiB to 3,031 and none of them was enough. The schedule has been
-removed rather than left to fail monthly, because a false alarm every month
-teaches whoever reads it to ignore the real one.
+The monthly schedule is back (`0 8 1 * *`). **One thing is untested:** the
+scheduled run does all seven systems in one execution. Per system they sum to
+about 87 minutes against a 120-minute timeout, and memory carried from one
+system to the next hasn't been measured. The first real run is 1 October. If it
+fails, gold is untouched, because the mart writes only at the end, and the
+workbook's run history shows it.
 
-Tracked in [issue #47](https://github.com/erjonb19/reckoner/issues/47). The next
-step is a `tracemalloc` profile, not another structural guess.
-
-This is the one place where what is deployed and what produced the data differ,
-so it is stated here rather than left to be discovered.
+Rebuilding every system twice on 2026-09-23 used about 84% of September's
+Container Apps free grant (≈150,500 of 180,000 vCPU-seconds, measured from log
+spans, so a slight undercount). That's still inside it, but it is the month's
+budget, not a rounding error.
 
 ---
 
@@ -273,11 +181,12 @@ so it is stated here rather than left to be discovered.
   deployed, and why its Secrets box stays empty.
 - [`docs/BUILT_VS_PLANNED.md`](docs/BUILT_VS_PLANNED.md) — built / scaffolded /
   not started. Check here before believing a claim made anywhere else.
-- [`docs/refusal-decomposition.md`](docs/refusal-decomposition.md) — why 94.7%
-  of candidates never become pairs, by reason, system and carrier, and which fixes
-  could move that. Mostly they can't: 70.9% is a billing-class definition.
+- [`docs/refusal-decomposition.md`](docs/refusal-decomposition.md) — why 79% of
+  hospital rates are never compared, by reason, system and carrier, and which fixes
+  could move that. Most can't: TiC-exempt products and carriers outside the payer
+  corpus are refused correctly. The largest fixable lever is payer-name matching.
 - [`docs/plan-matching.md`](docs/plan-matching.md) — what fuzzy plan matching buys,
-  measured before anything depends on it: +0.85 points of plan coverage, and 0.00
+  measured before anything depends on it: +0.86 points of plan coverage, and 0.00
   of comparable share.
 - [`docs/labelling-a1.md`](docs/labelling-a1.md) — how to fill the label file A1's
   eval reads. It ships empty, and the eval says "not measured" until it isn't.

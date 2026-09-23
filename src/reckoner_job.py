@@ -28,6 +28,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pyarrow
 
@@ -514,6 +515,13 @@ def run_report() -> int:
     return 0
 
 
+def _sum_by(rows: list[dict[str, Any]], key: str, value: str) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for row in rows:
+        totals[str(row[key])] = totals.get(str(row[key]), 0) + int(row[value])
+    return totals
+
+
 def run_triage() -> int:
     """Stage: account for every residual finding with a deterministic rule.
 
@@ -579,10 +587,10 @@ def run_triage() -> int:
     log(
         "triage_written",
         **written,
-        by_rule={row["triage_rule"]: row["findings"] for row in counted},
-        unexplained=next(
-            (row["findings"] for row in counted if row["triage_rule"] == "unexplained"), 0
-        ),
+        # Summed across systems: the summary is per system now, and a dict built
+        # from its rows kept only the last system's count for each rule.
+        by_rule=_sum_by(counted, "triage_rule", "findings"),
+        unexplained=_sum_by(counted, "triage_rule", "findings").get("unexplained", 0),
     )
     return 0
 

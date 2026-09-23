@@ -1,18 +1,15 @@
-# MANUAL TRIGGER ONLY. The schedule was `0 8 1 * *`, two hours after the
-# manifest check, and is removed until the stage can finish in a container. It
-# cannot today: four executions were OOM-killed at the Consumption ceiling. A
-# monthly job that reliably fails is a false alarm, and a false alarm every
-# month teaches whoever reads it to ignore the real one.
+# SCHEDULED, `0 8 1 * *`: two hours after the manifest check. Restored on
+# 2026-09-23 once every system completed in the cloud (#47, closed). The cause
+# of the OOMs was a t-digest per group in the hospital-side aggregate, allocated
+# outside Arrow's pool; #83 replaced it with an exact median.
 #
-# Gold is currently published from a local run, which does complete. See
-# docs/BUILT_VS_PLANNED.md and the tracking issue.
+# The live job was switched with an ARM PATCH of the trigger configuration only,
+# not by re-applying this file: `job update` cannot change a trigger type, and
+# re-applying the YAML is the path that silently drops the identity (below).
 #
-# To restore the schedule once an execution is green, put back:
-#     triggerType: Schedule
-#     scheduleTriggerConfig:
-#       cronExpression: "0 8 1 * *"   # two hours after reckoner-pipeline
-#       parallelism: 1
-#       replicaCompletionCount: 1
+# Untested so far: all seven systems in ONE execution. The per-system runs sum to
+# about 87 minutes against replicaTimeout 7200, and memory carried from one
+# system to the next has not been measured. The first real run is 1 October.
 #
 # Scheduled Container Apps Job, applied with:
 #   az containerapp job create --name reckoner-pipeline --resource-group rg-reckoner \
@@ -36,10 +33,11 @@
 properties:
   environmentId: PLACEHOLDER_ENVIRONMENT_ID
   configuration:
-    triggerType: Manual
+    triggerType: Schedule
     replicaTimeout: 7200
     replicaRetryLimit: 1
-    manualTriggerConfig:
+    scheduleTriggerConfig:
+      cronExpression: "0 8 1 * *"
       parallelism: 1
       replicaCompletionCount: 1
   template:

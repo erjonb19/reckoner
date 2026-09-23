@@ -22,6 +22,9 @@ finding for A1's queue.** It never makes pairs look more alike.
 
 ## Plan-level matchability
 
+Re-measured after the Cigna OAP fix (#81), which lifted Cigna's rules match
+from 17.60% to 20.77%.
+
 The share of hospital rate rows whose plan string reaches each verdict against
 *any* network its carrier publishes. Each plan counts once, weighted by its rows.
 
@@ -29,12 +32,12 @@ The share of hospital rate rows whose plan string reaches each verdict against
 |---|---:|---:|---:|---:|---:|
 | Aetna | 1,455,791 | 21.61% | 21.61% | 0.00% | 61.94% |
 | Anthem / Empire BCBS | 3,232,037 | 25.93% | **28.84%** | 0.00% | 41.23% |
-| Cigna | 1,027,614 | 17.60% | 17.60% | 0.00% | 51.14% |
+| Cigna | 1,027,614 | 20.77% | 20.77% | 0.00% | 51.14% |
 | EmblemHealth | 3,253,160 | 0.00% | 0.00% | 48.37% | 100.00% |
 | UnitedHealthcare | 2,012,717 | 9.39% | 9.39% | 0.00% | 82.33% |
-| **all five** | 10,981,319 | **13.87%** | **14.72%** | 14.33% | 69.84% |
+| **all five** | 10,981,319 | **14.16%** | **15.02%** | 14.33% | 69.84% |
 
-**+0.85 points, all of it from one network.** The five new matches are all
+**+0.86 points, all of it from one network.** The five new matches are all
 Empire's Connection network, which hospitals write as "Empire Connection",
 "BCBS BLUE CONNECTION (ALL PLANS)", "Connection SG" and similar. 94k rows.
 
@@ -92,7 +95,7 @@ refusal, not an explanation. That's worth deciding alongside #70.
 ## What this means for #70
 
 Option (b), keying the join on plan, needs plans to match. On this corpus the
-matchable share is 14.7% of hospital rate rows by string, and alias work has
+matchable share is 15.0% of hospital rate rows by string, and alias work has
 nearly exhausted what the strings can give. Getting further would take
 information neither file publishes in a plan name: the payer's network
 membership by employer group, or Emblem's contract IDs mapped to hospital
