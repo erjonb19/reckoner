@@ -1,0 +1,24 @@
+// One row per attempt. A replica that logged job_start and never job_end was
+// killed -- the container's OOM signature, which leaves no exception to log.
+let events = ContainerAppConsoleLogs_CL
+| where ContainerJobName_s startswith "reckoner-"
+| extend e = parse_json(Log_s)
+| where isnotempty(e.event)
+| extend attempt = ContainerGroupName_s,
+         execution = replace_regex(ContainerGroupName_s, @"-[a-z0-9]+$", "");
+events
+| summarize started = minif(TimeGenerated, tostring(e.event) == "job_start"),
+            ended = maxif(TimeGenerated, tostring(e.event) == "job_end"),
+            exit_code = take_anyif(toint(e.exit_code), tostring(e.event) == "job_end"),
+            stage = take_anyif(tostring(e.stage), tostring(e.event) == "job_start"),
+            system = take_anyif(tostring(e.system), tostring(e.event) == "mart_selection"),
+            build = take_anyif(substring(tostring(e.build_sha), 0, 7), tostring(e.event) == "job_start"),
+            peak_rss_mib = max(toint(e.peak_rss_mib)),
+            ceiling_mib = take_anyif(toint(e.memory_ceiling_mib), tostring(e.event) == "preflight")
+  by job = ContainerJobName_s, execution, attempt
+| where isnotnull(started)
+| extend outcome = case(isnull(ended), "killed (no job_end)", exit_code == 0, "succeeded", strcat("failed, exit ", tostring(exit_code))),
+         minutes = round(datetime_diff("second", coalesce(ended, now()), started) / 60.0, 1),
+         headroom_mib = ceiling_mib - peak_rss_mib
+| project started, job, execution, attempt, stage, system, outcome, minutes, peak_rss_mib, ceiling_mib, headroom_mib, build
+| order by started desc

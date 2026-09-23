@@ -1,0 +1,21 @@
+// Peak resident memory per attempt against the container ceiling, and the
+// slice with the worst window. The process peak never falls, so on its own it
+// cannot name where memory went; the per-slice window can.
+let events = ContainerAppConsoleLogs_CL
+| where ContainerJobName_s startswith "reckoner-"
+| extend e = parse_json(Log_s)
+| extend ev = tostring(e.event);
+let worst = events
+| where ev == "mart_shard"
+| summarize arg_max(toint(e.rss_window_peak_mib), shard = tostring(e.shard)) by attempt = ContainerGroupName_s
+| project attempt, worst_slice = shard, worst_slice_window_mib = e_rss_window_peak_mib;
+events
+| where ev in ("preflight", "mart_shard", "stage_end", "memwatch_peak")
+| summarize started = min(TimeGenerated),
+            ceiling_mib = take_anyif(toint(e.memory_ceiling_mib), ev == "preflight"),
+            process_peak_mib = max(toint(coalesce(e.peak_rss_mib, e.sampled_peak_rss_mib)))
+  by attempt = ContainerGroupName_s, job = ContainerJobName_s
+| join kind=leftouter worst on attempt
+| extend used_pct = round(100.0 * process_peak_mib / ceiling_mib, 1)
+| project started, job, attempt, ceiling_mib, process_peak_mib, used_pct, worst_slice_window_mib, worst_slice
+| order by started desc

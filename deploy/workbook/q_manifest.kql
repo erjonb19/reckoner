@@ -1,0 +1,12 @@
+// Stage 1's verdict per layer per run. A layer checked in one run and absent
+// in the next is itself a finding: the run checked fewer layers than before.
+ContainerAppConsoleLogs_CL
+| where ContainerJobName_s startswith "reckoner-"
+| extend e = parse_json(Log_s)
+| where tostring(e.event) == "manifest_summary"
+| project TimeGenerated, run = ContainerGroupName_s, layer = tostring(e.layer),
+          matches = tobool(e.matches),
+          expected_rows = tolong(e.expected_rows), observed_rows = tolong(e.observed_rows),
+          expected_files = toint(e.expected_files), observed_files = toint(e.observed_files)
+| extend row_drift = observed_rows - expected_rows
+| order by TimeGenerated desc, layer asc
