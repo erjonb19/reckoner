@@ -62,6 +62,7 @@ import pyarrow.parquet as pq
 
 from agents.entity_resolution import CANONICAL_PAYERS, PayerCandidate, RuleBasedMatcher
 from payer.contract import ContractCheck, Severity, validate_file, validate_schema
+from reconcile.aggregate import median_by_group
 from reconcile.comparability import ComparableRate
 from storage import Location
 
@@ -431,13 +432,7 @@ def aggregate_rates(
         "systems",
         "system_count",
     ]
-    return deduped.group_by(keys).aggregate(
-        [
-            ("negotiated_rate", "approximate_median"),
-            ("negotiated_rate", "count"),
-            ("group_tins", "min"),
-        ]
-    )
+    return median_by_group(deduped, keys, "negotiated_rate", [("group_tins", "min")])
 
 
 def to_comparable_rates(
@@ -478,7 +473,7 @@ def to_comparable_rates(
     for row in rows:
         stem = str(row.get("payer") or "")
         source_file = by_stem.get(stem)
-        rate = row.get("negotiated_rate_approximate_median")
+        rate = row.get("negotiated_rate_median")
         if rate is None:
             continue
 

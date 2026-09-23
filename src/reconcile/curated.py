@@ -34,6 +34,7 @@ import pyarrow.dataset as ds
 
 from agents.entity_resolution import RuleBasedMatcher, canonical_key
 from hospital.facility import ambiguous_locations, resolve_facility
+from reconcile.aggregate import median_by_group
 from reconcile.comparability import ComparableRate
 from reconcile.eligibility import facility_only_hospitals
 from storage import Location
@@ -138,13 +139,7 @@ def aggregate_rates(
         "product_class",
         "rate_kind",
     ]
-    return scanned.group_by(keys).aggregate(
-        [
-            ("rate_dollar", "approximate_median"),
-            ("rate_dollar", "count"),
-            ("methodology", "min"),
-        ]
-    )
+    return median_by_group(scanned, keys, "rate_dollar", [("methodology", "min")])
 
 
 #: Rows converted per batch. Small enough that one batch of dicts is cheap to
@@ -197,7 +192,7 @@ def to_comparable_rates(
     # by gigabytes.
     for row in _rows_in_batches(table):
         raw_payer = str(row.get("payer_name_raw") or "")
-        rate = row.get("rate_dollar_approximate_median")
+        rate = row.get("rate_dollar_median")
         if rate is None:
             continue
         rates.append(

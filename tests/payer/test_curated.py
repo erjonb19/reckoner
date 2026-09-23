@@ -176,11 +176,11 @@ class TestFilters:
     def test_placeholder_rates_survive_by_default_so_they_can_be_refused(self, files):
         """A default that dropped them would flatter the comparable share."""
         table = aggregate_rates(open_payer_dataset(files), PayerFilter())
-        assert min(table.column("negotiated_rate_approximate_median").to_pylist()) == 0.0
+        assert min(table.column("negotiated_rate_median").to_pylist()) == 0.0
 
     def test_min_rate_removes_the_placeholders(self, files):
         table = aggregate_rates(open_payer_dataset(files), PayerFilter(min_rate=1.0))
-        assert min(table.column("negotiated_rate_approximate_median").to_pylist()) >= 1.0
+        assert min(table.column("negotiated_rate_median").to_pylist()) >= 1.0
 
     def test_group_tins_bounds_the_network_wide_fee_schedules(self, files):
         """A rate shared with 23,875 tax IDs is not this system's contract."""

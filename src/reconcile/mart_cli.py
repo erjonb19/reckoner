@@ -58,6 +58,7 @@ from payer.curated import (
 from payer.curated import (
     to_comparable_rates as payer_to_rates,
 )
+from reconcile.aggregate import median_by_group
 from reconcile.comparability import ComparableRate
 from reconcile.curated import NEEDED_COLUMNS, open_curated
 from reconcile.curated import to_comparable_rates as hosp_to_rates
@@ -110,13 +111,7 @@ def load_hospital_side(
     scanned = dataset.to_table(columns=list(NEEDED_COLUMNS), filter=where)
     if scanned.num_rows == 0:
         return []
-    table = scanned.group_by(_HOSPITAL_KEYS).aggregate(
-        [
-            ("rate_dollar", "approximate_median"),
-            ("rate_dollar", "count"),
-            ("methodology", "min"),
-        ]
-    )
+    table = median_by_group(scanned, _HOSPITAL_KEYS, "rate_dollar", [("methodology", "min")])
     del scanned
     return hosp_to_rates(table)
 
