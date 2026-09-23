@@ -411,6 +411,47 @@ def write(
     return written
 
 
+def gold_manifest(lake: Location, written: dict[str, int], systems: set[str]) -> dict[str, Any]:
+    """The gold manifest after one stage wrote ``written`` for ``systems``.
+
+    Describes the whole gold tree, because that is what stage 1 checks, and
+    verifies only what this stage is responsible for: its own tables, in its own
+    systems' partitions. Both narrowings are needed. Gold is written by the mart
+    (five tables) and by triage (two more, into the same partitions), a system
+    at a time. Checking every table let triage's rows fail a correct mart run;
+    checking every system let other systems' rows fail a correct per-system run.
+
+    A table this stage owns but wrote no rows for is still checked. Its old
+    partition is not deleted by an empty write, so if one survives it is stale,
+    and the check failing is the check working.
+    """
+    from storage import publish
+
+    manifest = publish.build_manifest(
+        lake.child(*GOLD_ROOT),
+        [
+            publish.PublishResult(
+                subject=name,
+                destination=name,
+                rows_read=rows,
+                rows_written=rows,
+                partitions=len(systems),
+            )
+            for name, rows in written.items()
+        ],
+        layer="gold",
+        group_key="hospital_slug",
+        verify_only=systems,
+        verify_subjects=set(written),
+    )
+    manifest["systems_written"] = sorted(systems)
+    manifest["tables_written"] = sorted(written)
+    manifest["complete"] = sorted(manifest["by_hospital_slug"]) == sorted(
+        spec.slug for spec in RECONCILABLE
+    )
+    return manifest
+
+
 __all__ = [
     "GOLD_MANIFEST",
     "GOLD_ROOT",
@@ -420,6 +461,7 @@ __all__ = [
     "TABLES",
     "SystemSpec",
     "build",
+    "gold_manifest",
     "reconcile_system",
     "select",
     "tables",
