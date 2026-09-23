@@ -59,8 +59,22 @@ real payer rate. One rule is new, and one is scoped:
   hospital's is among them. A difference from the median is then not a
   disagreement between the two disclosures. It runs after the implausibility
   and granularity checks and before the vintage check.
-- **Plan checks run only when the distribution spans one network.** Across
-  several, comparing the hospital's plan with one of them would be arbitrary.
+- **The plan question is asked of every network in the distribution.** Against
+  one network it is the pairwise check. Against several: if the hospital's
+  plan matches any of them, the row falls through, and a rate outside the whole
+  range is a finding. If none matches but one names several networks, it is
+  granularity. Otherwise it is `plan_unresolved`, "not matched to any of the
+  carrier's N networks".
+
+  *Revised the same day.* The first version skipped the question for
+  multi-network distributions, on the grounds that comparing with one network
+  would be arbitrary. The first rebuild showed what that cost. Every
+  administrator or employer plan that matches none of the carrier's networks
+  became `unexplained`: Mount Sinai's residual went from 1.8% to 55% of what
+  formed, and its first exemplar was an Aetna TPA plan six times below every
+  Aetna network. Asking whether the plan matches *any* network is not
+  arbitrary, and it keeps "we can't tell if this is the same contract" apart
+  from "this contract disagrees".
 
 Systematic offsets are unchanged in method. Their contract key uses the row's
 payer label, the network or networks, which is also what the residual row
