@@ -175,10 +175,12 @@ account for **166 of 200** findings: 91 near-offset and 75 vintage. **34 stay
 - a cost and latency on every attempt, including failed ones. An unpriced model costs
   `None`, not $0.
 
-`src/agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`, which
-**ships empty**, so the eval reports *not measured* and the gate holds.
-`docs/labelling-a1.md` explains how to fill it. 62 tests drive the loop with a scripted
-stub. The block is labels, not code.
+`src/agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`. **The
+labels are in: all 250 findings.** The rules baseline scores precision 0.000 and coverage
+0.884. That is by construction: its only `units_or_methodology` route needs a ratio of 10×
+or more, which never occurs in the queue, and 210 of the 250 labels are that cause
+(`docs/labelling-a1.md`). `scripts/run_a1_eval.py` runs the agent under a hard budget.
+The first real run is waiting on an API key.
 
 Two hypotheses about the residual were tested and **both failed**, which is why neither is a
 rule: ratios do not cluster near integers (8.5% within 5% of one, so not a units multiple),
@@ -398,10 +400,19 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
-- **A1's model run.** The loop, gate, human queue, cost log and eval harness are built
-  (above). What's missing is labels in `evals/triage_labels.csv`, and after that a
-  deliberate decision to spend on a real run. The agent is constructed in code, never
-  from a flag, so a model is never called by accident.
+- **A1's model run.** Labels are in and the runner is built
+  (`scripts/run_a1_eval.py --budget-usd 5`). What's missing is an API key on the machine
+  that runs it.
+- **A1 follow-up: a component-pricing detector in deterministic triage, then a stratified
+  re-label.** *Motivation:* 210 of 250 A1 labels are `units_or_methodology`, nearly all
+  component-versus-facility mismatches, so the agent's score on this queue mostly measures
+  one skill. *Detector:* for one facility and carrier pair, a code family whose ratios sit
+  consistently near ~6× or ~0.1×, where the hospital rate looks like a component (a
+  professional or technical component, or a single unit of a multi-unit service). That is
+  a rule, not a judgement, so it belongs in `pipeline/triage.py` beside the other near-miss
+  rules. *Then:* regenerate a smaller queue without what the detector explains, and
+  re-label it stratified by cause, so the agent is measured on the causes the rules cannot
+  reach.
 - **A2 v2: an employer-group-to-network crosswalk, built from the TiC index files.**
   *Motivation:* plan-level matching by string reaches 15.0% of hospital rate rows, and
   UnitedHealthcare stays **82% unmatchable** (`docs/plan-matching.md`). Hospitals name the

@@ -126,9 +126,46 @@ class Cause(StrEnum):
 CAUSES: tuple[str, ...] = tuple(str(c) for c in Cause)
 
 
+#: What UTF-8 punctuation looks like after being read as cp1252: the lead byte
+#: E2 becomes "a" with a circumflex and 80 the euro sign. Montefiore's published
+#: file carries it on its en dash and apostrophe, a labeller's editor may quietly
+#: undo it, and a key that differs by one dash drops the label.
+_MOJIBAKE = "â€"
+
+
+def repair_mojibake(text: str) -> str:
+    """Undo one round of UTF-8-read-as-cp1252, or return the text unchanged.
+
+    Only attempted when the telltale pair is present, and only kept when the
+    bytes decode as UTF-8, so real text containing "â" is never touched.
+    Characters cp1252 leaves undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D) pass
+    through as their own code points, which is what a decoder does with them.
+    """
+    if _MOJIBAKE not in text:
+        return text
+    raw = bytearray()
+    for char in text:
+        if ord(char) < 0x100:
+            raw.append(ord(char))
+            continue
+        try:
+            raw += char.encode("cp1252")
+        except UnicodeEncodeError:
+            return text
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return text
+
+
 def item_key(row: dict[str, Any]) -> str:
-    """One finding's identity, stable across runs of the same gold."""
-    return " | ".join(str(row.get(name) or "").strip() for name in KEY_FIELDS)
+    """One finding's identity, stable across runs of the same gold.
+
+    Text is repaired before joining, so a label and a queue row that differ only
+    in whether a hospital's mis-encoded name was fixed still describe the same
+    finding. The row itself is not rewritten: the queue shows what was published.
+    """
+    return " | ".join(repair_mojibake(str(row.get(name) or "").strip()) for name in KEY_FIELDS)
 
 
 @dataclass(frozen=True)
@@ -603,6 +640,7 @@ __all__ = [
     "cost_usd",
     "is_retryable",
     "item_key",
+    "repair_mojibake",
     "validate",
     "write_human_queue",
 ]
