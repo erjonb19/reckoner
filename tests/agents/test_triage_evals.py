@@ -14,7 +14,14 @@ from typing import Any
 
 import pytest
 
-from agents.triage_agent import KEY_FIELDS, Cause, Outcome, RuleTriager, item_key
+from agents.triage_agent import (
+    KEY_FIELDS,
+    Cause,
+    Outcome,
+    RuleTriager,
+    item_key,
+    repair_mojibake,
+)
 from agents.triage_evals import (
     LABEL_COLUMNS,
     LABELS,
@@ -48,15 +55,22 @@ def write_labels(path: Path, labels: list[tuple[dict[str, Any], str]]) -> Path:
 
 
 class TestTheShippedFiles:
-    def test_the_label_file_is_empty_and_has_the_right_header(self):
-        """It ships as a template: a header, and no answers nobody gave."""
+    def test_the_label_file_starts_with_the_label_columns(self):
+        """A filled worksheet: the label columns, then context the scorer ignores."""
         path = REPO / LABELS
-        with path.open(encoding="utf-8") as handle:
-            lines = handle.read().splitlines()
+        with path.open(encoding="utf-8-sig") as handle:
+            header = handle.readline().strip().split(",")
 
-        assert lines[0].split(",") == list(LABEL_COLUMNS)
-        assert len(lines) == 1
-        assert load_labels(path) == []
+        assert header[: len(LABEL_COLUMNS)] == list(LABEL_COLUMNS)
+
+    def test_every_label_matches_a_finding_in_the_real_queue(self):
+        """The 25 Montefiore labels once went unmatched: the queue carries the
+        hospital's mis-encoded name and the label file the repaired one."""
+        labels = load_labels(REPO / LABELS)
+        keys = {item_key(r) for r in load_queue(QUEUE)}
+
+        assert labels, "the labels are in"
+        assert [label.key for label in labels if label.key not in keys] == []
 
     def test_every_finding_in_the_real_queue_has_a_distinct_key(self):
         """A label identifies its finding by these fields; two sharing one would
@@ -235,3 +249,26 @@ class TestHistory:
             append_result(score(RuleTriager(), queue, labels), path)
 
         assert len(path.read_text(encoding="utf-8").splitlines()) == 2
+
+
+class TestMisEncodedText:
+    """Montefiore publishes its en dash and apostrophe as UTF-8 read as cp1252."""
+
+    PUBLISHED = "Center â€“ Childrenâ€™s"
+    REPAIRED = "Center – Children’s"  # noqa: RUF001
+
+    def test_the_published_form_and_the_repaired_form_are_one_finding(self):
+        published = {**row("72285", "unexplained"), "facility": self.PUBLISHED}
+        repaired = {**published, "facility": self.REPAIRED}
+
+        assert item_key(published) == item_key(repaired)
+
+    def test_the_repair_is_the_published_bytes_decoded_properly(self):
+        assert repair_mojibake(self.PUBLISHED) == self.REPAIRED
+
+    def test_a_right_double_quote_whose_byte_cp1252_leaves_undefined(self):
+        assert repair_mojibake("â€\u009d") == "”"
+
+    @pytest.mark.parametrize("text", ["Café", "â la carte", "plain", "Children's"])
+    def test_real_text_is_left_alone(self, text):
+        assert repair_mojibake(text) == text

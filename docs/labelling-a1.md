@@ -1,9 +1,9 @@
 # Labelling A1: how to fill `evals/triage_labels.csv`
 
 A1's agent half (`src/agents/triage_agent.py`) is built and tested against a
-stubbed model. It has **not** been run against real data, and it will not be
-scored until this file has rows in it. It ships with a header and nothing else,
-on purpose. Until you add labels, the eval reports `not measured`, not 0%.
+stubbed model. **The labels are in:** all 250 findings in the published queue,
+labelled September 2026. [Results](#results) has what they show and what they
+don't. An empty label file reports `not measured`, never 0%.
 
 ## 1. Make a worksheet
 
@@ -11,7 +11,7 @@ on purpose. Until you add labels, the eval reports `not measured`, not 0%.
 python -m agents.triage_evals --queue summary/triage_queue.csv --worksheet evals/triage_worksheet.csv
 ```
 
-This writes one row per finding in the current triage queue (200 today). The
+This writes one row per finding in the current triage queue (250 today). The
 `expected_cause` column is blank. After it come the columns you judge from: the
 rates, the ratio, both vintages and the gap, and the deterministic rule's
 verdict (`triage_rule`) as a hint. The scorer never reads the hint.
@@ -66,17 +66,64 @@ append the score to `evals/triage_results.jsonl`.
 ## How many labels
 
 A minimum of about 50, spread across causes, before any number means much. With
-200 findings in the queue, labelling all of them is an afternoon. The 34 rows
+250 findings in the queue, labelling all of them is an afternoon. The 29 rows
 the rules call `unexplained` matter most, because they're the only ones the
 agent exists for.
 
 ## Running the agent itself
 
 The agent is never run from a flag, because every finding it sees is a billed
-call. When you decide to run it, you construct it in code with a client:
-`TriageAgent(anthropic.Anthropic())`. Each attempt is logged with tokens, cost
-and latency, including failed attempts. Anything it can't settle within three
-attempts, or answers below 0.80 confidence, goes to the human queue file
-written by `write_human_queue`. At Opus 5 list price a finding costs roughly one
-cent per attempt, so the 200-finding queue is a few dollars at most. That's
-still your call, not a default.
+call. It runs from a script that has to be invoked on purpose, with a budget:
+
+```
+ANTHROPIC_API_KEY=... python scripts/run_a1_eval.py --budget-usd 5 --record
+```
+
+It needs the optional dependency (`pip install -e .[agents]`). The script
+changes nothing about the agent: the prompt, validator, retry bound and 0.80
+review threshold are the ones written before any label existed. It scores the
+rules and the agent on the same labels and writes the human queue to
+`evals/triage_human_queue.csv` and every call to `evals/triage_calls.jsonl`.
+Each attempt is logged with tokens, cost and latency, including failed attempts.
+Before each call it checks the budget against the worst case one call can cost,
+so spend cannot pass the budget. A finding the budget stops goes to the human
+queue with the reason, and the run reports how many there were.
+
+## Results
+
+### The rules baseline scores zero, by construction
+
+Over all 250 labels: **precision 0.000, coverage 0.884** (221 wrong, 29
+abstained, 0 unmatched).
+
+The rules have exactly one route to `units_or_methodology`: the `implausible`
+rule, at a ratio of 10× or more. The mart has already set every finding that far
+apart aside as `entity_resolution_suspect` before the queue is built, so on this
+queue that rule never fires and the rules never give that answer. The labelled
+queue is dominated by that cause (below), so every answer the rules do give is
+one of the others, and wrong. The zero measures the queue's make-up, not a
+broken rule.
+
+### What the labels measure
+
+**210 of 250 labels are `units_or_methodology`**; the rest are 25
+`genuine_disagreement` and 15 `insufficient_evidence`. The queue is dominated by
+component-versus-facility mismatches: a hospital publishing one component of a
+service against an insurer's rate for the whole of it, or the reverse. Their
+ratios run from 0.10 to 9.98, and 106 of the 210 sit between 0.08× and 0.2×.
+**So an agent's score on this queue mostly measures one skill**, spotting that
+mismatch, and says little about the other seven causes, five of which have no
+label at all. It is not a measure of triage in general.
+
+The follow-up is in `docs/BUILT_VS_PLANNED.md`. First, a deterministic
+component-pricing detector. Then a smaller queue, re-labelled stratified by
+cause.
+
+### The 25 labels that did not match
+
+The first scoring left 25 labels unmatched. All 25 were Montefiore's, not White
+Plains'. Montefiore's published file carries its facility name double-encoded,
+UTF-8 read as cp1252 ("Center â€“ Children…"). The queue kept it that way; the
+label file had it repaired. `item_key` now undoes that one round of
+mis-encoding before joining, so both forms are one finding. The labels were
+not edited. Before the fix: precision 0.000, coverage 0.924 over 225 matched.

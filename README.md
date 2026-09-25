@@ -121,6 +121,19 @@ unexplained Mount Sinai pairs into 27 — and chasing the four constants found a
 real join defect, where two files each carried two hospitals under a single
 label.
 
+### What survives: A1 triage, scored against 250 human labels
+
+| triager | precision | coverage | human queue | cost |
+|---|---|---|---|---|
+| deterministic rules | 0.000 | 0.884 | 0 | $0 |
+| A1 agent (Opus 5) | not yet run | | | |
+
+The gate is precision 0.90; neither triager may write a cause into a report
+until it passes. 210 of the 250 labels are one cause, units or methodology
+(mostly component-versus-facility pricing), so a score on this queue mostly
+measures that one skill; [`docs/labelling-a1.md`](docs/labelling-a1.md) explains
+this, and why the rules score zero.
+
 ---
 
 ## Running in the cloud
