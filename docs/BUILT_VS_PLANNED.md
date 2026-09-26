@@ -433,9 +433,11 @@ Real code, but not yet load-bearing.
   (rankings, pair detail, code lookup, coverage; #101) is merged and tested, but the live
   URL stays on `streamlit_app.py` until the 2026-10-01 mart run and the 2026-10-02
   summary snapshot have produced pair tables for all seven systems. Today only a preview
-  build had them, for White Plains alone. The steps are in `docs/analyst-app-switchover.md`:
-  check the data, click through on the preview app, change the main file path, then
-  retire `streamlit_app.py`.
+  build had them, for White Plains alone. `docs/analyst-app-switchover.md` is the October 2
+  checklist, in order, with who does each step. It confirms the October 1 run, proves the
+  spool byte-identical, records the "after" read count and checks the seven-system
+  snapshot, and only then switches the app, retakes the screenshots and updates the docs.
+  If the run or the byte check fails, the app does not switch.
 - **A1 follow-up: a component-pricing detector in deterministic triage, then a stratified
   re-label.** *Motivation:* 210 of 250 A1 labels are `units_or_methodology`, nearly all
   component-versus-facility mismatches, so the agent's score on this queue mostly measures

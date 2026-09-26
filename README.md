@@ -247,8 +247,8 @@ it at 84%. The invoice is the measure, and the log estimate undercounted.
   of comparable share.
 - [`docs/labelling-a1.md`](docs/labelling-a1.md) — A1's labels, eval and results:
   why the rules score zero, and what the agent's held-back findings share.
-- [`docs/analyst-app-switchover.md`](docs/analyst-app-switchover.md) — moving the
-  page to the analyst app after the October run.
+- [`docs/analyst-app-switchover.md`](docs/analyst-app-switchover.md) — the October 2
+  checklist: prove the October run, then move the page to the analyst app.
 - [`docs/adr/`](docs/adr/README.md) — numbered design decisions, with an index and
   the open decisions that don't have a record yet.
 - [`docs/coverage.md`](docs/coverage.md), [`docs/scope.md`](docs/scope.md) — the
