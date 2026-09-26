@@ -337,8 +337,9 @@ class Outcome:
     """Where one finding ended up, and why."""
 
     key: str
-    #: "accepted", "human", or "error". An error is a call that never produced
-    #: an answer -- a wrong model name, a rejected key -- and is neither a
+    #: "accepted", "human", or "error". An error is a finding the model never
+    #: answered -- a wrong model name, a rejected key, an outage that outlasted
+    #: every retry -- and is neither a
     #: judgement nor an abstention: a person reviewing it would find nothing
     #: about the finding to review. See silent failure #15.
     routed: str
@@ -422,9 +423,14 @@ confidence below 0.8 whenever a person should check the answer."""
 class ApiFailure(Exception):
     """A call that did not return a usable response, and whether to try again."""
 
-    def __init__(self, message: str, *, retryable: bool, fatal: bool = False) -> None:
+    def __init__(
+        self, message: str, *, retryable: bool, fatal: bool = False, unanswered: bool = False
+    ) -> None:
         super().__init__(message)
         self.retryable = retryable
+        #: The call raised before any response: a 503, a timeout. The model did
+        #: not see the finding. (An unparseable reply is answered, if badly.)
+        self.unanswered = unanswered
         #: The request itself failed and will fail the same way again. Unlike a
         #: refusal, the model never saw the finding.
         self.fatal = fatal
@@ -675,12 +681,14 @@ class TriageAgent:
         feedback = ""
         last = "no attempt made"
         proposal: Proposal | None = None
+        answered = False
 
         for attempt in range(1, self.max_attempts + 1):
             try:
                 proposal = self._call(row, key, attempt, feedback)
             except ApiFailure as failure:
                 last = str(failure)
+                answered = answered or not failure.unanswered
                 if failure.fatal:
                     return Outcome(key, "error", f"fatal API error: {last}", attempt)
                 if not failure.retryable:
@@ -689,6 +697,7 @@ class TriageAgent:
                     self.sleep(self.backoff_seconds * 2 ** (attempt - 1))
                 continue
 
+            answered = True
             verdict = validate(proposal, row)
             if not verdict.accepted:
                 # The model is told why, once per attempt, and tries again.
@@ -701,6 +710,11 @@ class TriageAgent:
                 )
             return Outcome(key, "accepted", "validated", attempt, proposal)
 
+        if not answered:
+            # Every attempt failed before the model saw the finding -- three 503s
+            # from an overloaded model, say. Not a judgement to review, so not a
+            # human route: the same mistake as silent failure #15 by another door.
+            return Outcome(key, "error", f"unavailable: {last}", self.max_attempts)
         return Outcome(key, "human", f"retries exhausted: {last}", self.max_attempts, proposal)
 
     def _call(self, row: dict[str, Any], key: str, attempt: int, feedback: str) -> Proposal:
@@ -727,7 +741,8 @@ class TriageAgent:
                         self.model,
                         "daily_cap",
                         latency_ms=elapsed,
-                        detail=detail[:300],
+                        # Long enough to keep the quota's own id and limit.
+                        detail=detail[:2000],
                         recorded_at=stamp,
                         provider=provider,
                     )
@@ -746,7 +761,9 @@ class TriageAgent:
                     provider=provider,
                 )
             )
-            raise ApiFailure(detail, retryable=retryable, fatal=not retryable) from exc
+            raise ApiFailure(
+                detail, retryable=retryable, fatal=not retryable, unanswered=True
+            ) from exc
 
         elapsed = (self.clock() - started) * 1000
         tokens_in, tokens_out = completion.input_tokens, completion.output_tokens

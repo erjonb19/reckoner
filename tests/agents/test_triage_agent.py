@@ -188,15 +188,16 @@ class TestRetries:
 
         assert slept == [1.0, 2.0]
 
-    def test_retries_are_bounded_and_end_in_the_human_queue(self):
-        """The bound is the point: a failing finding cannot loop, or bill, forever."""
+    def test_retries_are_bounded_and_an_outage_is_not_a_judgement(self):
+        """The bound is the point: a failing finding cannot loop, or bill, forever.
+        And a finding the model never saw is an error, not a human's to review."""
         stub = Stub(*[StatusError(529)] * MAX_ATTEMPTS)
         triager, slept = agent(stub)
 
         outcome = triager.triage_one(finding())
 
-        assert outcome.routed == "human"
-        assert outcome.reason.startswith("retries exhausted")
+        assert outcome.errored
+        assert outcome.reason.startswith("unavailable")
         assert len(stub.messages.requests) == MAX_ATTEMPTS
         assert len(slept) == MAX_ATTEMPTS - 1, "no sleep after the last attempt"
         assert triager.log.calls == MAX_ATTEMPTS

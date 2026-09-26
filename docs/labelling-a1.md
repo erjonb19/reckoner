@@ -119,7 +119,37 @@ guard the run was recorded as 250 abstentions (`docs/silent-failures.md`, #15).
 To use another model, pass `--model`, and `--list-price IN OUT` if the price
 table lacks it.
 
-The score is computed and recorded only once all 250 labelled findings have an
+The same goes for an outage. A finding whose every attempt failed before the
+model answered (three 503s, "this model is currently experiencing high demand")
+is an `error` and is retried on the next run. It is not a human-queue entry. On
+2026-09-26, 15 of the first 21 calls to `gemini-3.8-flash` were 503s, and three
+findings had been saved as human-queue outcomes. The runner also checks the
+model against the key's model list before the first finding
+(`--list-models` prints that list).
+
+**Free-tier limits, read from Google AI Studio's rate-limit page on
+2026-09-26.** Google's docs no longer publish the numbers. They apply per
+project, and requests per day reset at midnight Pacific.
+
+| model | requests/min | tokens/min | requests/day |
+|---|---|---|---|
+| Gemini 3.8 Flash, and every other Flash from 2.5 to 3.7 | 5 | 250K | 20 |
+| Gemini 2.5 Flash Lite | 10 | 250K | 20 |
+| Gemini 3.1 Flash Lite | 15 | 250K | 500 |
+| **Gemini 3.5 Flash Lite** | 15 | 250K | **500** |
+
+At 20 requests a day the full queue takes two weeks. Gemini 3.5 Flash Lite
+allows 500.
+
+**A sample.** `--sample` scores about 60 findings: all 29 the rules left
+`unexplained`, the ones the agent exists for, plus 31 spread across rule and
+health system in proportion, with a fixed seed (`SAMPLE_SEED`). The selection
+reads the queue and never the labels. The rules baseline is scored on the same
+sample. Both records carry a `sample` field, and the printed score is marked
+`[SAMPLE: …]`. A sample's precision estimates the queue's; it is not the
+queue's.
+
+The score is computed and recorded only once every finding in scope has an
 outcome. The findings that happen to come first are not a sample of the labels.
 
 **Cost.** The free tier bills $0. Every call is still logged with its tokens,

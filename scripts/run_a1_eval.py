@@ -57,10 +57,12 @@ from agents.triage_agent import (
 from agents.triage_evals import (
     LABELS,
     RESULTS,
+    SAMPLE_SEED,
     append_result,
     gate,
     load_labels,
     load_queue,
+    sample_queue,
     score,
 )
 
@@ -160,6 +162,19 @@ class Resumable:
         return all(item_key(row) in self.done for row in self.rows)
 
 
+def gemini_models(key: str) -> list[str]:
+    """The model ids this key may call generateContent on. Listing is not a
+    generation request, so it does not count against the daily cap."""
+    from google import genai
+
+    names = []
+    for model in genai.Client(api_key=key).models.list():
+        actions = getattr(model, "supported_actions", None) or []
+        if "generateContent" in actions:
+            names.append(str(model.name).removeprefix("models/"))
+    return sorted(names)
+
+
 def provider_for(name: str, model: str, key: str, rpm: float) -> Provider:
     if name == "gemini":
         from google import genai
@@ -183,6 +198,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--results", type=Path, default=RESULTS)
     parser.add_argument("--record", action="store_true", help="append both scores to --results")
     parser.add_argument(
+        "--sample",
+        nargs="?",
+        type=int,
+        const=60,
+        default=0,
+        metavar="N",
+        help="score a fixed-seed sample of about N findings (default 60): every "
+        "rule-unexplained finding plus a stratified spread of the rest",
+    )
+    parser.add_argument(
+        "--list-models",
+        action="store_true",
+        help="print the Gemini models this key can generate with, and stop",
+    )
+    parser.add_argument(
         "--list-price",
         nargs=2,
         type=float,
@@ -196,6 +226,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="retries per finding; the agent's own bound unless given",
     )
     args = parser.parse_args(argv)
+    sample_size = args.sample
 
     model = args.model or MODELS[args.provider]
     if args.list_price:
@@ -220,6 +251,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     run_dir = args.runs / f"{args.provider}-{model}"
     log = CallLog.resume(run_dir / "calls.jsonl")
     before_calls = log.calls
+    if args.provider == "gemini":
+        # Before any finding: a model the key cannot use fails here, once, with
+        # the list it can use -- not 250 times as a score (silent failure #15).
+        try:
+            available = gemini_models(key)
+        except Exception as exc:  # the key itself, or the network
+            message = str(exc).replace(key, "[redacted]")
+            print(f"could not list models: {type(exc).__name__}: {message}", file=sys.stderr)
+            return 2
+        if args.list_models:
+            print("\n".join(available))
+            return 0
+        if model not in available:
+            print(
+                f"{model} is not available to this key. Available: {', '.join(available)}",
+                file=sys.stderr,
+            )
+            return 2
     provider: Provider = provider_for(args.provider, model, key, args.rpm)
     if args.budget_usd is not None:
         provider = Budgeted(provider, log, args.budget_usd)
@@ -235,6 +284,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     queue = load_queue(args.queue)
     labels = load_labels(args.labels)
+    scope = ""
+    if sample_size:
+        full = len(queue)
+        queue = sample_queue(queue, sample_size)
+        keys = {item_key(r) for r in queue}
+        labels = [label for label in labels if label.key in keys]
+        unexplained = sum(1 for r in queue if r.get("triage_rule") == "unexplained")
+        scope = (
+            f"{len(queue)} of {full} findings, seed {SAMPLE_SEED}: all {unexplained} "
+            f"rule-unexplained plus {len(queue) - unexplained} stratified by rule and system"
+        )
+        print(f"sample: {scope}")
     result = score(agent, queue, labels, log=log)
 
     run_line = {
@@ -274,6 +335,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     baseline = score(RuleTriager(), queue, labels)
     result.model, result.provider, result.billing = model, args.provider, BILLING[args.provider]
+    baseline.sample = result.sample = scope
     outcomes = [agent.done[item_key(r)] for r in agent.rows]
     human = write_human_queue(outcomes, agent.rows, run_dir / "human_queue.csv")
     routed = Counter(o.reason.split(":")[0].split(" (")[0] for o in outcomes if not o.accepted)

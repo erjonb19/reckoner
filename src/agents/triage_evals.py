@@ -122,6 +122,44 @@ def load_labels(path: Path) -> list[TriageLabel]:
     return labels
 
 
+#: The fixed seed for :func:`sample_queue`, so a sample is the same sample on
+#: every machine and every rerun, and a resumed run keeps its findings.
+SAMPLE_SEED = 20260926
+
+
+def sample_queue(
+    rows: Sequence[dict[str, Any]], size: int = 60, seed: int = SAMPLE_SEED
+) -> list[dict[str, Any]]:
+    """Every finding the rules left ``unexplained``, and a stratified spread of the rest.
+
+    The unexplained rows are the ones the agent exists for, so all of them go
+    in. The remaining places are shared across (rule, system) strata in
+    proportion to their size, largest remainder first, and drawn with a fixed
+    seed. It reads only the queue's own columns, never the labels: a sample
+    chosen by looking at the answers would measure the choice.
+    """
+    import random
+
+    rows = sorted(rows, key=item_key)
+    unexplained = [r for r in rows if r.get("triage_rule") == "unexplained"]
+    rest = [r for r in rows if r.get("triage_rule") != "unexplained"]
+    places = max(size - len(unexplained), 0)
+    if places >= len(rest):
+        return unexplained + rest
+    strata: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in rest:
+        stratum = (str(row.get("triage_rule") or ""), str(row.get("system") or ""))
+        strata.setdefault(stratum, []).append(row)
+    shares = {k: places * len(v) / len(rest) for k, v in strata.items()}
+    counts = {k: int(share) for k, share in shares.items()}
+    by_remainder = sorted(strata, key=lambda k: (-(shares[k] - counts[k]), k))
+    for stratum in by_remainder[: places - sum(counts.values())]:
+        counts[stratum] += 1
+    rng = random.Random(seed)
+    chosen = [r for k in sorted(strata) for r in rng.sample(strata[k], counts[k])]
+    return unexplained + sorted(chosen, key=item_key)
+
+
 def load_queue(path: Path) -> list[dict[str, Any]]:
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
@@ -160,6 +198,9 @@ class TriageScore:
     provider: str = ""
     model: str = ""
     billing: str = ""
+    #: Empty for the whole labelled queue; otherwise what the sample is. A
+    #: sample's precision is not the queue's, and the record says which it is.
+    sample: str = ""
 
     @property
     def precision(self) -> float | None:
@@ -188,8 +229,9 @@ class TriageScore:
         precision = "n/a" if self.precision is None else f"{self.precision:.3f}"
         coverage = "n/a" if self.coverage is None else f"{self.coverage:.3f}"
         cost = "unknown" if self.cost_usd is None else f"${self.cost_usd:.4f}"
+        scope = f"[SAMPLE: {self.sample}] " if self.sample else ""
         return (
-            f"{self.triager:<6} precision={precision} coverage={coverage} "
+            f"{self.triager:<6} {scope}precision={precision} coverage={coverage} "
             f"(correct={self.correct} wrong={self.wrong} abstained={self.abstained} "
             f"of {self.scored}; {self.routed_to_human} to human; "
             f"{self.unmatched_labels} unmatched) "
@@ -351,6 +393,7 @@ __all__ = [
     "LABEL_COLUMNS",
     "MIN_PRECISION",
     "RESULTS",
+    "SAMPLE_SEED",
     "LabelError",
     "TriageLabel",
     "TriageScore",
@@ -359,6 +402,7 @@ __all__ = [
     "load_labels",
     "load_queue",
     "main",
+    "sample_queue",
     "score",
     "write_worksheet",
 ]
