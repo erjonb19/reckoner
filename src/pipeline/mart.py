@@ -21,16 +21,20 @@ from __future__ import annotations
 import gc
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any, TypeAlias
 
 import pyarrow as pa
 import pyarrow.dataset as ds
 
 from payer.curated import PayerFile, PayerFilter
+from pipeline import spool
 from reconcile.comparability import ComparableRate
 from reconcile.eligibility import facility_only_hospitals
 from reconcile.gold import Reconciliation, stream_shard
 from reconcile.silver import (
+    HOSPITAL_SILVER,
+    PAYER_SILVER,
     hospital_shard,
     open_hospital_silver,
     open_payer_silver,
@@ -350,10 +354,25 @@ def build(
     on_shard: ShardHook | None = None,
     on_system: SystemHook | None = None,
     on_plan: PlanHook | None = None,
+    spool_dir: Path | None = None,
+    on_spool: spool.SpoolHook | None = None,
 ) -> list[Reconciliation]:
-    """Reconcile the selected systems -- by default, all of them."""
+    """Reconcile the selected systems -- by default, all of them.
+
+    With ``spool_dir``, the silver each system needs is copied there once and
+    scanned locally (:mod:`pipeline.spool`): the same bytes, so the same gold,
+    for a fraction of the storage read operations. Without it, or where a copy
+    will not fit, every scan reads the lake directly.
+    """
     hospital_dataset = open_hospital_silver(lake)
     payer_dataset = open_payer_silver(lake)
+    if spool_dir is not None:
+        local_payer = spool_dir / "payer_rates"
+        payer_source = lake.child(*PAYER_SILVER)
+        if spool.copy_down(payer_source, local_payer, on_event=on_spool):
+            payer_dataset = _spooled_or(
+                payer_dataset, payer_source, local_payer, local_payer, on_spool
+            )
     payer_files = payer_files_from_silver(payer_dataset)
 
     # Computed from the lake, not listed: a hardcoded set stops being true the
@@ -367,19 +386,55 @@ def build(
         # payer file it is. NYU Langone needs shard "0" split; Mount Sinai does
         # not, and paying for 1,296 passes to discover that would be absurd.
         planned = plan_shards(payer_dataset, spec.system, SHARED_CODE_TYPES, on_plan=on_plan)
-        run = reconcile_system(
-            hospital_dataset,
-            payer_dataset,
-            payer_files,
-            spec,
-            shards=planned or SHARDS,
-            on_shard=on_shard,
-            assume_facility=spec.hospital in facility_only,
-        )
+        system_dataset, spooled = hospital_dataset, None
+        if spool_dir is not None and spool.only_in_partition(
+            hospital_dataset, spec.hospital, spec.slug
+        ):
+            spooled = spool_dir / "hospital_rates"
+            partition = lake.child(*HOSPITAL_SILVER, f"hospital_slug={spec.slug}")
+            target = spooled / f"hospital_slug={spec.slug}"
+            if spool.copy_down(partition, target, on_event=on_spool):
+                system_dataset = _spooled_or(hospital_dataset, partition, target, spooled, on_spool)
+            if system_dataset is hospital_dataset:
+                spool.remove(spooled)
+                spooled = None
+        try:
+            run = reconcile_system(
+                system_dataset,
+                payer_dataset,
+                payer_files,
+                spec,
+                shards=planned or SHARDS,
+                on_shard=on_shard,
+                assume_facility=spec.hospital in facility_only,
+            )
+        finally:
+            # One system's copy at a time: the largest is about 2.1 GB, and the
+            # replica has 8 GiB of disk for everything.
+            if spooled is not None:
+                spool.remove(spooled)
         runs.append(run)
         if on_system is not None:
             on_system(run)
+    if spool_dir is not None:
+        spool.remove(spool_dir / "payer_rates")
     return runs
+
+
+def _spooled_or(
+    remote: ds.Dataset,
+    source: Location,
+    copied: Path,
+    base: Path,
+    on_spool: spool.SpoolHook | None,
+) -> ds.Dataset:
+    """The spooled dataset, or ``remote`` itself if the copy does not match it."""
+    try:
+        return spool.open_like(remote, source, copied, base)
+    except spool.SpoolMismatch as exc:
+        if on_spool is not None:
+            on_spool("spool_mismatch", source=source.root, detail=str(exc)[:300])
+        return remote
 
 
 def tables(runs: list[Reconciliation]) -> dict[str, Any]:
@@ -450,6 +505,12 @@ def write(
             file_options=ds.ParquetFileFormat().make_write_options(compression=compression),
             basename_template="part-{i}.parquet",
             existing_data_behavior="delete_matching",
+            # In the table's own order. ``rates`` arrives as many record batches,
+            # and a threaded write interleaved them: the same input gave two
+            # different files across six runs, same rows, different order. Gold
+            # that is not reproducible cannot be checked by checksum, and the
+            # spool's proof is a checksum (pipeline.spool).
+            preserve_order=True,
         )
         written[name] = table.num_rows
     return written

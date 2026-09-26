@@ -407,6 +407,28 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
+- **Prove the mart's spool on the 2026-10-01 run, and measure its reads.** Built and merged:
+  the mart copies each system's silver to container disk once and scans the copy
+  (`src/pipeline/spool.py`). *Before:* 4,979,846 storage read operations on 2026-09-23
+  over 28 system reconciliations, about 178,000 per system-run, or about 1.25M for a
+  seven-system month. *Proof so far:* gold is byte-identical with and without it on a
+  synthetic lake in CI (`tests/pipeline/test_spool.py`). On that lake, counted through a
+  filesystem that tallies what ADLS bills, reads fell from 183 to 31. The real-system
+  proof could not run locally: the laptop was over its 12 GB limit with the mart's
+  process at 1.4 GB, so it was stopped. *On 2026-10-02:* run
+  `scripts/verify_gold_baseline.py docs/measurements/white-plains-gold-2026-09-23.json`
+  against the lake (about 1 MB of reads), and read 2026-10-01's "Hot LRS Read Operations"
+  from Cost Management for the "after". Found on the way: `rates` was not reproducible;
+  a threaded write put the same rows in two orders across six runs of one input.
+  `preserve_order=True` fixes it. The 2026-09-23 `rates` file is therefore compared by
+  its rows, not its bytes.
+- **Azure free credit expires around 2026-10-13. Decision pending:** move the
+  subscription to pay-as-you-go, or let the cloud pipeline lapse. The live app does not
+  depend on Azure. It reads the committed `summary/`, so it keeps working either way,
+  frozen at the last snapshot. Lapsing stops the monthly mart, triage and report, the
+  summary snapshot (it reads ADLS), and the lake itself once the subscription is
+  disabled. Pay-as-you-go keeps them at September's measured rate: $4.30, most of it
+  read operations the spool is meant to remove.
 - **Switch reckoner-ny to the analyst app: on or after 2026-10-02.** `analyst_app.py`
   (rankings, pair detail, code lookup, coverage; #101) is merged and tested, but the live
   URL stays on `streamlit_app.py` until the 2026-10-01 mart run and the 2026-10-02
