@@ -169,6 +169,62 @@ billing.
 
 ## Results
 
+### The agent, measured: Gemini 3.5 Flash Lite on a 60-finding sample
+
+Run on 2026-09-26 on the Gemini API free tier ($0 billed). The sample is
+`--sample` at seed 20260926: all 29 findings the rules left `unexplained`, plus
+31 stratified by rule and system. The rules are scored on the same 60.
+
+| triager | precision | coverage | correct | wrong | to human |
+|---|---|---|---|---|---|
+| rules | 0.000 | 0.517 | 0 | 31 | 0 |
+| agent, `gemini-3.5-flash-lite` | **0.952** | 0.350 | 20 | 1 | 39 |
+
+All 60 calls succeeded on the first attempt, using 38,218 input tokens and
+6,904 output. No answer failed validation. The gate passes at precision 0.952.
+The two runs before this one produced no score: `gemini-2.5-flash` returned a
+404, and `gemini-3.8-flash` hit its 20-a-day cap (silent failure #15).
+
+**What the answers have in common.** The table below reads only the queue's
+fields and the agent's own outputs. Nothing here was used to change a prompt, a
+threshold or a rule.
+
+- **It is confident about one thing.** All 21 accepted answers came on the
+  first attempt, at 0.85 or 0.90. 20 of them are `units_or_methodology`, and
+  every one of those sits 3× or more from the insurer's median (median 7.8×).
+  That is the one cause the labels are dominated by, and the one cause
+  `validate` can check (a ratio of 3× or more).
+- **The 39 held back are the same answer, said with less certainty, plus
+  everything else.** Of the 43 findings 3× or more apart, 21 still went to the
+  human queue. 20 of those proposed `units_or_methodology`, the same cause the
+  accepted ones gave, at 0.50–0.75. Their reasoning often names the likely
+  mechanism itself: professional against technical component, per diem, per
+  unit. The 17 findings within 3× never cleared 0.80. Those answers were 11
+  `insufficient_evidence`, 3 `genuine_disagreement`, 2 `vintage_artifact`
+  and 1 `contract_offset`. Near the median, the agent has no confident answer.
+- **The findings it exists for are mostly still open.** It settled 9 of the 29
+  rule-`unexplained` findings (8 right, 1 wrong). The other 20 went to a
+  person.
+- **The one wrong answer sits on a boundary.** CPT 84702 (a lab test), Northwell
+  (Huntington Hospital) against Cigna: the hospital publishes $346.87, and the
+  insurer's three rates run $31.22–$35.12. That is 9.9× apart, just under the
+  10× at which the mart sets a pair aside as implausible. The agent called it
+  `data_error` ("such a large magnitude discrepancy for a standard lab code");
+  the label says `units_or_methodology`. Nothing deterministic separates the two
+  causes at that distance. `validate` checks a ratio for units, but has no
+  precondition for a data error. It was the only answer 3× or more apart that
+  named something other than units.
+
+**What this does and does not show.** The agent is a precise, cautious
+classifier of unit and component mismatches. It says so when it isn't sure,
+and it rarely claims anything else. The sample is 60 findings, one model on one
+day, and the labels are 84% one cause. So the 0.952 is a measure of that one
+skill, with a wide interval at n=21. Coverage is what it costs: 0.35, with
+most of the residual still going to a person. The component-pricing detector in
+`docs/BUILT_VS_PLANNED.md` would settle the confident cases deterministically
+and leave the agent the harder ones. Only a re-labelled queue can say how it
+does on those.
+
 ### The rules baseline scores zero, by construction
 
 Over all 250 labels: **precision 0.000, coverage 0.884** (221 wrong, 29

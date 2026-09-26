@@ -92,11 +92,13 @@ Landed: hospital ingest, the Medicare benchmark, the payer TiC reader, the
 comparability and variance layers, the A2 matchers at payer and plan level, and
 A4's deterministic half (`agents/ingest_monitor.py`, wired into the daily
 snapshot), A3's (`hospital/conformance.py`, wired into the ingest) and A1's
-(`agents/variance_triage.py`, reported by the pairs mart). No generative half is
-built. For A3 and A4 the block is evidence rather than capability: every manifest
-diff so far reports no change, and no hospital file in the corpus is
-non-conforming. A1 is the exception -- its residual is real, 718 ranked items
-from one shard of one system, so its block is labels and effort. Note that a file yielding
+(`agents/variance_triage.py`, reported by the pairs mart). A1's generative half
+is built and measured: 250 human labels, and Gemini 3.5 Flash Lite (free tier) on
+a 60-finding sample scored precision 0.952 at coverage 0.350, against the rules'
+0.000 (`docs/labelling-a1.md`). It is not yet wired into the report. A3 and A4
+have no generative half; their block is evidence rather than capability: every
+manifest diff so far reports no change, and no hospital file in the corpus is
+non-conforming. Note that a file yielding
 zero rows is usually correct -- Mount Sinai Brooklyn publishes 217,957 charge
 items with no payer rates at all -- so `no_negotiated_rates` is the expected
 verdict there, not a defect.
