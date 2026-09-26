@@ -143,6 +143,12 @@ class TriageScore:
     #: Of those, the findings the triager sent to the human queue: refused,
     #: low confidence or out of attempts. The rules never route one.
     routed_to_human: int = 0
+    #: Findings whose call failed outright (a wrong model, a rejected key). Not
+    #: abstentions: the triager was never asked. Any at all and there is no
+    #: score -- 250 fatal 404s were once reported as 250 abstentions and a
+    #: coverage figure (silent failure #15).
+    errors: int = 0
+    first_error: str = ""
     per_cause: dict[str, dict[str, int]] = field(default_factory=dict)
     confusion: dict[str, dict[str, int]] = field(default_factory=dict)
     calls: int = 0
@@ -158,17 +164,26 @@ class TriageScore:
     @property
     def precision(self) -> float | None:
         answered = self.correct + self.wrong
-        return self.correct / answered if answered else None
+        if self.status != "scored" or not answered:
+            return None
+        return self.correct / answered
 
     @property
     def coverage(self) -> float | None:
-        return (self.correct + self.wrong) / self.scored if self.scored else None
+        if self.status != "scored" or not self.scored:
+            return None
+        return (self.correct + self.wrong) / self.scored
 
     def summary(self) -> str:
         if self.status == "no_labels":
             return (
                 f"{self.triager:<6} not measured: no labelled findings "
                 f"({self.unmatched_labels} labels did not match the queue)"
+            )
+        if self.status == "errored":
+            return (
+                f"{self.triager:<6} not measured: {self.errors} of {self.scored} findings "
+                f"never got an answer. First error: {self.first_error[:240]}"
             )
         precision = "n/a" if self.precision is None else f"{self.precision:.3f}"
         coverage = "n/a" if self.coverage is None else f"{self.coverage:.3f}"
@@ -219,6 +234,10 @@ def score(
 
     for label in matched:
         outcome = outcomes.get(label.key)
+        if outcome is not None and outcome.errored:
+            result.errors += 1
+            result.first_error = result.first_error or outcome.reason
+            continue
         proposal = outcome.proposal if outcome and outcome.accepted else None
         if outcome is not None and not outcome.accepted:
             result.routed_to_human += 1
@@ -238,6 +257,8 @@ def score(
         else:
             result.wrong += 1
 
+    if result.errors:
+        result.status = "errored"
     if log is not None:
         summary = log.summary()
         result.calls = int(summary["calls"])
@@ -254,6 +275,8 @@ def gate(result: TriageScore, min_precision: float = MIN_PRECISION) -> tuple[boo
     """
     if result.status == "no_labels":
         return False, "not measured: there are no labelled findings yet"
+    if result.status == "errored":
+        return False, f"not measured: {result.errors} calls failed before any answer"
     if result.precision is None:
         return False, "the triager abstained on every labelled finding"
     if result.precision < min_precision:
@@ -265,6 +288,10 @@ def gate(result: TriageScore, min_precision: float = MIN_PRECISION) -> tuple[boo
 
 
 def append_result(result: TriageScore, path: Path = RESULTS) -> None:
+    if result.status == "errored":
+        # The last line of defence: history is what a README number is read
+        # from, and a run whose calls failed has no number to give it.
+        raise ValueError(f"refusing to record an errored run: {result.first_error[:200]}")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(result.to_record(), ensure_ascii=False) + "\n")
@@ -310,7 +337,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(result.summary())
     passed, why = gate(result)
     print(f"gate: {'pass' if passed else 'hold'} -- {why}")
-    if args.record and result.status != "no_labels":
+    if args.record and result.status == "scored":
         append_result(result)
     return 0
 

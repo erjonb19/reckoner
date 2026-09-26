@@ -92,9 +92,11 @@ The script changes nothing about the agent: the prompt, validator, retry bound
 and 0.80 review threshold are the ones written before any label existed. Two
 settings are specific to Gemini, and neither was chosen against the labels:
 
-- A fixed thinking budget of 1,024 tokens, within a 4,096-token output ceiling.
-  Flash's thinking tokens share its output allowance, and without room for
-  both, an answer can be cut off mid-JSON.
+- For 2.5 models only, a fixed thinking budget of 1,024 tokens, within a
+  4,096-token output ceiling. Flash's thinking tokens share its output
+  allowance, and without room for both, an answer can be cut off mid-JSON.
+  Later models use a different thinking control, so they are left at their own
+  default.
 - A 30-second backoff on a 429, in place of 2 seconds, because the free tier
   limits requests per minute.
 
@@ -107,6 +109,15 @@ and every call to `calls.jsonl` as it is made. **Run the same command again,
 the next day if need be, and it continues where it stopped.** Each invocation
 prints how many findings it completed and appends a line to `runs.jsonl`.
 `--max-requests` (default 250) caps a single invocation.
+
+**A failed call is not an abstention.** If the API rejects the request itself,
+say for a retired model name or an invalid key, the finding is an `error`, not a
+human-queue entry. The run stops after three such errors, prints the first,
+exits non-zero, and records nothing. On 2026-09-26, `gemini-2.5-flash` answered
+every call with a 404 ("no longer available to new users"), and before this
+guard the run was recorded as 250 abstentions (`docs/silent-failures.md`, #15).
+To use another model, pass `--model`, and `--list-price IN OUT` if the price
+table lacks it.
 
 The score is computed and recorded only once all 250 labelled findings have an
 outcome. The findings that happen to come first are not a sample of the labels.

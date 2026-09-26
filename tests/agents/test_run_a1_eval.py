@@ -26,6 +26,7 @@ from agents.triage_agent import (
     TriageAgent,
     is_daily_cap,
     is_retryable,
+    item_key,
 )
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "run_a1_eval.py"
@@ -350,3 +351,114 @@ class TestTheCommand:
 
         assert runner.main(["--provider", "anthropic"]) == 2
         assert "--budget-usd" in capsys.readouterr().err
+
+
+GONE = APIError(
+    404,
+    "NOT_FOUND. This model models/gemini-2.5-flash is no longer available to new users.",
+)
+
+
+class TestFatalErrorsAreNotAbstentions:
+    """Silent failure #15: 250 fatal 404s were scored as 250 abstentions."""
+
+    def test_a_fatal_call_is_an_error_not_a_human_route(self):
+        outcome = gemini_agent(Gemini([GONE])).triage_one(finding("1"))
+
+        assert outcome.errored and not outcome.accepted
+        assert "no longer available" in outcome.reason
+
+    def test_errored_outcomes_leave_no_score_and_no_record(self, tmp_path: Path):
+        from agents.triage_evals import TriageLabel, append_result, gate, score
+
+        rows = [finding(str(i)) for i in range(3)]
+        labels = [TriageLabel(item_key(r), "units_or_methodology") for r in rows]
+        agent = gemini_agent(Gemini([GONE] * 3))
+
+        result = score(agent, rows, labels)
+
+        assert result.status == "errored" and result.errors == 3
+        assert result.precision is None and result.coverage is None
+        assert result.abstained == 0 and result.routed_to_human == 0
+        assert gate(result)[0] is False
+        assert "no longer available" in result.summary()
+        with pytest.raises(ValueError, match="errored"):
+            append_result(result, tmp_path / "results.jsonl")
+
+    def test_the_run_stops_after_a_few_and_keeps_nothing(self, tmp_path: Path):
+        client = Gemini([GONE] * 50)
+        path = tmp_path / "outcomes.jsonl"
+        agent = runner.Resumable(gemini_agent(client), path)
+
+        agent.triage([finding(str(i)) for i in range(50)])
+
+        assert len(client.requests) == runner.MAX_FATAL
+        assert "fatal API errors" in agent.stopped
+        assert not path.exists(), "failed findings are retried next run, not remembered"
+
+    def test_the_human_queue_holds_no_errors(self, tmp_path: Path):
+        from agents.triage_agent import Outcome, write_human_queue
+
+        rows = [finding("1"), finding("2")]
+        outcomes = [
+            Outcome(item_key(rows[0]), "error", "fatal API error: 404", 1),
+            Outcome(item_key(rows[1]), "human", "low confidence (0.50)", 1),
+        ]
+
+        assert write_human_queue(outcomes, rows, tmp_path / "h.csv") == 1
+
+
+class TestTheCommandOnAFatalError:
+    def test_it_prints_the_error_exits_nonzero_and_records_nothing(
+        self, tmp_path: Path, monkeypatch, capsys
+    ):
+        queue, labels = write_inputs(tmp_path, 10)
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(
+            runner,
+            "provider_for",
+            lambda name, model, key, rpm: GeminiProvider(
+                Gemini([GONE] * 10), model, requests_per_minute=0, sleep=lambda _: None
+            ),
+        )
+        results = tmp_path / "results.jsonl"
+
+        code = runner.main(
+            [
+                "--queue",
+                str(queue),
+                "--labels",
+                str(labels),
+                "--runs",
+                str(tmp_path / "runs"),
+                "--results",
+                str(results),
+                "--rpm",
+                "0",
+                "--record",
+            ]
+        )
+
+        captured = capsys.readouterr()
+        assert code == 1
+        assert "no longer available to new users" in captured.err
+        assert "not scored" in captured.out
+        assert not results.exists()
+
+
+class TestModelSettings:
+    def test_a_later_model_is_not_sent_the_2_5_thinking_budget(self):
+        client = Gemini()
+        clock = Clock()
+        provider = GeminiProvider(
+            client, "gemini-3.8-flash", requests_per_minute=0, sleep=clock.sleep, clock=clock
+        )
+        TriageAgent(provider, sleep=clock.sleep, clock=clock).triage_one(finding("1"))
+
+        assert "thinking_config" not in client.requests[0]["config"]
+
+    def test_2_5_keeps_its_budget(self):
+        client = Gemini()
+        gemini_agent(client).triage_one(finding("1"))
+
+        assert client.requests[0]["config"]["thinking_config"] == {"thinking_budget": 1024}

@@ -397,6 +397,45 @@ caveat is gone.
 
 ---
 
+## 15. A model that did not exist, scored as a cautious one
+
+**Symptom.** A1's first Gemini run on 2026-09-26 reported a finished
+evaluation. 250 findings, 250 calls, a coverage figure and a line in
+`evals/triage_results.jsonl`. Every call in `calls.jsonl` read
+`api_error_fatal` with zero tokens.
+
+**Cause.** The model was gone. Google answered every request with
+`404 NOT_FOUND`: "This model models/gemini-2.5-flash is no longer available to
+new users", naming `gemini-3.8-flash` instead. The key was fine, because a bad
+key fails earlier with a 400. The agent did what it was built to do with a
+non-retryable error: it routed each finding to the human queue. The scorer did
+what it was built to do with a human-queue finding: it counted it as an
+abstention, which lowers coverage and leaves precision alone. Two correct rules
+composed into a wrong result. "The model was never asked" became "the model
+declined to answer 250 times", and the runner recorded it as a score.
+
+**Why it belongs in this file.** Nothing crashed. The harness is built to treat
+abstention as honest, which is right for a model and exactly wrong for a
+request that never reached one. The call log had the truth, a zero in every
+token column, and nothing read it.
+
+**Caught by.** Reading `calls.jsonl` after the run. There are now three guards:
+
+- **The agent.** A fatal API error is its own outcome, `error`, never a human
+  route.
+- **The scorer.** One errored outcome makes the whole score `errored`, with no
+  precision or coverage, the gate held, and `append_result` refusing to record
+  it.
+- **The runner.** It stops after three fatal errors, prints the first one,
+  exits non-zero, and does not save errored findings, so the next run retries
+  them.
+
+`TestFatalErrorsAreNotAbstentions` and `TestTheCommandOnAFatalError` replay this
+exact 404. The false score was removed from the history before it was
+committed.
+
+---
+
 ## Earlier, same family
 
 Two from before this file existed, kept because they are the same shape:
