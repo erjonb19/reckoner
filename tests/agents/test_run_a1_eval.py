@@ -11,6 +11,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -306,11 +307,11 @@ class TestTheCommand:
     @pytest.fixture(autouse=True)
     def stubbed(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
-        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-2.5-flash"])
+        monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
             "provider_for",
-            lambda name, model, key, rpm: GeminiProvider(
+            lambda name, model, key, rpm, client=None: GeminiProvider(
                 Gemini(), model, requests_per_minute=0, sleep=lambda _: None
             ),
         )
@@ -415,11 +416,11 @@ class TestTheCommandOnAFatalError:
     ):
         queue, labels = write_inputs(tmp_path, 10)
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
-        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-2.5-flash"])
+        monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
             "provider_for",
-            lambda name, model, key, rpm: GeminiProvider(
+            lambda name, model, key, rpm, client=None: GeminiProvider(
                 Gemini([GONE] * 10), model, requests_per_minute=0, sleep=lambda _: None
             ),
         )
@@ -573,7 +574,7 @@ class TestTheCommandWithASample(TestTheCommand):
 class TestTheModelCheck:
     def test_a_model_the_key_cannot_use_stops_before_any_call(self, tmp_path, monkeypatch, capsys):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
-        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-3.5-flash-lite"])
+        monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-3.5-flash-lite"])
         monkeypatch.setattr(runner, "provider_for", lambda *a: pytest.fail("no call"))
 
         assert runner.main(["--model", "gemini-2.5-flash"]) == 2
@@ -581,7 +582,106 @@ class TestTheModelCheck:
 
     def test_list_models_prints_and_stops(self, monkeypatch, capsys):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
-        monkeypatch.setattr(runner, "gemini_models", lambda key: ["a-model", "b-model"])
+        monkeypatch.setattr(runner, "gemini_models", lambda client: ["a-model", "b-model"])
 
         assert runner.main(["--list-models"]) == 0
         assert capsys.readouterr().out.split() == ["a-model", "b-model"]
+
+
+class Connection:
+    """The HTTP connection a google-genai client owns and closes."""
+
+    def __init__(self) -> None:
+        self.closed = False
+        self.generated = 0
+
+    def check(self) -> None:
+        if self.closed:
+            raise RuntimeError("Cannot send a request, as the client has been closed.")
+
+
+class Models:
+    """Like the SDK's: holds the connection, not the client."""
+
+    def __init__(self, connection: Connection) -> None:
+        self.connection = connection
+
+    def list(self) -> Iterator[SimpleNamespace]:
+        """A lazy pager, as the SDK returns: nothing is sent until iterated."""
+
+        def pager() -> Iterator[SimpleNamespace]:
+            self.connection.check()
+            yield SimpleNamespace(
+                name="models/gemini-3.5-flash-lite", supported_actions=["generateContent"]
+            )
+            yield SimpleNamespace(name="models/text-embedding", supported_actions=["embedContent"])
+
+        return pager()
+
+    def generate_content(self, **_: Any) -> SimpleNamespace:  # noqa: ANN401
+        self.connection.check()
+        self.connection.generated += 1
+        return gemini_response()
+
+
+class SdkLikeClient:
+    """Closes its connection when nothing references it, as Client.__del__ does."""
+
+    def __init__(self, connection: Connection) -> None:
+        self.connection = connection
+        self.models = Models(connection)
+
+    def __del__(self) -> None:
+        self.connection.closed = True
+
+
+class TestOneClientForTheWholeRun:
+    """The run once failed before any finding: 'the client has been closed'."""
+
+    def test_the_fake_reproduces_the_bug(self):
+        """Without this, the test below could pass against a fake that never closes."""
+        connection = Connection()
+
+        with pytest.raises(RuntimeError, match="has been closed"):
+            list(SdkLikeClient(connection).models.list())
+
+    def test_the_model_check_then_calls_on_the_same_client(
+        self, tmp_path: Path, monkeypatch, capsys
+    ):
+        connection = Connection()
+        made: list[SdkLikeClient] = []
+
+        def client(key: str) -> SdkLikeClient:
+            made.append(SdkLikeClient(connection))
+            return made[-1]
+
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_client", client)
+        made.clear()
+        queue, labels = write_inputs(tmp_path, 3)
+
+        code = runner.main(
+            [
+                "--model",
+                "gemini-3.5-flash-lite",
+                "--queue",
+                str(queue),
+                "--labels",
+                str(labels),
+                "--runs",
+                str(tmp_path / "runs"),
+                "--results",
+                str(tmp_path / "r.jsonl"),
+                "--rpm",
+                "0",
+                "--list-price",
+                "0.1",
+                "0.4",
+            ]
+        )
+
+        err = capsys.readouterr().err
+        assert "could not list models" not in err
+        assert code == 0
+        assert len(made) == 1, "one client, for the listing and every call"
+        assert connection.generated == 3

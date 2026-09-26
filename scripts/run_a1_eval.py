@@ -162,24 +162,39 @@ class Resumable:
         return all(item_key(row) in self.done for row in self.rows)
 
 
-def gemini_models(key: str) -> list[str]:
-    """The model ids this key may call generateContent on. Listing is not a
-    generation request, so it does not count against the daily cap."""
+def gemini_client(key: str) -> Any:  # noqa: ANN401 - a google.genai.Client
+    """The one client a run uses, for the model list and every call.
+
+    Held by the caller for the whole run. google-genai's ``Client.__del__``
+    closes its connection, so a client nothing references is closed at once:
+    ``genai.Client(...).models.list()`` iterated a pager over a client already
+    gone, and failed with "the client has been closed" before any finding.
+    """
     from google import genai
 
+    return genai.Client(api_key=key)
+
+
+def gemini_models(client: Any) -> list[str]:  # noqa: ANN401
+    """The model ids this client may call generateContent on. Listing is not a
+    generation request, so it does not count against the daily cap."""
     names = []
-    for model in genai.Client(api_key=key).models.list():
+    for model in client.models.list():
         actions = getattr(model, "supported_actions", None) or []
         if "generateContent" in actions:
             names.append(str(model.name).removeprefix("models/"))
     return sorted(names)
 
 
-def provider_for(name: str, model: str, key: str, rpm: float) -> Provider:
+def provider_for(
+    name: str,
+    model: str,
+    key: str,
+    rpm: float,
+    client: Any = None,  # noqa: ANN401 - the run's Gemini client
+) -> Provider:
     if name == "gemini":
-        from google import genai
-
-        return GeminiProvider(genai.Client(api_key=key), model, requests_per_minute=rpm)
+        return GeminiProvider(client or gemini_client(key), model, requests_per_minute=rpm)
     import anthropic
 
     return AnthropicProvider(anthropic.Anthropic(api_key=key), model)
@@ -251,11 +266,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     run_dir = args.runs / f"{args.provider}-{model}"
     log = CallLog.resume(run_dir / "calls.jsonl")
     before_calls = log.calls
+    client = None
     if args.provider == "gemini":
         # Before any finding: a model the key cannot use fails here, once, with
         # the list it can use -- not 250 times as a score (silent failure #15).
+        # The same client, held here, then makes every call.
+        client = gemini_client(key)
         try:
-            available = gemini_models(key)
+            available = gemini_models(client)
         except Exception as exc:  # the key itself, or the network
             message = str(exc).replace(key, "[redacted]")
             print(f"could not list models: {type(exc).__name__}: {message}", file=sys.stderr)
@@ -269,7 +287,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-    provider: Provider = provider_for(args.provider, model, key, args.rpm)
+    provider: Provider = provider_for(args.provider, model, key, args.rpm, client)
     if args.budget_usd is not None:
         provider = Budgeted(provider, log, args.budget_usd)
     provider = Capped(provider, args.max_requests)
