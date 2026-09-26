@@ -38,6 +38,10 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "types-PyYAML",
+    # The analyst page's charts are real Altair even under the page tests'
+    # stubbed Streamlit, so the chart code runs in CI. Streamlit itself is not
+    # needed here; Community Cloud installs it from requirements.txt.
+    "altair>=5",
 ]
 
 [project.scripts]
