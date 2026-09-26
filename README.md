@@ -6,9 +6,12 @@ explains why.
 
 Hospitals publish under the Hospital Price Transparency rule (45 CFR 180).
 Insurers publish under Transparency in Coverage. Both describe rates for the same
-care at the same facilities, and they do not agree. CMS has formally named the
-misalignment between the two as a barrier to price transparency, in the
-Departments' December 2025 proposed rule ([`docs/SPEC.md`](docs/SPEC.md)).
+care at the same facilities, and they do not agree. The Departments named the
+misalignment between the two rules as a barrier to price transparency in a
+proposed rule: [Transparency in Coverage, CMS-9882-P, 90 FR 60432 (Dec 23,
+2025)](https://www.federalregister.gov/documents/2025/12/23/2025-23693/transparency-in-coverage).
+The preamble itself identifies the difficulty of comparing hospital files with
+Transparency in Coverage files. That difficulty is what this project measures.
 
 This is a personal project — deployed, scheduled, monitored and tested, but
 serving no users and supporting no one's decisions.
@@ -191,8 +194,16 @@ out-of-memory failures, and the rebuilds' reads of the lake cost $2.49 in read
 operations that day. The same rebuilds went past the Container Apps grant of 180,000
 vCPU-seconds; 14,375 were billed. The environment management meter still does not
 apply (Consumption only, no VNet), and stored data is about 5.3 GB, just over the
-5 GB free allowance. A monthly run's read operations are the recurring cost to watch:
-the 1 October run is the first full measurement.
+5 GB free allowance.
+
+**Read operations are now cut at the source.** The mart used to scan silver in
+ADLS dozens of times per system, one code shard at a time, at about 178,000 read
+operations per system-run on 2026-09-23. It now copies each system's silver to
+the container's disk once, in 64 MiB chunks, and scans the copy
+(`src/pipeline/spool.py`). The same files are read in the same order, so gold is
+byte-identical. That is proven in CI on a synthetic lake, and it will be proven on
+White Plains against the 2026-09-23 gold after the 1 October run
+(`docs/measurements/`). That run also gives the real "after" count.
 
 ### Status: the cloud mart
 

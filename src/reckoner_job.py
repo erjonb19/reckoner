@@ -334,6 +334,20 @@ def run_load_profile() -> int:
     return 0
 
 
+#: Where the mart copies the silver it scans (pipeline.spool). Container disk,
+#: 8 GiB on this job; "off" reads the lake directly, as the mart did before.
+SPOOL_ENV = "RECKONER_SPOOL_DIR"
+
+
+def spool_dir(env: dict[str, str] | None = None) -> Path | None:
+    import tempfile
+
+    value = ((os.environ if env is None else env).get(SPOOL_ENV) or "").strip()
+    if value.lower() == "off":
+        return None
+    return Path(value) if value else Path(tempfile.gettempdir()) / "reckoner-spool"
+
+
 def run_mart() -> int:
     """Stage 2: reconcile silver into gold.
 
@@ -429,12 +443,17 @@ def run_mart() -> int:
     def shard_split(prefix: str, rows: int, children: int) -> None:
         log("mart_subsharded", prefix=prefix, payer_rows=rows, children=children)
 
+    def spool_event(event: str, **fields: object) -> None:
+        log(f"mart_{event}", **fields)
+
     runs = mart.build(
         location,
         only=only,
         on_shard=shard_done,
         on_system=system_done,
         on_plan=shard_split,
+        spool_dir=spool_dir(),
+        on_spool=spool_event,
     )
     if not runs:
         log("mart_no_systems", detail="nothing reconcilable; silver may be missing")

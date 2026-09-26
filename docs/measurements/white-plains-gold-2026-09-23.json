@@ -1,0 +1,64 @@
+{
+ "what": "White Plains gold in lake/gold as written on 2026-09-23 by reckoner-mart (execution reckoner-mart-7nuue9i, code at ede0752) and the chained triage stage. The baseline the first spooled run (2026-10-01) must reproduce: check it with scripts/verify_gold_baseline.py.",
+ "read_at": "2026-09-26",
+ "files": {
+  "codes/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "b72654a0f3765806aa50322718576a4a2ef68f7ef5e386d94689770624fa05b8",
+   "bytes": 501839,
+   "written": "2026-09-23 20:36:58"
+  },
+  "coverage/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "5e8de0c06d54864826b8a503f0990ff3157a3514fc86408f60613f71a9d4b769",
+   "bytes": 4762,
+   "written": "2026-09-23 20:36:56"
+  },
+  "exemplars/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "c5fb3520b130079ecb65860dae30dfa4778de33b3ec7317834af42808fe67e86",
+   "bytes": 8673,
+   "written": "2026-09-23 20:36:57"
+  },
+  "magnitude/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "46852017abd42c9196a81cdaf1ee25e5663041c6b193ded1482dabe50ca2b9e4",
+   "bytes": 2786,
+   "written": "2026-09-23 20:36:57"
+  },
+  "outcomes/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "e451c5f130c5dc88d45f50399f4bac86318e2f7ab32089e0bcd504e024734cbf",
+   "bytes": 2839,
+   "written": "2026-09-23 20:36:56"
+  },
+  "pairs/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "e1f9f9fa8a76ab0bf6547a34a0e4441e3eff37952b4789bd5ad2af85fdd68272",
+   "bytes": 4391,
+   "written": "2026-09-23 20:36:57"
+  },
+  "rates/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "072e0f9c151fd256e9f883578f41429929ae450ec2287099e47bdc15fe6dcb16",
+   "bytes": 385149,
+   "written": "2026-09-23 20:36:58"
+  },
+  "refusals/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "981795d837b7d3c74cdc161a7a40288f83a24bc512dfa4cf2804b131ef7bbdfd",
+   "bytes": 2795,
+   "written": "2026-09-23 20:36:57"
+  },
+  "residual/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "d0d9b34b6f97c044087fabd665fcbc6c25bd1f0128206a4e4ddce6ba896aeba5",
+   "bytes": 13034,
+   "written": "2026-09-23 20:36:57"
+  },
+  "triage_queue/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "41c473fc33ccda133d60bc5133ca91827871efe0c8638ea375fd222c0c3c8f3d",
+   "bytes": 10427,
+   "written": "2026-09-23 18:41:38"
+  },
+  "triage_summary/hospital_slug=white-plains-hospital/part-0.parquet": {
+   "sha256": "bd9a35928b4f4403abc0f0b1554d07b4189f0b3548e5c48f14d07bcc4f89206f",
+   "bytes": 2582,
+   "written": "2026-09-23 18:41:38"
+  }
+ },
+ "rates_rows_sorted_sha256": "55bd6ed786c28000853655845ae57a6ca4721781594df3d69b658ea9eb34ecc4",
+ "rates_rows": 48728,
+ "note_on_rates": "rates was written before preserve_order=True, so its row order was not reproducible (two orders across six runs of one input). Compare it by rows_sorted_sha256: every row serialized as sorted-key JSON, the lines sorted, then hashed. The other eight mart tables compare by file sha256."
+}
