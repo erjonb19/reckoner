@@ -179,8 +179,9 @@ account for **166 of 200** findings: 91 near-offset and 75 vintage. **34 stay
 labels are in: all 250 findings.** The rules baseline scores precision 0.000 and coverage
 0.884. That is by construction: its only `units_or_methodology` route needs a ratio of 10×
 or more, which never occurs in the queue, and 210 of the 250 labels are that cause
-(`docs/labelling-a1.md`). `scripts/run_a1_eval.py` runs the agent under a hard budget.
-The first real run is waiting on an API key.
+(`docs/labelling-a1.md`). `scripts/run_a1_eval.py` runs the agent behind a pluggable
+provider, Gemini 2.5 Flash on the free tier by default. It paces for rate limits and
+resumes after a daily cap. The first real run is waiting on a key.
 
 Two hypotheses about the residual were tested and **both failed**, which is why neither is a
 rule: ratios do not cluster near integers (8.5% within 5% of one, so not a units multiple),
@@ -400,9 +401,10 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
-- **A1's model run.** Labels are in and the runner is built
-  (`scripts/run_a1_eval.py --budget-usd 5`). What's missing is an API key on the machine
-  that runs it.
+- **A1's model run.** Labels are in, and the runner is built and resumable across days:
+  `scripts/run_a1_eval.py --provider gemini --record` runs Gemini 2.5 Flash on the free
+  tier. The provider is pluggable, and Anthropic stays available behind `--budget-usd`.
+  Waiting on a run with `GEMINI_API_KEY` set.
 - **A1 follow-up: a component-pricing detector in deterministic triage, then a stratified
   re-label.** *Motivation:* 210 of 250 A1 labels are `units_or_methodology`, nearly all
   component-versus-facility mismatches, so the agent's score on this queue mostly measures

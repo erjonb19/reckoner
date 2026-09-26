@@ -126,13 +126,18 @@ label.
 | triager | precision | coverage | human queue | cost |
 |---|---|---|---|---|
 | deterministic rules | 0.000 | 0.884 | 0 | $0 |
-| A1 agent (Opus 5) | not yet run | | | |
+| A1 agent (Gemini 2.5 Flash, free tier) | not yet run | | | |
 
 The gate is precision 0.90; neither triager may write a cause into a report
 until it passes. 210 of the 250 labels are one cause, units or methodology
 (mostly component-versus-facility pricing), so a score on this queue mostly
 measures that one skill; [`docs/labelling-a1.md`](docs/labelling-a1.md) explains
 this, and why the rules score zero.
+
+The agent runs on **Gemini 2.5 Flash on the Gemini API free tier**, so it bills
+$0. The cost column will show the paid tier's list-price equivalent, to keep it
+comparable. The score belongs to that model: a different model is a different
+result.
 
 ---
 

@@ -140,12 +140,20 @@ class TriageScore:
     wrong: int = 0
     #: Abstained or routed to a human.
     abstained: int = 0
+    #: Of those, the findings the triager sent to the human queue: refused,
+    #: low confidence or out of attempts. The rules never route one.
+    routed_to_human: int = 0
     per_cause: dict[str, dict[str, int]] = field(default_factory=dict)
     confusion: dict[str, dict[str, int]] = field(default_factory=dict)
     calls: int = 0
     cost_usd: float | None = 0.0
     mean_latency_ms: float = 0.0
     recorded_at: str = ""
+    #: What produced the answers. A model's score is a fact about that model:
+    #: another model, or the same one on another day, is another result.
+    provider: str = ""
+    model: str = ""
+    billing: str = ""
 
     @property
     def precision(self) -> float | None:
@@ -168,7 +176,8 @@ class TriageScore:
         return (
             f"{self.triager:<6} precision={precision} coverage={coverage} "
             f"(correct={self.correct} wrong={self.wrong} abstained={self.abstained} "
-            f"of {self.scored}; {self.unmatched_labels} unmatched) "
+            f"of {self.scored}; {self.routed_to_human} to human; "
+            f"{self.unmatched_labels} unmatched) "
             f"calls={self.calls} cost={cost} latency={self.mean_latency_ms:.0f}ms"
         )
 
@@ -211,6 +220,8 @@ def score(
     for label in matched:
         outcome = outcomes.get(label.key)
         proposal = outcome.proposal if outcome and outcome.accepted else None
+        if outcome is not None and not outcome.accepted:
+            result.routed_to_human += 1
         got = proposal.cause if proposal else "routed_to_human"
         result.confusion.setdefault(label.expected_cause, {})
         result.confusion[label.expected_cause][got] = (
