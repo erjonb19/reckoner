@@ -72,22 +72,59 @@ agent exists for.
 
 ## Running the agent itself
 
-The agent is never run from a flag, because every finding it sees is a billed
-call. It runs from a script that has to be invoked on purpose, with a budget:
+The agent is never run from a flag, because every finding it sees is a model
+call. It runs from a script that has to be invoked on purpose:
 
 ```
-ANTHROPIC_API_KEY=... python scripts/run_a1_eval.py --budget-usd 5 --record
+pip install -e .[agents]
+python scripts/run_a1_eval.py --provider gemini --record
 ```
 
-It needs the optional dependency (`pip install -e .[agents]`). The script
-changes nothing about the agent: the prompt, validator, retry bound and 0.80
-review threshold are the ones written before any label existed. It scores the
-rules and the agent on the same labels and writes the human queue to
-`evals/triage_human_queue.csv` and every call to `evals/triage_calls.jsonl`.
-Each attempt is logged with tokens, cost and latency, including failed attempts.
-Before each call it checks the budget against the worst case one call can cost,
-so spend cannot pass the budget. A finding the budget stops goes to the human
-queue with the reason, and the run reports how many there were.
+**Model: Gemini 2.5 Flash, on the Gemini API free tier.** The key is read from
+`GEMINI_API_KEY` and nowhere else. It is passed to the SDK, never logged or
+written, and scrubbed from any error text before that reaches the call log. The
+provider is pluggable (`src/agents/triage_agent.py`): `--provider anthropic`
+runs Claude instead, reads `ANTHROPIC_API_KEY`, and refuses to start without
+`--budget-usd`. Validation, bounded retries, the human queue and per-call
+logging are the same code for both.
+
+The script changes nothing about the agent: the prompt, validator, retry bound
+and 0.80 review threshold are the ones written before any label existed. Two
+settings are specific to Gemini, and neither was chosen against the labels:
+
+- A fixed thinking budget of 1,024 tokens, within a 4,096-token output ceiling.
+  Flash's thinking tokens share its output allowance, and without room for
+  both, an answer can be cut off mid-JSON.
+- A 30-second backoff on a 429, in place of 2 seconds, because the free tier
+  limits requests per minute.
+
+**The free tier.** Calls are paced at 10 a minute (`--rpm`). A per-minute 429
+that still arrives is retried within the usual three attempts. A **daily** cap
+ends the run instead, because retrying cannot clear it, and nothing is wrong
+with the finding. Each finding's outcome is written to
+`evals/a1_runs/gemini-gemini-2.5-flash/outcomes.jsonl` as soon as it is decided,
+and every call to `calls.jsonl` as it is made. **Run the same command again,
+the next day if need be, and it continues where it stopped.** Each invocation
+prints how many findings it completed and appends a line to `runs.jsonl`.
+`--max-requests` (default 250) caps a single invocation.
+
+The score is computed and recorded only once all 250 labelled findings have an
+outcome. The findings that happen to come first are not a sample of the labels.
+
+**Cost.** The free tier bills $0. Every call is still logged with its tokens,
+thinking tokens counted as output, and a **list-price-equivalent cost** at the
+paid tier's $0.30 per million input tokens and $2.50 per million output. That
+keeps this run comparable with a paid one, or with another model. Expect
+roughly $0.40 equivalent for the whole queue. Two things to know:
+
+- The free tier applies only when the key's Google Cloud project has no billing
+  account. On a billed project the same calls are charged at that list price.
+- Google may use free-tier prompts to improve its products. Every prompt here is
+  a row of public price-transparency data, with no PHI.
+
+The result is a fact about this model. Another model, or this one after an
+update, is another result, so the recorded score names its provider, model and
+billing.
 
 ## Results
 

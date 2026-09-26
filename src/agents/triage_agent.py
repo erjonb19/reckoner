@@ -37,7 +37,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 #: The model the agent calls unless told otherwise. Same as A2's LLM matcher.
 DEFAULT_MODEL = "claude-opus-5"
@@ -48,6 +48,10 @@ PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
     "claude-opus-5": (5.00, 25.00),
     "claude-sonnet-5": (2.00, 10.00),
     "claude-haiku-4-5": (1.00, 5.00),
+    # Paid-tier list price, output including thinking tokens. Recorded even on
+    # the free tier, which bills $0, so a run there is comparable to one that
+    # is not.
+    "gemini-2.5-flash": (0.30, 2.50),
 }
 
 #: Attempts per finding, including the first. A finding that fails this many
@@ -253,6 +257,7 @@ class CallRecord:
     latency_ms: float = 0.0
     detail: str = ""
     recorded_at: str = ""
+    provider: str = ""
 
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
@@ -270,9 +275,26 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
 @dataclass
 class CallLog:
     records: list[CallRecord] = field(default_factory=list)
+    #: When set, every record is also appended here the moment it is made, so a
+    #: run that stops -- on a daily cap, or a crash -- has already logged every
+    #: call it paid for, or would have paid for at list price.
+    sink: Path | None = None
 
     def add(self, record: CallRecord) -> None:
         self.records.append(record)
+        if self.sink is not None:
+            self.sink.parent.mkdir(parents=True, exist_ok=True)
+            with self.sink.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(asdict(record)) + "\n")
+
+    @classmethod
+    def resume(cls, sink: Path) -> CallLog:
+        """The log so far, from a sink an earlier run wrote, still appending to it."""
+        records = []
+        if sink.exists():
+            with sink.open(encoding="utf-8") as handle:
+                records = [CallRecord(**json.loads(line)) for line in handle if line.strip()]
+        return cls(records=records, sink=sink)
 
     @property
     def calls(self) -> int:
@@ -323,6 +345,23 @@ class Outcome:
     @property
     def accepted(self) -> bool:
         return self.routed == "accepted"
+
+    def to_json(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> Outcome:
+        raw = data.get("proposal")
+        proposal = (
+            Proposal(**{**raw, "evidence": tuple(raw.get("evidence") or ())}) if raw else None
+        )
+        return cls(
+            key=data["key"],
+            routed=data["routed"],
+            reason=data["reason"],
+            attempts=int(data["attempts"]),
+            proposal=proposal,
+        )
 
 
 OUTPUT_SCHEMA: dict[str, Any] = {
@@ -380,6 +419,25 @@ class ApiFailure(Exception):
         self.retryable = retryable
 
 
+class RunStopped(Exception):
+    """The run must end now, and the finding in hand is *not* done.
+
+    Raised for a daily request cap or a spent budget. Unlike a failed call, it
+    is not routed to a human: nothing is wrong with the finding, and routing it
+    would count an unattempted finding as an abstention. The runner records
+    what finished and resumes from the next finding on the next run.
+    """
+
+
+def _status(exc: BaseException) -> int | None:
+    # Anthropic's SDK names it status_code; google-genai's APIError names it code.
+    for attribute in ("status_code", "code"):
+        value = getattr(exc, attribute, None)
+        if isinstance(value, int):
+            return value
+    return None
+
+
 def is_retryable(exc: BaseException) -> bool:
     """Rate limits, server errors and dropped connections; nothing else.
 
@@ -387,11 +445,25 @@ def is_retryable(exc: BaseException) -> bool:
     runs, and is tested, without the SDK installed. A 4xx other than 408, 409
     and 429 is the request's fault and will fail identically on every retry.
     """
-    status = getattr(exc, "status_code", None)
-    if isinstance(status, int):
+    status = _status(exc)
+    if status is not None:
         return status in (408, 409, 429) or status >= 500
     name = type(exc).__name__
     return "Connection" in name or "Timeout" in name
+
+
+def is_daily_cap(exc: BaseException) -> bool:
+    """A 429 for a *per-day* quota: waiting minutes will not clear it.
+
+    Gemini's free tier answers both its per-minute and its per-day limits with
+    429 and names the quota in the message (``...PerDayPerProjectPerModel...``).
+    Retrying a daily cap burns attempts and then routes a finding to a human
+    for no reason of its own, so it ends the run instead.
+    """
+    if _status(exc) != 429:
+        return False
+    text = str(exc).lower()
+    return "perday" in text or "per day" in text or "requests per day" in text
 
 
 def _prompt(row: dict[str, Any], feedback: str) -> str:
@@ -405,20 +477,145 @@ def _prompt(row: dict[str, Any], feedback: str) -> str:
     return text
 
 
+# --- providers -----------------------------------------------------------------
+#
+# A provider makes one call and reports what came back. Everything that makes
+# the agent trustworthy -- validation, bounded retries, the human queue, the
+# call log -- stays in TriageAgent, so it is the same code whichever model runs.
+
+
+@dataclass(frozen=True)
+class Completion:
+    """One model response, reduced to what the agent needs."""
+
+    text: str
+    input_tokens: int = 0
+    #: Everything billed as output, including a model's thinking tokens.
+    output_tokens: int = 0
+    refused: bool = False
+
+
+class Provider(Protocol):
+    name: str
+    model: str
+
+    def complete(
+        self, *, system: str, prompt: str, schema: dict[str, Any], max_tokens: int
+    ) -> Completion: ...
+
+
+class AnthropicProvider:
+    """The Messages API, with structured output against the schema."""
+
+    name = "anthropic"
+
+    def __init__(self, client: Any, model: str = DEFAULT_MODEL) -> None:  # noqa: ANN401
+        self.client = client
+        self.model = model
+
+    def complete(
+        self, *, system: str, prompt: str, schema: dict[str, Any], max_tokens: int
+    ) -> Completion:
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={"format": {"type": "json_schema", "schema": schema}},
+        )
+        usage = getattr(response, "usage", None)
+        return Completion(
+            text="".join(
+                getattr(block, "text", "")
+                for block in getattr(response, "content", [])
+                if getattr(block, "type", "") == "text"
+            ),
+            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+            refused=getattr(response, "stop_reason", None) == "refusal",
+        )
+
+
+#: Gemini 2.5 Flash thinks by default, and its thinking tokens share the output
+#: allowance. A fixed thinking budget and a larger ceiling keep the answer from
+#: being cut off mid-JSON by its own reasoning.
+GEMINI_THINKING_BUDGET = 1024
+GEMINI_MAX_OUTPUT_TOKENS = 4096
+
+
+class GeminiProvider:
+    """The Gemini API through google-genai, paced for the free tier.
+
+    Pacing is the provider's job, not the loop's: the free tier allows a fixed
+    number of requests a minute, so calls are spaced at least ``60 / rpm``
+    seconds apart. A 429 that still arrives goes back to the loop's bounded
+    retries; a daily cap ends the run (:func:`is_daily_cap`).
+    """
+
+    name = "gemini"
+
+    def __init__(
+        self,
+        client: Any,  # noqa: ANN401 - a google.genai.Client, or a stub
+        model: str = "gemini-2.5-flash",
+        *,
+        requests_per_minute: float = 10,
+        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.client = client
+        self.model = model
+        self.interval = 60.0 / requests_per_minute if requests_per_minute > 0 else 0.0
+        self.sleep = sleep
+        self.clock = clock
+        self._last: float | None = None
+
+    def complete(
+        self, *, system: str, prompt: str, schema: dict[str, Any], max_tokens: int
+    ) -> Completion:
+        if self._last is not None:
+            wait = self.interval - (self.clock() - self._last)
+            if wait > 0:
+                self.sleep(wait)
+        self._last = self.clock()
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config={
+                "system_instruction": system,
+                "response_mime_type": "application/json",
+                "response_json_schema": schema,
+                "max_output_tokens": max(max_tokens, GEMINI_MAX_OUTPUT_TOKENS),
+                "thinking_config": {"thinking_budget": GEMINI_THINKING_BUDGET},
+            },
+        )
+        usage = getattr(response, "usage_metadata", None)
+        feedback = getattr(response, "prompt_feedback", None)
+        candidates = getattr(response, "candidates", None) or []
+        finish = str(getattr(candidates[0], "finish_reason", "") or "") if candidates else ""
+        return Completion(
+            text=getattr(response, "text", None) or "",
+            input_tokens=int(getattr(usage, "prompt_token_count", 0) or 0),
+            output_tokens=int(getattr(usage, "candidates_token_count", 0) or 0)
+            + int(getattr(usage, "thoughts_token_count", 0) or 0),
+            refused=bool(getattr(feedback, "block_reason", None)) or "SAFETY" in finish,
+        )
+
+
 class TriageAgent:
     """Propose, validate, retry within a bound, and route what is left to a human.
 
-    The client is injected so the loop is testable without a network and so a
-    caller can substitute a cached or batched client. It needs only
-    ``client.messages.create(**kwargs)`` returning an object with ``content``,
-    ``stop_reason`` and ``usage``.
+    The provider is injected so the loop is testable without a network, and so
+    the model behind it can change without the loop changing. A bare client
+    exposing ``client.messages.create(**kwargs)`` is wrapped as an Anthropic
+    provider, which is what every caller passed before providers existed.
     """
 
     name = "llm"
 
     def __init__(
         self,
-        client: Any,  # noqa: ANN401 - any object exposing .messages.create
+        client: Any,  # noqa: ANN401 - a Provider, or an Anthropic-style client
         *,
         model: str = DEFAULT_MODEL,
         max_attempts: int = MAX_ATTEMPTS,
@@ -427,17 +624,29 @@ class TriageAgent:
         log: CallLog | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        redact: Sequence[str] = (),
     ) -> None:
         if max_attempts < 1:
             raise ValueError("max_attempts must be at least 1")
+        self.provider: Provider = (
+            client if hasattr(client, "complete") else AnthropicProvider(client, model)
+        )
         self.client = client
-        self.model = model
+        self.model = self.provider.model
         self.max_attempts = max_attempts
         self.review_threshold = review_threshold
         self.backoff_seconds = backoff_seconds
         self.log = log or CallLog()
         self.sleep = sleep
         self.clock = clock
+        # Strings that must never reach the call log, such as an API key an
+        # SDK might echo in an error message.
+        self.redact = tuple(s for s in redact if s)
+
+    def _scrub(self, text: str) -> str:
+        for secret in self.redact:
+            text = text.replace(secret, "[redacted]")
+        return text
 
     def triage(self, rows: Sequence[dict[str, Any]]) -> list[Outcome]:
         return [self.triage_one(row) for row in rows]
@@ -476,16 +685,33 @@ class TriageAgent:
     def _call(self, row: dict[str, Any], key: str, attempt: int, feedback: str) -> Proposal:
         started = self.clock()
         stamp = datetime.now(UTC).isoformat(timespec="seconds")
+        provider = self.provider.name
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=1024,
+            completion = self.provider.complete(
                 system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": _prompt(row, feedback)}],
-                output_config={"format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
+                prompt=_prompt(row, feedback),
+                schema=OUTPUT_SCHEMA,
+                max_tokens=1024,
             )
+        except RunStopped:
+            raise
         except Exception as exc:  # classified, logged and routed; never raised
             elapsed = (self.clock() - started) * 1000
+            detail = self._scrub(f"{type(exc).__name__}: {exc}")
+            if is_daily_cap(exc):
+                self.log.add(
+                    CallRecord(
+                        key,
+                        attempt,
+                        self.model,
+                        "daily_cap",
+                        latency_ms=elapsed,
+                        detail=detail[:300],
+                        recorded_at=stamp,
+                        provider=provider,
+                    )
+                )
+                raise RunStopped(f"daily request cap reached: {detail[:200]}") from exc
             retryable = is_retryable(exc)
             self.log.add(
                 CallRecord(
@@ -494,16 +720,15 @@ class TriageAgent:
                     self.model,
                     "api_error" if retryable else "api_error_fatal",
                     latency_ms=elapsed,
-                    detail=f"{type(exc).__name__}: {exc}"[:300],
+                    detail=detail[:300],
                     recorded_at=stamp,
+                    provider=provider,
                 )
             )
-            raise ApiFailure(f"{type(exc).__name__}: {exc}", retryable=retryable) from exc
+            raise ApiFailure(detail, retryable=retryable) from exc
 
         elapsed = (self.clock() - started) * 1000
-        usage = getattr(response, "usage", None)
-        tokens_in = int(getattr(usage, "input_tokens", 0) or 0)
-        tokens_out = int(getattr(usage, "output_tokens", 0) or 0)
+        tokens_in, tokens_out = completion.input_tokens, completion.output_tokens
 
         def record(outcome: str, detail: str = "") -> None:
             self.log.add(
@@ -516,23 +741,19 @@ class TriageAgent:
                     tokens_out,
                     cost_usd(self.model, tokens_in, tokens_out),
                     elapsed,
-                    detail[:300],
+                    self._scrub(detail)[:300],
                     stamp,
+                    provider=provider,
                 )
             )
 
-        if getattr(response, "stop_reason", None) == "refusal":
+        if completion.refused:
             record("refusal")
             # The same request refused once will be refused again.
             raise ApiFailure("the model declined this finding", retryable=False)
 
-        text = "".join(
-            getattr(block, "text", "")
-            for block in getattr(response, "content", [])
-            if getattr(block, "type", "") == "text"
-        )
         try:
-            payload = json.loads(text)
+            payload = json.loads(completion.text)
             proposal = Proposal(
                 key=key,
                 cause=str(payload["cause"]),
@@ -622,22 +843,30 @@ __all__ = [
     "CAUSES",
     "DEFAULT_MODEL",
     "EVIDENCE_FIELDS",
+    "GEMINI_MAX_OUTPUT_TOKENS",
+    "GEMINI_THINKING_BUDGET",
     "KEY_FIELDS",
     "MAX_ATTEMPTS",
     "OUTPUT_SCHEMA",
     "PRICES_PER_MTOK",
     "REVIEW_THRESHOLD",
     "RULE_TO_CAUSE",
+    "AnthropicProvider",
     "ApiFailure",
     "CallLog",
     "CallRecord",
     "Cause",
+    "Completion",
+    "GeminiProvider",
     "Outcome",
     "Proposal",
+    "Provider",
     "RuleTriager",
+    "RunStopped",
     "TriageAgent",
     "Verdict",
     "cost_usd",
+    "is_daily_cap",
     "is_retryable",
     "item_key",
     "repair_mojibake",

@@ -26,9 +26,10 @@ dependencies = [
 
 [project.optional-dependencies]
 # A1's model run (scripts/run_a1_eval.py). Optional: nothing scheduled calls a
-# model, and the agent's tests drive it with a stub.
+# model, and the agent's tests drive both providers with stubs.
 agents = [
     "anthropic>=0.70",
+    "google-genai>=2.25",
 ]
 dev = [
     "pytest>=8.0",
