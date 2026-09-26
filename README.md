@@ -7,7 +7,8 @@ explains why.
 Hospitals publish under the Hospital Price Transparency rule (45 CFR 180).
 Insurers publish under Transparency in Coverage. Both describe rates for the same
 care at the same facilities, and they do not agree. CMS has formally named the
-misalignment between the two as a barrier to price transparency.
+misalignment between the two as a barrier to price transparency, in the
+Departments' December 2025 proposed rule ([`docs/SPEC.md`](docs/SPEC.md)).
 
 This is a personal project — deployed, scheduled, monitored and tested, but
 serving no users and supporting no one's decisions.
@@ -25,16 +26,20 @@ serving no users and supporting no one's decisions.
 
 **[`docs/silent-failures.md`](docs/silent-failures.md)** — every bug so far that
 **reported success and was wrong**, with the check that now catches each one.
-Fifteen entries: a `write_dataset` call that silently dropped a partition key, a
-`str.replace` that did nothing while every gate stayed green, a feature that was
-designed and tested and never switched on so two of four systems reconciled
-nothing, a gauge that read zero correctly about the wrong thing, a CLI flag
-that silently resized a container to an eighth of its memory, a reader that dropped
-a column because the first file it opened predated it, and a test fake that
-never delivered a filter, so every "filtered" test ran unfiltered, and a
-monthly job that would have republished last month's numbers as current, and an
-eval that scored 250 calls to a retired model as 250 cautious abstentions. It is the most
-useful document in this repository and the reason most of the rest is trustworthy.
+Fifteen entries, among them:
+
+- a `write_dataset` call that silently dropped a partition key;
+- a `str.replace` that did nothing while every gate stayed green;
+- a feature designed, tested and never switched on, so two of four systems
+  reconciled nothing;
+- a CLI flag that silently resized a container to an eighth of its memory;
+- a test fake that never delivered a filter, so every "filtered" test ran
+  unfiltered;
+- a monthly job that would have republished last month's numbers as current;
+- an eval that scored 250 calls to a retired model as 250 cautious abstentions.
+
+It is the most useful document in this repository and the reason most of the
+rest is trustworthy.
 
 ### The page
 
@@ -59,8 +64,13 @@ code type. It reads committed CSV and makes no network calls.
 
 </details>
 
+A replacement is merged and waiting: `analyst_app.py` ranks facility and insurer
+pairs by unexplained rates, with pair detail and a per-code lookup. It goes live
+on or after 2026-10-02, once the October run has produced its tables for all
+seven systems ([`docs/analyst-app-switchover.md`](docs/analyst-app-switchover.md)).
+
 Community Cloud **sleeps the app after a period without traffic** and wakes it on
-the next visit, which takes a few seconds. Nothing is lost, and the vintages the
+the next visit, which can take a minute or more. Nothing is lost, and the vintages the
 page shows are the dataset's rather than the wake-up's. Deployment steps are in
 [`docs/streamlit-deploy.md`](docs/streamlit-deploy.md).
 
@@ -98,13 +108,15 @@ which removed a fan-out of up to 290 comparisons per rate.
 
 ### What is actually in it
 
+As each layer's upload manifest records it (`lake/_meta`, read 2026-09-26):
+
 | layer | files | size | rows |
 |---|---|---|---|
-| bronze/payer_tic | 118 | 0.560 GB | 56,784,415 |
-| silver/hospital_rates | 93 | 3.749 GB | 156,484,277 |
-| silver/payer_rates | 14 | 0.438 GB | 56,784,415 |
-| gold (5 tables) | 18 | 0.0001 GB | 365 |
-| **total** | **248** | **4.747 GB** | |
+| bronze/payer_tic | 118 | 533.7 MB | 56,784,415 |
+| silver/hospital_rates | 122 | 4,284.1 MB | 184,424,339 |
+| silver/payer_rates | 14 | 438.4 MB | 56,784,415 |
+| gold | 45 | 1.1 MB | 117,003 |
+| **total** | **299** | **5,257.3 MB** | |
 
 Payer silver is 118 files in and 14 out: EmblemHealth arrives as 98 files, one
 per plan, and they share a carrier and a vintage, so they become one. Compaction
@@ -118,7 +130,8 @@ falls out of the partition key rather than being a pass over the data.
 same DRG weights and different base rates, the weight cancels and hundreds of
 codes come out at one constant ratio. Reported per code it reads as hundreds of
 findings; it is one fact about two base rates. Collapsing them turned 2,943
-unexplained Mount Sinai pairs into 27 — and chasing the four constants found a
+unexplained Mount Sinai pairs into 27 (measured on the pair unit used before
+2026-09-23) — and chasing the four constants found a
 real join defect, where two files each carried two hospitals under a single
 label.
 
@@ -152,7 +165,7 @@ All East US, in one resource group, on the free tier.
 |---|---|---|---|
 | ADLS Gen2 `reckonerlake0914` | authoritative store, HNS on | — | — |
 | `reckoner-pipeline` | stage 1: diff all four layers against their manifests | 2 vCPU / 4 GiB | `0 6 1 * *` |
-| `reckoner-mart` | stage 2: reconcile silver into gold | 4 vCPU / 8 GiB | **manual only** — see below |
+| `reckoner-mart` | stage 2: reconcile silver into gold, then triage and report | 4 vCPU / 8 GiB | `0 8 1 * *` |
 | Log Analytics `reckoner-logs` | structured telemetry | 0.5 GB/day cap, 31-day retention | — |
 
 Authentication is a user-assigned managed identity, named explicitly rather than
@@ -161,21 +174,25 @@ in the image.**
 
 ### Cost
 
-| meter | month to date |
-|---|---|
-| Storage (writes, reads, capacity) | $0.0153 |
-| Log Analytics ingestion | $0.0000 |
-| Bandwidth | $0.0000 |
-| Container Apps — vCPU, memory, **and environment management** | **no meter at all** |
-| Fabric capacity probes (created and deleted in error; see ADR 0004) | $0.0177 |
-| **total** | **$0.033** |
+**The free-tier target was missed in September.** From Cost Management, month to date on
+2026-09-26, for the resource group:
 
-5.282 GB against a 5 GB free tier: 0.282 GB over, about 0.6 cents a month. Container Apps executions fall inside the
-monthly free grant of 180,000 vCPU-seconds and 360,000 GiB-seconds — a manifest
-run uses 0.04% of it. The $0.10/hour environment management meter does not apply,
-confirmed against the invoice rather than inferred from configuration: Cost
-Management returns **no Container Apps meter of any kind**, and zero-cost meters
-do appear in that output, so the absence is real.
+| meter | cost |
+|---|---|
+| Storage: hot LRS read operations (7.56M) | $3.78 |
+| Container Apps: vCPU and memory beyond the monthly grant | $0.43 |
+| Storage: data stored, writes, other operations | $0.07 |
+| Fabric capacity probes (created and deleted in error; see ADR 0004) | $0.02 |
+| Log Analytics, bandwidth | $0.00 |
+| **total** | **$4.30** |
+
+Two-thirds of it is one day. On 2026-09-23 every system was rebuilt twice to fix the
+out-of-memory failures, and the rebuilds' reads of the lake cost $2.49 in read
+operations that day. The same rebuilds went past the Container Apps grant of 180,000
+vCPU-seconds; 14,375 were billed. The environment management meter still does not
+apply (Consumption only, no VNet), and stored data is about 5.3 GB, just over the
+5 GB free allowance. A monthly run's read operations are the recurring cost to watch:
+the 1 October run is the first full measurement.
 
 ### Status: the cloud mart
 
@@ -185,7 +202,8 @@ Both were OOM-killed at the 8 GiB Consumption ceiling. A per-step memory profile
 in the container found the cause. The hospital-side aggregate kept a t-digest
 per group, allocated outside Arrow's memory pool, about 6 GB for 586,207
 groups. An exact median replaced it (#83), and the same shard load fell from
-8,028 MiB to 1,634. The largest system now peaks near 4.3 GB.
+8,028 MiB to 1,634. The largest system, NYU Langone, now peaks at 4,268 MiB of the
+8,192 MiB ceiling.
 
 The monthly schedule is back (`0 8 1 * *`). **One thing is untested:** the
 scheduled run does all seven systems in one execution. Per system they sum to
@@ -194,10 +212,9 @@ system to the next hasn't been measured. The first real run is 1 October. If it
 fails, gold is untouched, because the mart writes only at the end, and the
 workbook's run history shows it.
 
-Rebuilding every system twice on 2026-09-23 used about 84% of September's
-Container Apps free grant (≈150,500 of 180,000 vCPU-seconds, measured from log
-spans, so a slight undercount). That's still inside it, but it is the month's
-budget, not a rounding error.
+Rebuilding every system twice on 2026-09-23 used all of September's Container Apps
+free grant and 14,375 vCPU-seconds beyond it. An estimate from log spans had put
+it at 84%. The invoice is the measure, and the log estimate undercounted.
 
 ---
 
@@ -217,8 +234,10 @@ budget, not a rounding error.
 - [`docs/plan-matching.md`](docs/plan-matching.md) — what fuzzy plan matching buys,
   measured before anything depends on it: +0.86 points of plan coverage, and 0.00
   of comparable share.
-- [`docs/labelling-a1.md`](docs/labelling-a1.md) — how to fill the label file A1's
-  eval reads. It ships empty, and the eval says "not measured" until it isn't.
+- [`docs/labelling-a1.md`](docs/labelling-a1.md) — A1's labels, eval and results:
+  why the rules score zero, and what the agent's held-back findings share.
+- [`docs/analyst-app-switchover.md`](docs/analyst-app-switchover.md) — moving the
+  page to the analyst app after the October run.
 - [`docs/adr/`](docs/adr/README.md) — numbered design decisions, with an index and
   the open decisions that don't have a record yet.
 - [`docs/coverage.md`](docs/coverage.md), [`docs/scope.md`](docs/scope.md) — the
@@ -236,7 +255,7 @@ python -m reckoner_job --stage manifest                              # drift che
 python -m reckoner_job --stage mart                                  # reconcile into gold
 ```
 
-909 tests, `mypy strict`, `ruff`, CI gating every push. Parser tests are built
+1,319 tests, `mypy strict`, `ruff`, CI gating every push. Parser tests are built
 from real files, not from the CMS spec.
 
 The parser lives in a separate repository (`mrf_pipeline`) and writes the payer

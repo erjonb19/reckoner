@@ -1,5 +1,11 @@
 # Coverage matrix
 
+> **A 2026-09-13 snapshot, superseded for current coverage.** It predates the
+> seven-system reconciliation and the change of unit on 2026-09-23 (ADRs 0005,
+> 0006): "four systems" and "only Mount Sinai supports pairwise reconciliation"
+> were true then and are not now. Current coverage is in [scope.md](scope.md) and
+> the README. The identifier and name-bridging findings below still hold.
+
 Generated 2026-09-13 from the local lake and payer parquet. Read-only; no data was modified.
 
 ## Scope

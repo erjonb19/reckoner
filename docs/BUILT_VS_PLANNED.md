@@ -407,6 +407,13 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
+- **Switch reckoner-ny to the analyst app: on or after 2026-10-02.** `analyst_app.py`
+  (rankings, pair detail, code lookup, coverage; #101) is merged and tested, but the live
+  URL stays on `streamlit_app.py` until the 2026-10-01 mart run and the 2026-10-02
+  summary snapshot have produced pair tables for all seven systems. Today only a preview
+  build had them, for White Plains alone. The steps are in `docs/analyst-app-switchover.md`:
+  check the data, click through on the preview app, change the main file path, then
+  retire `streamlit_app.py`.
 - **A1 follow-up: a component-pricing detector in deterministic triage, then a stratified
   re-label.** *Motivation:* 210 of 250 A1 labels are `units_or_methodology`, nearly all
   component-versus-facility mismatches, so the agent's score on this queue mostly measures
@@ -599,6 +606,14 @@ against an unsharded one — on NYP they agree to full precision on every field.
 
 ## Corrections
 
+- **The cost claims were wrong for September (found 2026-09-26).** This file said a
+  run costs "$0.00 after the monthly free grant", and the README said Container Apps had
+  "no meter at all" and the month cost $0.033. Cost Management, month to date on
+  2026-09-26: **$4.30**. That is $3.78 of hot LRS read operations (7.56M, $2.49 of them on
+  2026-09-23's double rebuild) and $0.43 of Container Apps usage beyond the grant (14,375
+  vCPU-s, where log spans had estimated 84% of it). The per-run figure above is still
+  right for a manifest run. It was never measured for a full mart, whose reads of hospital
+  silver are the cost that recurs.
 - `mart_cli --mode pairs` produced **zero pairs from #14 until #26**. It joins on the
   provider; the hospital side names a facility and the payer side resolves only to a system,
   and the runner passed no map between them, so every hospital row was excluded as having no
