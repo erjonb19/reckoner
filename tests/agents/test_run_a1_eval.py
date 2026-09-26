@@ -306,6 +306,7 @@ class TestTheCommand:
     @pytest.fixture(autouse=True)
     def stubbed(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
             "provider_for",
@@ -414,6 +415,7 @@ class TestTheCommandOnAFatalError:
     ):
         queue, labels = write_inputs(tmp_path, 10)
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
             "provider_for",
@@ -462,3 +464,124 @@ class TestModelSettings:
         gemini_agent(client).triage_one(finding("1"))
 
         assert client.requests[0]["config"]["thinking_config"] == {"thinking_budget": 1024}
+
+
+OVERLOADED = APIError(503, "UNAVAILABLE. This model is currently experiencing high demand.")
+
+
+class TestAnOutage:
+    """Three 503s on one finding once went to the human queue as a judgement."""
+
+    def test_a_finding_the_model_never_saw_is_an_error(self):
+        outcome = gemini_agent(Gemini([OVERLOADED] * 3)).triage_one(finding("1"))
+
+        assert outcome.errored
+        assert outcome.reason.startswith("unavailable")
+
+    def test_one_answer_among_the_failures_is_still_an_answer(self):
+        outcome = gemini_agent(Gemini([OVERLOADED, OVERLOADED])).triage_one(finding("1"))
+
+        assert outcome.accepted and outcome.attempts == 3
+
+    def test_an_unparseable_reply_counts_as_answered(self):
+        cut = gemini_response()
+        cut.text = "{"
+
+        outcome = gemini_agent(Gemini([cut, cut, cut])).triage_one(finding("1"))
+
+        assert outcome.routed == "human", "the model answered, badly: a person should look"
+
+
+class TestTheSample:
+    def queue(self) -> list[dict[str, Any]]:
+        rows = []
+        for i in range(250):
+            row = finding(str(i))
+            row["triage_rule"] = (
+                "unexplained" if i < 29 else "systematic_offset" if i < 175 else "vintage_artifact"
+            )
+            row["system"] = ["A", "B", "C"][i % 3]
+            rows.append(row)
+        return rows
+
+    def test_it_holds_every_unexplained_finding_and_about_sixty(self):
+        from agents.triage_evals import sample_queue
+
+        chosen = sample_queue(self.queue())
+
+        assert len(chosen) == 60
+        assert sum(r["triage_rule"] == "unexplained" for r in chosen) == 29
+
+    def test_the_rest_is_spread_in_proportion(self):
+        from agents.triage_evals import sample_queue
+
+        rules = [r["triage_rule"] for r in sample_queue(self.queue())]
+
+        # 146 offset and 75 vintage share 31 places: about 20 and 11.
+        assert abs(rules.count("systematic_offset") - 20) <= 1
+        assert abs(rules.count("vintage_artifact") - 11) <= 1
+
+    def test_the_same_seed_gives_the_same_sample_in_any_order(self):
+        from agents.triage_evals import sample_queue
+
+        rows = self.queue()
+        first = [item_key(r) for r in sample_queue(rows)]
+        again = [item_key(r) for r in sample_queue(list(reversed(rows)))]
+
+        assert first == again
+        assert [item_key(r) for r in sample_queue(rows, seed=1)] != first
+
+    def test_it_never_reads_the_labels(self):
+        """Only the queue is an argument; there is nothing else to read."""
+        import inspect
+
+        from agents.triage_evals import sample_queue
+
+        assert list(inspect.signature(sample_queue).parameters) == ["rows", "size", "seed"]
+
+
+class TestTheCommandWithASample(TestTheCommand):
+    def test_the_score_says_it_is_a_sample_and_how_big(self, tmp_path: Path, capsys):
+        queue, labels = write_inputs(tmp_path, 12)
+        results = tmp_path / "results.jsonl"
+
+        code = runner.main(
+            [
+                "--queue",
+                str(queue),
+                "--labels",
+                str(labels),
+                "--runs",
+                str(tmp_path / "runs"),
+                "--results",
+                str(results),
+                "--rpm",
+                "0",
+                "--sample",
+                "5",
+                "--record",
+            ]
+        )
+
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "[SAMPLE: 5 of 12 findings" in out
+        record = json.loads(results.read_text(encoding="utf-8").splitlines()[-1])
+        assert record["scored"] == 5 and record["sample"].startswith("5 of 12")
+
+
+class TestTheModelCheck:
+    def test_a_model_the_key_cannot_use_stops_before_any_call(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_models", lambda key: ["gemini-3.5-flash-lite"])
+        monkeypatch.setattr(runner, "provider_for", lambda *a: pytest.fail("no call"))
+
+        assert runner.main(["--model", "gemini-2.5-flash"]) == 2
+        assert "Available: gemini-3.5-flash-lite" in capsys.readouterr().err
+
+    def test_list_models_prints_and_stops(self, monkeypatch, capsys):
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_models", lambda key: ["a-model", "b-model"])
+
+        assert runner.main(["--list-models"]) == 0
+        assert capsys.readouterr().out.split() == ["a-model", "b-model"]
