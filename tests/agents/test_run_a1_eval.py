@@ -307,6 +307,7 @@ class TestTheCommand:
     @pytest.fixture(autouse=True)
     def stubbed(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_client", lambda key: SimpleNamespace())
         monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
@@ -416,6 +417,7 @@ class TestTheCommandOnAFatalError:
     ):
         queue, labels = write_inputs(tmp_path, 10)
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_client", lambda key: SimpleNamespace())
         monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-2.5-flash"])
         monkeypatch.setattr(
             runner,
@@ -574,6 +576,7 @@ class TestTheCommandWithASample(TestTheCommand):
 class TestTheModelCheck:
     def test_a_model_the_key_cannot_use_stops_before_any_call(self, tmp_path, monkeypatch, capsys):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_client", lambda key: SimpleNamespace())
         monkeypatch.setattr(runner, "gemini_models", lambda client: ["gemini-3.5-flash-lite"])
         monkeypatch.setattr(runner, "provider_for", lambda *a: pytest.fail("no call"))
 
@@ -582,6 +585,7 @@ class TestTheModelCheck:
 
     def test_list_models_prints_and_stops(self, monkeypatch, capsys):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaFAKE")
+        monkeypatch.setattr(runner, "gemini_client", lambda key: SimpleNamespace())
         monkeypatch.setattr(runner, "gemini_models", lambda client: ["a-model", "b-model"])
 
         assert runner.main(["--list-models"]) == 0
