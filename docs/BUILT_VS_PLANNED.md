@@ -7,7 +7,7 @@ not fully working is listed under planned, not built.
 **This is a personal project.** It is deployed, scheduled, tested and monitored, but no
 real users and no business decisions depend on it. Nothing here is production experience.
 
-Last updated: 2026-09-23.
+Last updated: 2026-09-26 (A1 measured).
 
 **Since the last revision (2026-09-09 → 2026-09-23):** three more hospital systems
 ingested (15 in the lake, 6 reconciled), a gold layer published by a cloud job, a
@@ -163,7 +163,7 @@ They catch findings that fell just the wrong side of a line. On the published qu
 account for **166 of 200** findings: 91 near-offset and 75 vintage. **34 stay
 `unexplained`**, and those are what the agent exists for.
 
-**The agent loop is built; no model has been run.** `src/agents/triage_agent.py` has:
+**The agent loop is built and measured.** `src/agents/triage_agent.py` has:
 
 - a proposal from a fixed vocabulary of eight causes, which must cite its evidence fields;
 - a deterministic `validate` that checks the vocabulary and the cited fields, and
@@ -175,13 +175,19 @@ account for **166 of 200** findings: 91 near-offset and 75 vintage. **34 stay
 - a cost and latency on every attempt, including failed ones. An unpriced model costs
   `None`, not $0.
 
-`src/agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`. **The
-labels are in: all 250 findings.** The rules baseline scores precision 0.000 and coverage
-0.884. That is by construction: its only `units_or_methodology` route needs a ratio of 10×
-or more, which never occurs in the queue, and 210 of the 250 labels are that cause
-(`docs/labelling-a1.md`). `scripts/run_a1_eval.py` runs the agent behind a pluggable
-provider, Gemini 2.5 Flash on the free tier by default. It paces for rate limits and
-resumes after a daily cap. The first real run is waiting on a key.
+`src/agents/triage_evals.py` scores any triager from `evals/triage_labels.csv`, which has
+all 250 findings labelled.
+
+**Measured on 2026-09-26.** Gemini 3.5 Flash Lite ran on the free tier ($0 billed) over
+a 60-finding sample (seed 20260926). It scored **precision 0.952, coverage 0.350**: 20
+right, 1 wrong, 39 to the human queue for confidence below 0.80. The gate passes. The
+rules on the same sample score precision 0.000, coverage 0.517. The providers are
+pluggable (Gemini, or Anthropic behind a budget), and the runner is paced, resumable
+across days, and refuses to score a run with failed calls. Caveats: one model, a
+sample, and labels 84% `units_or_methodology`. The accepted answers are all that one
+cause at 3× or more, so this measures that one skill (`docs/labelling-a1.md`). It does
+not yet write causes into a report: that is wiring, not measurement, and waits on the
+component-pricing detector below.
 
 Two hypotheses about the residual were tested and **both failed**, which is why neither is a
 rule: ratios do not cluster near integers (8.5% within 5% of one, so not a units multiple),
@@ -401,10 +407,6 @@ Real code, but not yet load-bearing.
 
 ## Not started
 
-- **A1's model run.** Labels are in, and the runner is built and resumable across days:
-  `scripts/run_a1_eval.py --provider gemini --record` runs Gemini 2.5 Flash on the free
-  tier. The provider is pluggable, and Anthropic stays available behind `--budget-usd`.
-  Waiting on a run with `GEMINI_API_KEY` set.
 - **A1 follow-up: a component-pricing detector in deterministic triage, then a stratified
   re-label.** *Motivation:* 210 of 250 A1 labels are `units_or_methodology`, nearly all
   component-versus-facility mismatches, so the agent's score on this queue mostly measures

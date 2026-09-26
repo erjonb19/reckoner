@@ -126,19 +126,21 @@ label.
 
 | triager | precision | coverage | human queue | cost |
 |---|---|---|---|---|
-| deterministic rules | 0.000 | 0.884 | 0 | $0 |
-| A1 agent (Gemini, free tier) | not yet run | | | |
+| deterministic rules, all 250 labels | 0.000 | 0.884 | 0 | $0 |
+| deterministic rules, 60-finding sample | 0.000 | 0.517 | 0 | $0 |
+| **A1 agent, `gemini-3.5-flash-lite` (free tier), 60-finding sample** | **0.952** | 0.350 | 39 | $0 billed |
 
-The gate is precision 0.90; neither triager may write a cause into a report
-until it passes. 210 of the 250 labels are one cause, units or methodology
-(mostly component-versus-facility pricing), so a score on this queue mostly
-measures that one skill; [`docs/labelling-a1.md`](docs/labelling-a1.md) explains
-this, and why the rules score zero.
+The gate is precision 0.90: the agent passes it (20 right, 1 wrong) and the rules do
+not. **Caveats:** this is a 60-finding sample (seed 20260926: all 29 rule-unexplained
+findings plus 31 stratified), scored for one model on one day, against labels
+dominated by units_or_methodology (210 of 250). **Reading it:** the agent's low
+coverage is by design. Below 0.80 confidence it sends a finding to a person rather than
+guess, and 39 of 60 went that way. [`docs/labelling-a1.md`](docs/labelling-a1.md) has
+what those findings share, and why the rules score zero.
 
-The agent runs on **Gemini on the Gemini API free tier** (the model is named in
-this row once it has run), so it bills $0. The cost column will show the paid tier's list-price equivalent, to keep it
-comparable. The score belongs to that model: a different model is a different
-result.
+The agent ran on **Gemini 3.5 Flash Lite on the Gemini API free tier**: 60 calls,
+38,218 input and 6,904 output tokens, $0 billed. The score belongs to that model; a
+different model is a different result.
 
 ---
 
