@@ -149,7 +149,10 @@ All East US, all in `rg-reckoner`:
   summary record, so a capped day is visible rather than silent.
 - **Cost target: the free tier.** 5 GB of hot LRS blob (5.282 GB measured,
   0.6 cents a month over) and the monthly Container Apps grant of 180,000 vCPU-s /
-  360,000 GiB-s, of which a run uses ~0.04%. The $0.10/hour environment
+  360,000 GiB-s, of which a manifest run uses ~0.04%. **September missed the
+  target: $4.30 month to date on 2026-09-26**, mostly storage read operations from
+  the 2026-09-23 double rebuild ($3.78), plus $0.43 of Container Apps past the
+  grant. A full mart's reads are the recurring cost to watch. The $0.10/hour environment
   management meter does not apply — Consumption-only, no private endpoint, no
   VNet. Anything that would cost money beyond this is a question for the human,
   not a decision to make.
