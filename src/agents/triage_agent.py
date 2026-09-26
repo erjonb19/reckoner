@@ -337,7 +337,11 @@ class Outcome:
     """Where one finding ended up, and why."""
 
     key: str
-    routed: str  # "accepted" or "human"
+    #: "accepted", "human", or "error". An error is a call that never produced
+    #: an answer -- a wrong model name, a rejected key -- and is neither a
+    #: judgement nor an abstention: a person reviewing it would find nothing
+    #: about the finding to review. See silent failure #15.
+    routed: str
     reason: str
     attempts: int
     proposal: Proposal | None = None
@@ -345,6 +349,10 @@ class Outcome:
     @property
     def accepted(self) -> bool:
         return self.routed == "accepted"
+
+    @property
+    def errored(self) -> bool:
+        return self.routed == "error"
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -414,9 +422,12 @@ confidence below 0.8 whenever a person should check the answer."""
 class ApiFailure(Exception):
     """A call that did not return a usable response, and whether to try again."""
 
-    def __init__(self, message: str, *, retryable: bool) -> None:
+    def __init__(self, message: str, *, retryable: bool, fatal: bool = False) -> None:
         super().__init__(message)
         self.retryable = retryable
+        #: The request itself failed and will fail the same way again. Unlike a
+        #: refusal, the model never saw the finding.
+        self.fatal = fatal
 
 
 class RunStopped(Exception):
@@ -570,6 +581,14 @@ class GeminiProvider:
         self.clock = clock
         self._last: float | None = None
 
+    def _thinking(self) -> dict[str, Any]:
+        # thinking_budget is the 2.5 generation's control; later Gemini models
+        # take thinking_level instead, and are left at their own default rather
+        # than sent a setting chosen for a different model.
+        if self.model.startswith("gemini-2.5"):
+            return {"thinking_config": {"thinking_budget": GEMINI_THINKING_BUDGET}}
+        return {}
+
     def complete(
         self, *, system: str, prompt: str, schema: dict[str, Any], max_tokens: int
     ) -> Completion:
@@ -586,7 +605,7 @@ class GeminiProvider:
                 "response_mime_type": "application/json",
                 "response_json_schema": schema,
                 "max_output_tokens": max(max_tokens, GEMINI_MAX_OUTPUT_TOKENS),
-                "thinking_config": {"thinking_budget": GEMINI_THINKING_BUDGET},
+                **self._thinking(),
             },
         )
         usage = getattr(response, "usage_metadata", None)
@@ -662,6 +681,8 @@ class TriageAgent:
                 proposal = self._call(row, key, attempt, feedback)
             except ApiFailure as failure:
                 last = str(failure)
+                if failure.fatal:
+                    return Outcome(key, "error", f"fatal API error: {last}", attempt)
                 if not failure.retryable:
                     return Outcome(key, "human", f"not retryable: {last}", attempt)
                 if attempt < self.max_attempts:
@@ -725,7 +746,7 @@ class TriageAgent:
                     provider=provider,
                 )
             )
-            raise ApiFailure(detail, retryable=retryable) from exc
+            raise ApiFailure(detail, retryable=retryable, fatal=not retryable) from exc
 
         elapsed = (self.clock() - started) * 1000
         tokens_in, tokens_out = completion.input_tokens, completion.output_tokens
@@ -810,7 +831,7 @@ def write_human_queue(
 ) -> int:
     """The terminal path, as a file a person can open. Returns rows written."""
     by_key = {item_key(row): row for row in rows}
-    queued = [o for o in outcomes if not o.accepted]
+    queued = [o for o in outcomes if o.routed == "human"]
     path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
         *EVIDENCE_FIELDS,

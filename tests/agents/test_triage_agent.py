@@ -202,14 +202,15 @@ class TestRetries:
         assert triager.log.calls == MAX_ATTEMPTS
 
     def test_a_bad_request_is_not_retried(self):
-        """A 400 fails identically every time; retrying only spends."""
+        """A 400 fails identically every time; retrying only spends. And it is
+        an error, not a human's to review: the model never saw the finding."""
         stub = Stub(StatusError(400))
         triager, slept = agent(stub)
 
         outcome = triager.triage_one(finding())
 
-        assert outcome.routed == "human"
-        assert outcome.reason.startswith("not retryable")
+        assert outcome.routed == "error" and outcome.errored
+        assert outcome.reason.startswith("fatal API error")
         assert len(stub.messages.requests) == 1
         assert slept == []
 

@@ -25,14 +25,15 @@ serving no users and supporting no one's decisions.
 
 **[`docs/silent-failures.md`](docs/silent-failures.md)** — every bug so far that
 **reported success and was wrong**, with the check that now catches each one.
-Fourteen entries: a `write_dataset` call that silently dropped a partition key, a
+Fifteen entries: a `write_dataset` call that silently dropped a partition key, a
 `str.replace` that did nothing while every gate stayed green, a feature that was
 designed and tested and never switched on so two of four systems reconciled
 nothing, a gauge that read zero correctly about the wrong thing, a CLI flag
 that silently resized a container to an eighth of its memory, a reader that dropped
 a column because the first file it opened predated it, and a test fake that
 never delivered a filter, so every "filtered" test ran unfiltered, and a
-monthly job that would have republished last month's numbers as current. It is the most
+monthly job that would have republished last month's numbers as current, and an
+eval that scored 250 calls to a retired model as 250 cautious abstentions. It is the most
 useful document in this repository and the reason most of the rest is trustworthy.
 
 ### The page

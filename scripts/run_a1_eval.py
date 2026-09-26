@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from agents.triage_agent import (
     DEFAULT_MODEL,
+    PRICES_PER_MTOK,
     AnthropicProvider,
     CallLog,
     Completion,
@@ -66,6 +67,11 @@ from agents.triage_evals import (
 MODELS = {"gemini": "gemini-2.5-flash", "anthropic": DEFAULT_MODEL}
 KEYS = {"gemini": "GEMINI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
 BILLING = {"gemini": "free tier ($0 billed; cost shown at paid list price)", "anthropic": "paid"}
+
+#: Fatal API errors this run before it stops. A wrong model name or a rejected
+#: key fails every call identically; three in a row is proof enough, and 250 was
+#: once reported as a score (silent failure #15).
+MAX_FATAL = 3
 
 #: The most one call can cost: a generous prompt and a full reply.
 WORST_CALL_TOKENS = (3_000, 4_096)
@@ -109,8 +115,8 @@ class Capped:
 class Resumable:
     """Triage what is not yet done, keep every outcome on disk, stop cleanly."""
 
-    def __init__(self, agent: TriageAgent, outcomes: Path) -> None:
-        self.agent, self.path = agent, outcomes
+    def __init__(self, agent: TriageAgent, outcomes: Path, max_fatal: int = MAX_FATAL) -> None:
+        self.agent, self.path, self.max_fatal = agent, outcomes, max_fatal
         self.name = agent.name
         self.done: dict[str, Outcome] = {}
         if outcomes.exists():
@@ -118,8 +124,10 @@ class Resumable:
                 for line in handle:
                     if line.strip():
                         outcome = Outcome.from_json(json.loads(line))
-                        self.done[outcome.key] = outcome
+                        if not outcome.errored:
+                            self.done[outcome.key] = outcome
         self.completed_this_run = 0
+        self.fatal: list[str] = []
         self.stopped = ""
         self.rows: list[dict[str, Any]] = []
 
@@ -133,6 +141,14 @@ class Resumable:
             except RunStopped as stop:
                 self.stopped = str(stop)
                 break
+            if outcome.errored:
+                # Never persisted, so the next run tries the finding again; and
+                # never scored, because the model was never asked.
+                self.fatal.append(outcome.reason)
+                if len(self.fatal) >= self.max_fatal:
+                    self.stopped = f"{len(self.fatal)} fatal API errors; the last: {outcome.reason}"
+                    break
+                continue
             self.done[outcome.key] = outcome
             self.completed_this_run += 1
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,6 +183,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--results", type=Path, default=RESULTS)
     parser.add_argument("--record", action="store_true", help="append both scores to --results")
     parser.add_argument(
+        "--list-price",
+        nargs=2,
+        type=float,
+        metavar=("IN", "OUT"),
+        help="USD per million input and output tokens, for a model the price table lacks",
+    )
+    parser.add_argument(
         "--max-attempts",
         type=int,
         default=None,
@@ -175,6 +198,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     model = args.model or MODELS[args.provider]
+    if args.list_price:
+        PRICES_PER_MTOK[model] = (args.list_price[0], args.list_price[1])
+    if model not in PRICES_PER_MTOK:
+        print(
+            f"warning: {model} has no list price; costs will read 'unknown'. "
+            "Pass --list-price IN OUT to record an equivalent.",
+            file=sys.stderr,
+        )
     variable = KEYS[args.provider]
     # Read here, passed to the SDK, and nowhere else: it is never logged, never
     # written, and scrubbed from any error text that reaches the call log.
@@ -218,6 +249,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     }
     with (run_dir / "runs.jsonl").open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(run_line) + "\n")
+    if agent.fatal:
+        print(
+            f"FAILED: {len(agent.fatal)} calls failed before the model answered. "
+            f"First error: {agent.fatal[0]}",
+            file=sys.stderr,
+        )
     print(
         f"this run: {agent.completed_this_run} findings completed, "
         f"{log.calls - before_calls} calls; {len(agent.done)} of {len(agent.rows)} done"
@@ -225,6 +262,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if agent.stopped:
         print(f"stopped: {agent.stopped}")
 
+    if agent.fatal:
+        print("not scored: fix the error above; failed findings will be retried.")
+        return 1
     if not agent.complete():
         print(
             f"not scored: {len(agent.rows) - len(agent.done)} findings remain. "
