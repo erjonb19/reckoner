@@ -1,0 +1,27 @@
+system,facility,carrier,hospital_rates,compared,material,unexplained_material,median_signed_gap,summed_abs_gap_usd,inside_range_share,like_class_share,hospital_slug
+White Plains,White Plains Hospital,Aetna,26809,14418,4404,0,-0.002951,0.0,0.402969,0.538126,white-plains-hospital
+White Plains,White Plains Hospital,Affinity,19410,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,Anthem / Empire BCBS,45943,30384,30141,0,-0.264927,0.0,0.671176,0.661413,white-plains-hospital
+White Plains,White Plains Hospital,Cigna,13899,1348,780,212,0.060517,2300604.49,0.474036,0.475821,white-plains-hospital
+White Plains,White Plains Hospital,EmblemHealth,38052,1422,1390,0,-0.054275,0.0,0.85654,0.03737,white-plains-hospital
+White Plains,White Plains Hospital,Fidelis Care,25568,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,Healthfirst,23724,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,Humana,7055,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,MVP Health Care,4705,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,Medicaid,1893,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,UnitedHealthcare,33951,18970,671,0,0.002342,0.0,0.0,0.603948,white-plains-hospital
+White Plains,White Plains Hospital,WellCare,11429,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,american postal workers,1474,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,centerlight,15109,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,centivo,1751,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,elderplan,7541,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,hamaspik,9900,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,longevity,7823,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,northwell,5567,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,oscar,7623,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,partners,7823,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,point comfort,7823,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,veterans affair,7823,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,villagecaremax,7823,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,vnsny choice,8119,0,0,0,,0.0,,0.0,white-plains-hospital
+White Plains,White Plains Hospital,vnsny select health,1893,0,0,0,,0.0,,0.0,white-plains-hospital
