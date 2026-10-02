@@ -1,4 +1,822 @@
 system,facility,carrier,hospital_rates,compared,material,unexplained_material,median_signed_gap,summed_abs_gap_usd,inside_range_share,like_class_share,hospital_slug
+Montefiore,Montefiore Health System,Aetna,18440,15771,14223,0,-0.131273,0.0,0.049014,0.864875,montefiore-health-system
+Montefiore,Montefiore Health System,Affinity,34354,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Anthem / Empire BCBS,69527,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Cigna,3035,2400,2400,0,0.132286,0.0,0.020833,0.948242,montefiore-health-system
+Montefiore,Montefiore Health System,EmblemHealth,45906,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Fidelis Care,33124,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Healthfirst,67552,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Humana,8629,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,MVP Health Care,10313,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,Medicaid,4399,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,MetroPlus,68811,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,UnitedHealthcare,59646,22119,22118,0,0.895127,0.0,0.0,0.516208,montefiore-health-system
+Montefiore,Montefiore Health System,WellCare,17427,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,amidacare,11538,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,centerlight,16640,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,centivo,2006,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,elderplan,500,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,hamaspik,12528,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,northwell,6254,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,oscar,8526,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,partners,8123,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,villagecaremax,8129,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,vnsny choice,13520,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Health System,vnsny select health,4899,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Aetna,27813,15985,15766,0,-0.618958,0.0,0.152018,0.588095,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Affinity,27684,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Anthem / Empire BCBS,96713,67837,56028,0,0.047865,0.0,0.270369,0.744374,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Cigna,12684,3136,2417,740,-0.104603,1210569.82,0.05102,0.808456,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,EmblemHealth,53336,881,881,0,5.906753,0.0,0.044268,0.016518,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Fidelis Care,26792,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Healthfirst,42776,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Humana,9171,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,MVP Health Care,2561,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,Medicaid,4406,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,MetroPlus,67280,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,UnitedHealthcare,47721,21023,14736,0,-0.038068,0.0,0.160491,0.577063,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,WellCare,14138,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,agewell,8743,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,centerlight,16894,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,centersplan,8703,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,christian brothers,9755,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,elderplan,468,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,hamaspik,8776,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,longevity,8644,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,nat assoc letter carriers,9755,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,nippon life,9755,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,northwell,7339,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,oscar,17926,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,partners,2599,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,point comfort,9171,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,seiu1199,14906,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,somos,15650,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,villagecaremax,8118,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Medical Center|Montefiore Hospital - Moses DIV|Montefiore Medical Center - Weiler (Einstein Campus)|Montefiore Medical Center - Wakefield|Montefiore Medical Center - Hutchinson Campus|Montefiore Medical Center - Westchester Square|Montefiore Medical Center â€“ Childrenâ€™s Hospital at Montefiore Einstein,vnsny choice,12373,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Aetna,19652,16319,14183,0,0.050095,0.0,0.386359,0.839627,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Affinity,25318,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Anthem / Empire BCBS,77186,52424,39702,0,-0.008568,0.0,0.296601,0.680557,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Cigna,5844,4754,3119,742,0.111127,18877141.62,0.515566,0.853501,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,EmblemHealth,37540,3053,2935,0,0.039912,0.0,0.705863,0.081327,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Fidelis Care,29913,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Healthfirst,43694,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Humana,9171,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,MVP Health Care,14569,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,Medicaid,4401,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,MetroPlus,63655,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,UnitedHealthcare,50758,21049,15313,0,-0.016383,0.0,0.0,0.546018,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,WellCare,17840,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,american postal workers,13388,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,amidacare,5572,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,centerlight,18751,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,centivo,814,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,elderplan,8368,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,hamaspik,5210,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,longevity,9171,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,northwell,6561,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,oscar,8560,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,partners,8071,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,point comfort,9172,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,villagecaremax,9293,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,vnsny choice,14196,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Montefiore Mount Vernon Hospital,vnsny select health,4868,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Aetna,29191,17324,17120,0,0.679543,0.0,0.167917,0.599426,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Affinity,19052,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Anthem / Empire BCBS,73334,44356,35346,0,-0.04555,0.0,0.345703,0.666316,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Cigna,6340,4759,3106,829,0.111131,18918560.69,0.505148,0.848307,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,EmblemHealth,39861,3067,2947,0,0.039926,0.0,0.703293,0.076942,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Fidelis Care,32533,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Healthfirst,28874,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Humana,8656,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,MVP Health Care,13059,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,Medicaid,4401,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,UnitedHealthcare,64228,21015,20420,0,0.832383,0.0,0.0,0.517343,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,WellCare,13854,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,american postal workers,15970,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,centerlight,18320,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,centivo,2081,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,hamaspik,10781,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,longevity,8656,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,northwell,7958,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,oscar,8737,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,partners,2463,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,point comfort,8656,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,seiu1199,14657,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,villagecaremax,8657,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,vnsny choice,13640,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,Nyack Hospital|Nyack Hospital - Hematology Oncology|Nyack Hospital - Rheumatology and Specialty Care MNH,vnsny select health,3067,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Aetna,26563,15373,15268,0,0.275941,0.0,0.273336,0.58517,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Affinity,26126,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Anthem / Empire BCBS,74936,39305,34934,0,-0.011475,0.0,0.16891,0.6181,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,CDPHP,11159,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Cigna,18004,14276,6108,1449,0.0,31949296.78,0.630569,0.847945,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,EmblemHealth,54043,3125,2969,0,0.132687,0.0,0.69664,0.057824,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Fidelis Care,17958,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Healthfirst,51024,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Humana,8141,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,MVP Health Care,7515,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,MagnaCare,7261,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,Medicaid,4401,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,UnitedHealthcare,38006,17713,17668,0,0.622248,0.0,0.0,0.60882,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,WellCare,7882,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,american postal workers,9518,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,centerlight,8597,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,centivo,1886,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,geha,9211,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,hamaspik,10542,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,hudson valley,8141,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,mediblue,8141,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,meritain health,9211,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,nippon life,9211,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,northwell,8722,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,oscar,16286,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,point comfort,8609,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,seiu1199,5342,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,villagecaremax,7303,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,vnsny choice,8546,0,0,0,,0.0,,0.0,montefiore-health-system
+Montefiore,St. Luke's Cornwall Hospital|St. Luke's Cornwall Hospital - Cornwall Woundcare|St. Luke's Cornwall Hospital - Hospital PT|St. Luke's Cornwall Hospital - Hospital Extension Clinic|St. Luke's Cornwall Hospital - Cornwall Campus,vnsny select health,475,0,0,0,,0.0,,0.0,montefiore-health-system
+Mount Sinai,Mount Sinai Behavioral Health Center,horizon,1514,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Aetna,31458,22223,18575,0,-0.181128,0.0,0.402871,0.706434,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Affinity,208,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Anthem / Empire BCBS,72256,67063,59278,2373,0.249888,10131877.35,0.355666,0.929675,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Cigna,5090,4188,3459,1,0.104608,169.47,0.666667,0.82279,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,EmblemHealth,7207,2271,1524,0,-0.009534,0.0,0.994276,0.31511,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Healthfirst,1644,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,MagnaCare,15153,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,MetroPlus,2853,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,UnitedHealthcare,53841,12684,12676,0,-0.494343,0.0,0.006859,0.248604,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,local,16051,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,oscar,5680,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,valueoptions,19,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Beth Israel,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Aetna,17346,8541,8256,0,-0.127801,0.0,0.277953,0.49239,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Affinity,208,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Anthem / Empire BCBS,58728,57127,57114,14100,0.983604,83526982.99,0.056366,0.974032,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Cigna,5090,4188,3522,2125,0.295137,25543121.73,0.318529,0.82279,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,EmblemHealth,7207,2271,1517,0,0.419205,0.0,1.0,0.31511,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Healthfirst,1540,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,MagnaCare,12878,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,MetroPlus,83156,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,UnitedHealthcare,55503,12684,12643,0,-0.286196,0.0,0.99661,0.244993,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,local,15977,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,oscar,2840,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Brooklyn,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Aetna,18891,17965,14256,0,-0.181128,0.0,0.419037,0.950982,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Anthem / Empire BCBS,70687,65658,62859,10233,0.414485,27129769.57,0.233726,0.931068,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Cigna,5090,4188,2793,1,0.059923,169.47,0.666667,0.82279,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,EmblemHealth,5124,2271,1524,0,3.5e-05,0.0,0.994276,0.443208,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Healthfirst,3623,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,MagnaCare,17235,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,MetroPlus,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,UnitedHealthcare,51572,12684,12671,0,-0.395819,0.0,0.5041,0.245966,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,horizon,9554,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,local,15954,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,longevity,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,oscar,1514,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,valueoptions,19,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Morningside/West,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Aetna,2414,1644,1504,0,0.387446,0.0,0.246959,0.681027,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Anthem / Empire BCBS,67057,65383,62524,5403,0.390064,17413693.3,0.20799,0.975036,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Cigna,15927,5070,4130,1720,0.17966,14979694.54,0.513018,0.783133,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,EmblemHealth,7207,2271,1524,0,-0.123372,0.0,0.990753,0.31511,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Healthfirst,10050,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,MagnaCare,4062,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,MetroPlus,2320,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,UnitedHealthcare,56077,12934,12898,0,-0.309905,0.0,0.839879,0.248478,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,local,15993,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,oscar,757,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai Queens,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Aetna,31073,22177,18532,0,-0.181128,0.0,0.404608,0.713706,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Affinity,89,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Anthem / Empire BCBS,22569,21683,19551,0,0.879661,0.0,0.245861,0.961765,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Cigna,5090,4188,2793,1,0.08499,169.47,0.666667,0.82279,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,EmblemHealth,7177,2271,1524,0,0.0,0.0,0.994276,0.316427,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Healthfirst,7526,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,MagnaCare,12848,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,UnitedHealthcare,31837,12684,12678,0,-0.403517,0.0,0.502602,0.451275,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,brighton,757,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,longevity,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,Mount Sinai South Nassau,oscar,846,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Aetna,4923,4911,4897,0,-0.789579,0.0,0.34494,0.997562,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Affinity,104,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Anthem / Empire BCBS,42614,40732,40722,15439,0.992724,78612479.88,0.047432,0.956712,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Cigna,10676,2792,1398,716,-0.047586,5947736.83,0.738897,0.261521,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,EmblemHealth,6450,1514,1512,0,0.09342,0.0,1.0,0.234729,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Healthfirst,874,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,MagnaCare,12878,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,MetroPlus,2853,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,UnitedHealthcare,15976,12684,12665,0,-0.454851,0.0,0.013403,0.79414,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,elderplan,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,oscar,2840,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,seiu,15954,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,New York Eye and Ear Infirmary of Mount Sinai,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Aetna,31192,22221,21581,0,0.35711,0.0,0.686513,0.712394,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Affinity,208,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Anthem / Empire BCBS,80509,73978,58071,820,-0.033317,13049396.87,0.568764,0.921867,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Cigna,11538,5425,4434,1705,-0.01359,8685384.34,0.362028,0.759378,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,EmblemHealth,7977,2271,2271,0,-0.266763,0.0,0.989872,0.284693,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Fidelis Care,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Healthfirst,3623,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,Humana,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,MagnaCare,6249,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,MetroPlus,2853,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,UnitedHealthcare,59447,12684,12647,0,-0.290811,0.0,0.610691,0.243778,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,WellCare,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,horizon,9554,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,local,15940,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,oscar,5680,0,0,0,,0.0,,0.0,mount-sinai-health-system
+Mount Sinai,The Mount Sinai Hospital,vns,770,0,0,0,,0.0,,0.0,mount-sinai-health-system
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,1199seiu funds,5609,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Aetna,13818,3827,3446,0,-0.081278,0.0,0.200679,0.299429,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Affinity,9806,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Anthem / Empire BCBS,34533,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Cigna,10241,1610,1608,0,-0.100548,0.0,0.000621,0.233198,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,EmblemHealth,20678,594,450,0,-0.069623,0.0,0.996633,0.028726,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Fidelis Care,19523,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,Healthfirst,19520,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,MVP Health Care,9806,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,MagnaCare,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,MultiPlan,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,UnitedHealthcare,35327,3765,149,0,0.042365,0.0,0.0,0.126755,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,WellCare,4814,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,amida care,4903,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,beech street,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,consumer health network,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,devon,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,first health,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,qhm,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,senior whole health,4811,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,vns health,9717,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Columbia University Irving Medical Center,worldwide,3580,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Aetna,5402,1136,1004,0,0.009748,0.0,0.488556,0.22424,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Affinity,5004,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Anthem / Empire BCBS,17795,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Cigna,5402,985,979,0,-0.100287,0.0,0.0,0.261481,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,EmblemHealth,10809,204,204,0,1.537902,0.0,0.470588,0.018873,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Fidelis Care,9909,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,Healthfirst,9906,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,MVP Health Care,12756,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,MagnaCare,2925,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,MultiPlan,2925,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,UnitedHealthcare,18310,894,842,0,-0.073751,0.0,0.0,0.065447,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,WellCare,2403,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,amida care,2502,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,consumer health network,2925,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,elderplan,2400,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,first health,2925,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,longevity,2400,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,senior whole health,2400,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Hudson Valley Hospital,vns health,4905,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,1199seiu funds,3803,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Aetna,9580,2167,1912,0,0.096559,0.0,0.403784,0.245302,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Affinity,6490,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Anthem / Empire BCBS,22499,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Cigna,6531,1180,917,0,-0.100164,0.0,0.112712,0.250957,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,EmblemHealth,13164,288,288,0,0.63815,0.0,0.996528,0.021878,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Fidelis Care,12857,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,Healthfirst,12854,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,MagnaCare,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,MultiPlan,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,UnitedHealthcare,23569,1737,1724,0,0.15159,0.0,0.0,0.093432,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,WellCare,3122,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,amida care,3245,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,beechstreet,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,consumer health network,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,devon,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,elderplan,3119,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,first health,3047,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,senior whole health,3119,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYP,NewYork-Presbyterian Queens,vns health,6367,0,0,0,,0.0,,0.0,newyork-presbyterian
+NYU Langone,NYU Langone|Brooklyn,1199,19140,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Aetna,156976,119177,104908,5032,0.115872,35562756.24,0.655831,0.97448,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Anthem / Empire BCBS,318262,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Cigna,129360,42922,42878,207,0.06285,992351.02,0.888262,0.871371,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,EmblemHealth,361878,223681,222974,0,-0.84082,0.0,0.0,0.618112,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Fidelis Care,79463,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Healthfirst,124937,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,MagnaCare,63258,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Medicaid,85230,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,Medicare,332511,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,MetroPlus,60880,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,MultiPlan,207176,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,UnitedHealthcare,187163,88423,80297,824,0.043808,11409138.48,0.349208,0.706689,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,WellCare,5451,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,amida,5770,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,centerlight,21804,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,hamaspik,5468,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,healthplus,57400,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Brooklyn,somos,79548,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,1199,19140,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Aetna,157000,119201,100042,5104,0.039737,40861450.88,0.680842,0.974485,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Anthem / Empire BCBS,318210,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Cigna,129360,42922,42878,207,0.06285,992351.02,0.888262,0.871371,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,EmblemHealth,397010,257408,256435,0,-0.896836,0.0,0.0,0.648367,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Fidelis Care,79463,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Healthfirst,124937,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,MagnaCare,63258,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Medicaid,85230,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,Medicare,332511,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,MetroPlus,60875,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,MultiPlan,207176,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,UnitedHealthcare,208849,105602,103498,3560,0.090223,21159060.16,0.179703,0.739955,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,WellCare,5451,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,amida,5770,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,centerlight,21804,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,hamaspik,5468,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,healthplus,57400,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,oscar,9820,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Long Island,somos,79548,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,1199,19140,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Aetna,157000,119201,100084,5040,0.039824,40826353.98,0.684692,0.974485,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Anthem / Empire BCBS,318262,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Cigna,129360,42922,42878,207,0.06285,992351.02,0.888262,0.871371,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,EmblemHealth,379947,240773,240333,0,-0.89432,0.0,0.0,0.633702,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Fidelis Care,79463,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Healthfirst,124937,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,MagnaCare,63258,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Medicaid,85230,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,Medicare,332511,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,MetroPlus,60889,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,MultiPlan,207176,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,UnitedHealthcare,187179,88445,79865,12436,-0.196512,80647120.92,0.026706,0.706311,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,WellCare,5451,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,hamaspik,5468,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,healthplus,57400,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Orthopedic Hospital,somos,79548,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,1199,19140,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Aetna,157000,119201,100084,5040,0.039824,40826353.98,0.684692,0.974485,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Anthem / Empire BCBS,318262,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Cigna,129360,42922,42878,207,0.06285,992351.02,0.888262,0.871371,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,EmblemHealth,399725,259515,259122,0,-0.909695,0.0,0.0,0.649234,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Fidelis Care,79463,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Healthfirst,124937,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,MagnaCare,63258,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Medicaid,85230,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,Medicare,332511,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,MetroPlus,60887,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,MultiPlan,207176,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,UnitedHealthcare,187193,88445,79865,12436,-0.196512,80647120.92,0.026706,0.706232,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,WellCare,5451,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,amida,5770,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,centerlight,21804,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,hamaspik,3825,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,healthplus,57400,0,0,0,,0.0,,0.0,nyu-langone-health
+NYU Langone,NYU Langone|Tisch Hospital,somos,79548,0,0,0,,0.0,,0.0,nyu-langone-health
+Northwell,Cohen Children's Medical Center,Aetna,8206,5859,5586,1918,0.126218,15994269.41,0.240655,0.724855,northwell-health
+Northwell,Cohen Children's Medical Center,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,Cigna,4071,2243,1747,684,-0.003082,4386646.45,0.563085,0.86837,northwell-health
+Northwell,Cohen Children's Medical Center,EmblemHealth,26392,5600,2705,0,-0.020202,0.0,0.826607,0.212186,northwell-health
+Northwell,Cohen Children's Medical Center,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Cohen Children's Medical Center,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Cohen Children's Medical Center,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,Aetna,19958,4582,4291,0,0.397146,0.0,0.075513,0.26391,northwell-health
+Northwell,Danbury Hospital,Anthem / Empire BCBS,48341,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,Cigna,15451,4099,3755,0,0.241534,0.0,0.111003,0.26655,northwell-health
+Northwell,Danbury Hospital,UnitedHealthcare,11121,6362,5726,0,-0.111428,0.0,0.0,0.776801,northwell-health
+Northwell,Danbury Hospital,WellCare,10768,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,advantage plus network,10768,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,centivo,10148,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,connecticare,29701,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Danbury Hospital,optumcare network,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,Aetna,8182,5847,5475,1834,0.126218,25854143.42,0.245254,0.724446,northwell-health
+Northwell,Glen Cove Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,Cigna,4071,2243,1699,401,0.015228,812668.97,0.449398,0.86837,northwell-health
+Northwell,Glen Cove Hospital,EmblemHealth,26392,5600,2695,0,-0.020778,0.0,0.833214,0.212186,northwell-health
+Northwell,Glen Cove Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,UnitedHealthcare,20288,4392,4367,1262,0.14723,1026334.76,0.0,0.260932,northwell-health
+Northwell,Glen Cove Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Glen Cove Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,Aetna,8182,5847,5568,1912,0.126218,15891149.38,0.240123,0.724446,northwell-health
+Northwell,Huntington Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,Cigna,3299,1591,1123,388,0.029175,793631.47,0.578253,0.870826,northwell-health
+Northwell,Huntington Hospital,EmblemHealth,26392,5600,2705,0,-0.020202,0.0,0.826607,0.212186,northwell-health
+Northwell,Huntington Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,UnitedHealthcare,20276,4392,1822,18,0.018122,40111.76,0.0,0.260932,northwell-health
+Northwell,Huntington Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Huntington Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,Aetna,8206,5859,5583,1942,0.126218,15941912.96,0.238607,0.724855,northwell-health
+Northwell,Lenox Health at Greenwich Village,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,Cigna,4102,2267,1578,716,0.013572,48151773.98,0.541244,0.867917,northwell-health
+Northwell,Lenox Health at Greenwich Village,EmblemHealth,26410,5600,2705,0,-0.020202,0.0,0.826607,0.212041,northwell-health
+Northwell,Lenox Health at Greenwich Village,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Lenox Health at Greenwich Village,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Lenox Health at Greenwich Village,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,Aetna,8206,5859,5571,1920,0.126218,15859698.15,0.242704,0.724855,northwell-health
+Northwell,Long Island Jewish Forest Hills,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,Cigna,4071,2243,1747,686,-0.003082,4386694.57,0.562193,0.86837,northwell-health
+Northwell,Long Island Jewish Forest Hills,EmblemHealth,26410,5600,2681,0,-0.020798,0.0,0.835714,0.212041,northwell-health
+Northwell,Long Island Jewish Forest Hills,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Long Island Jewish Forest Hills,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Forest Hills,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,Aetna,8206,5859,5586,1918,0.126218,15994269.41,0.240655,0.724855,northwell-health
+Northwell,Long Island Jewish Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,Cigna,4071,2243,1747,684,-0.003082,4386646.45,0.563085,0.86837,northwell-health
+Northwell,Long Island Jewish Hospital,EmblemHealth,26410,5600,2705,0,-0.020202,0.0,0.826607,0.212041,northwell-health
+Northwell,Long Island Jewish Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Long Island Jewish Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,Aetna,8206,5859,5571,1920,0.126218,15859699.15,0.242704,0.724855,northwell-health
+Northwell,Long Island Jewish Valley Stream,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,Cigna,4071,2243,1747,684,-0.003082,4386646.45,0.563085,0.86837,northwell-health
+Northwell,Long Island Jewish Valley Stream,EmblemHealth,26410,5600,2681,0,-0.020798,0.0,0.835714,0.212041,northwell-health
+Northwell,Long Island Jewish Valley Stream,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Long Island Jewish Valley Stream,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Long Island Jewish Valley Stream,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,Aetna,8206,5859,5592,1918,0.126218,15910625.95,0.240655,0.724855,northwell-health
+Northwell,Mather Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,Cigna,4186,2268,2258,701,0.216618,8147725.44,0.333333,0.86631,northwell-health
+Northwell,Mather Hospital,EmblemHealth,26410,5600,2695,0,-0.020368,0.0,0.830714,0.212041,northwell-health
+Northwell,Mather Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,MVP Health Care,2044,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,MagnaCare,2622,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,UnitedHealthcare,20294,4392,4392,1434,0.309863,3047963.76,0.0,0.260932,northwell-health
+Northwell,Mather Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,local,2098,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Mather Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,Aetna,19958,4582,4291,0,0.397146,0.0,0.075513,0.26391,northwell-health
+Northwell,New Milford Hospital,Anthem / Empire BCBS,48341,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,Cigna,15451,4099,3755,0,0.241534,0.0,0.111003,0.26655,northwell-health
+Northwell,New Milford Hospital,UnitedHealthcare,11121,6362,5726,0,-0.111428,0.0,0.0,0.776801,northwell-health
+Northwell,New Milford Hospital,WellCare,10768,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,advantage plus network,10768,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,centivo,10148,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,connecticare,29701,0,0,0,,0.0,,0.0,northwell-health
+Northwell,New Milford Hospital,optumcare network,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,Aetna,8182,5847,5547,1894,0.126218,16055518.57,0.241149,0.724446,northwell-health
+Northwell,North Shore University Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,Cigna,4071,2243,1756,739,-0.003215,5340237.55,0.542131,0.86837,northwell-health
+Northwell,North Shore University Hospital,EmblemHealth,26392,5600,2681,0,-0.020798,0.0,0.835714,0.212186,northwell-health
+Northwell,North Shore University Hospital,Fidelis Care,9156,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,Healthfirst,9828,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,UnitedHealthcare,20294,4392,2052,18,0.03249,35589.76,0.0,0.260932,northwell-health
+Northwell,North Shore University Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,North Shore University Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,Aetna,18130,6295,5789,0,0.156866,0.0,0.181573,0.369165,northwell-health
+Northwell,Northern Dutchess Hospital,Anthem / Empire BCBS,7959,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,CDPHP,9121,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,Cigna,11108,3767,3648,0,0.397133,0.0,0.007698,0.650717,northwell-health
+Northwell,Northern Dutchess Hospital,EmblemHealth,8069,808,807,0,0.461389,0.0,0.006188,0.100136,northwell-health
+Northwell,Northern Dutchess Hospital,Fidelis Care,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,Humana,10468,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,MVP Health Care,3709,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Dutchess Hospital,UnitedHealthcare,15996,12724,12693,0,-0.485189,0.0,0.0,0.795648,northwell-health
+Northwell,Northern Dutchess Hospital,WellCare,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,Aetna,8119,5817,5175,2658,0.029091,25795919.71,0.172254,0.724499,northwell-health
+Northwell,Northern Westchester Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,Cigna,4182,2268,1810,667,-0.204074,12904287.76,0.325397,0.86631,northwell-health
+Northwell,Northern Westchester Hospital,EmblemHealth,26392,5600,2705,0,-0.020202,0.0,0.826607,0.212186,northwell-health
+Northwell,Northern Westchester Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,MVP Health Care,1307,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,MagnaCare,4138,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,UnitedHealthcare,20288,4392,4392,1078,-0.131113,1850583.76,0.0,0.260932,northwell-health
+Northwell,Northern Westchester Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,local,2069,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Northern Westchester Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,Aetna,19782,4410,4228,0,0.412199,0.0,0.040816,0.256604,northwell-health
+Northwell,Norwalk Hospital,Anthem / Empire BCBS,82634,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,Cigna,15449,4098,3855,0,0.169745,0.0,0.211811,0.266797,northwell-health
+Northwell,Norwalk Hospital,UnitedHealthcare,11121,6362,6195,0,-0.180121,0.0,0.0,0.776801,northwell-health
+Northwell,Norwalk Hospital,WellCare,10764,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,advantage plus network,10764,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,centivo,10148,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,connecticare,29702,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Norwalk Hospital,optumcare network,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,Aetna,8158,5841,5512,2500,-0.011862,20843754.5,0.240027,0.724241,northwell-health
+Northwell,Peconic Bay Medical Center,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,Cigna,4186,2268,1294,75,0.033402,715256.52,0.846561,0.86631,northwell-health
+Northwell,Peconic Bay Medical Center,EmblemHealth,26392,5600,2681,0,-0.020798,0.0,0.835714,0.212186,northwell-health
+Northwell,Peconic Bay Medical Center,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,MagnaCare,3444,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,UnitedHealthcare,20288,4392,4387,1392,0.147256,1872148.76,0.0,0.260932,northwell-health
+Northwell,Peconic Bay Medical Center,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,local,2082,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Peconic Bay Medical Center,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,Aetna,8119,5817,5481,2900,-0.015248,25048722.7,0.126354,0.724499,northwell-health
+Northwell,Phelps Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,Cigna,4182,2268,1582,117,-0.044067,1180281.65,0.804233,0.86631,northwell-health
+Northwell,Phelps Hospital,EmblemHealth,26410,5600,2739,0,-0.020008,0.0,0.819107,0.212041,northwell-health
+Northwell,Phelps Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,MagnaCare,4138,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,UnitedHealthcare,20300,4392,3882,1404,-0.406664,5916083.76,0.0,0.260746,northwell-health
+Northwell,Phelps Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,local,2069,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Phelps Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,Aetna,8182,5847,5472,1832,0.126218,25750346.42,0.245767,0.724446,northwell-health
+Northwell,Plainview Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,Cigna,4071,2243,1692,403,0.013603,767494.84,0.448061,0.86837,northwell-health
+Northwell,Plainview Hospital,EmblemHealth,26392,5600,2681,0,-0.020798,0.0,0.835714,0.212186,northwell-health
+Northwell,Plainview Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,UnitedHealthcare,20288,4392,4372,1262,0.215358,1384780.76,0.0,0.260932,northwell-health
+Northwell,Plainview Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Plainview Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,Aetna,17984,6261,5575,0,0.255218,0.0,0.213225,0.370342,northwell-health
+Northwell,Putnam Hospital Center,Anthem / Empire BCBS,7959,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,CDPHP,10704,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,Cigna,11108,3767,3648,0,0.295217,0.0,0.089196,0.650717,northwell-health
+Northwell,Putnam Hospital Center,EmblemHealth,8069,808,808,0,0.147128,0.0,0.0,0.100136,northwell-health
+Northwell,Putnam Hospital Center,Fidelis Care,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,Humana,10415,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,MVP Health Care,12167,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,UnitedHealthcare,14456,12724,11709,0,-0.367712,0.0,0.0,0.880432,northwell-health
+Northwell,Putnam Hospital Center,WellCare,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Putnam Hospital Center,centivo,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,Aetna,18210,6360,6066,0,0.424417,0.0,0.160692,0.371235,northwell-health
+Northwell,Sharon Hospital,Anthem / Empire BCBS,18917,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,Cigna,7745,3623,3435,0,0.256929,0.0,0.010765,0.765962,northwell-health
+Northwell,Sharon Hospital,Fidelis Care,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,MVP Health Care,12806,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,MagnaCare,1737,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,UnitedHealthcare,11459,6362,6338,0,-0.297331,0.0,0.0,0.716441,northwell-health
+Northwell,Sharon Hospital,WellCare,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Sharon Hospital,connecticare,4764,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,Aetna,8182,5847,5547,1912,0.126218,15924331.85,0.242175,0.724446,northwell-health
+Northwell,South Shore University Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,Cigna,4071,2243,1509,401,0.013684,849087.34,0.692822,0.86837,northwell-health
+Northwell,South Shore University Hospital,EmblemHealth,26392,5600,2695,0,-0.020778,0.0,0.833214,0.212186,northwell-health
+Northwell,South Shore University Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,UnitedHealthcare,20276,4392,4367,1262,0.14723,1026334.76,0.0,0.260932,northwell-health
+Northwell,South Shore University Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,South Shore University Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,Aetna,8206,5859,5590,1923,0.126218,16038779.8,0.240655,0.724855,northwell-health
+Northwell,Staten Island University Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,Cigna,4071,2243,1751,703,-0.002969,4728122.98,0.554614,0.86837,northwell-health
+Northwell,Staten Island University Hospital,EmblemHealth,26410,5600,2739,0,-0.020008,0.0,0.819107,0.212041,northwell-health
+Northwell,Staten Island University Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,MetroPlus,8348,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,UnitedHealthcare,20294,4392,4367,1262,0.14723,1026334.76,0.0,0.260746,northwell-health
+Northwell,Staten Island University Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Staten Island University Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,Aetna,8182,5847,5559,1896,0.126218,16073424.85,0.240123,0.724446,northwell-health
+Northwell,Syosset Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,Cigna,4071,2243,1756,739,-0.003215,5340237.6,0.542131,0.86837,northwell-health
+Northwell,Syosset Hospital,EmblemHealth,26392,5600,2705,0,-0.020202,0.0,0.826607,0.212186,northwell-health
+Northwell,Syosset Hospital,Fidelis Care,9156,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,Healthfirst,9828,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,UnitedHealthcare,20294,4392,2052,18,0.03249,35589.76,0.0,0.260932,northwell-health
+Northwell,Syosset Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,local,2094,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Syosset Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,Aetna,17341,6390,6152,0,-0.056385,0.0,0.148513,0.392916,northwell-health
+Northwell,Vassar Brothers Medical Center,Anthem / Empire BCBS,7968,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,CDPHP,10709,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,Cigna,11108,3767,3333,0,0.294399,0.0,0.204407,0.650717,northwell-health
+Northwell,Vassar Brothers Medical Center,EmblemHealth,8069,808,808,0,0.163517,0.0,0.0,0.100136,northwell-health
+Northwell,Vassar Brothers Medical Center,Fidelis Care,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,Humana,9575,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,MVP Health Care,3709,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,UnitedHealthcare,1540,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,WellCare,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Vassar Brothers Medical Center,centivo,770,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Aetna,8206,5859,5586,1918,0.126218,15994269.41,0.240655,0.724855,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Affinity,3782,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Anthem / Empire BCBS,18461,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Cigna,4071,2243,1747,684,-0.003082,4386646.45,0.563085,0.86837,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,EmblemHealth,26410,5600,2705,0,-0.020202,0.0,0.826607,0.212041,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Fidelis Care,9149,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Healthfirst,9784,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,Humana,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,MVP Health Care,1290,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,MagnaCare,4200,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,MetroPlus,8352,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,UnitedHealthcare,20300,4392,4367,1262,0.14723,1021812.76,0.0,0.260746,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,WellCare,1912,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,healthplus,5850,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,local,1340,0,0,0,,0.0,,0.0,northwell-health
+Northwell,Zucker Hillside Hospital Hospital,northwell direct,2088,0,0,0,,0.0,,0.0,northwell-health
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Aetna,2259,2259,813,0,0.014114,0.0,0.005755,1.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Affinity,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Anthem / Empire BCBS,3756,3595,2883,0,0.095499,0.0,0.594159,0.957135,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Cigna,753,725,725,0,0.342966,0.0,0.0,0.962815,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,EmblemHealth,2217,2202,2202,0,0.636087,0.0,0.989555,0.993234,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Healthfirst,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,MagnaCare,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,Medicare,3056,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,MultiPlan,27,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,UnitedHealthcare,3000,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,first health,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,geisinger health commercial exchange,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,world trade center fdny,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Bon Secours Community Hospital | Bon Secours Community Hospital,world trade center other,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Aetna,2259,2259,813,0,0.014114,0.0,0.005755,1.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Affinity,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Anthem / Empire BCBS,3756,3595,2883,0,0.095499,0.0,0.594159,0.957135,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Cigna,753,725,725,0,0.342966,0.0,0.0,0.962815,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,EmblemHealth,2217,2202,2202,0,0.309441,0.0,0.996367,0.993234,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Healthfirst,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,MagnaCare,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,Medicare,3056,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,MultiPlan,27,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,UnitedHealthcare,3000,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,first health,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,geisinger health commercial exchange,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,world trade center fdny,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Good Samaritan Hospital,world trade center other,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,Aetna,2259,2004,763,0,0.032,0.0,0.001996,0.887118,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,Affinity,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,Anthem / Empire BCBS,4535,3170,3170,0,0.553832,0.0,0.0,0.699008,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,CDPHP,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,EmblemHealth,2259,1989,1989,0,0.567572,0.0,0.996983,0.880478,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,MagnaCare,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,Medicare,6122,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,UnitedHealthcare,2265,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,beacon commercial,18,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,beacon exchange,6,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,first health,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,HealthAlliance Hospital | HealthAlliance Hospital,todays options,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Aetna,2259,2004,763,0,0.032,0.0,0.001996,0.887118,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Affinity,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Anthem / Empire BCBS,5303,3804,3804,0,0.581843,0.0,0.0,0.71733,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,CDPHP,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,EmblemHealth,2259,1989,1989,0,0.567572,0.0,0.996983,0.880478,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Excellus BCBS,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Healthfirst,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,MVP Health Care,2272,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,MagnaCare,1532,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,Medicare,6128,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,UnitedHealthcare,1557,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,WellCare,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Margaretville Memorial Hospital,todays options,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,Aetna,2259,2004,747,0,1e-06,0.0,0.351297,0.887118,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,Anthem / Empire BCBS,4535,3170,3170,0,0.062493,0.0,0.713249,0.699008,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,CDPHP,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,Cigna,753,652,652,0,-0.174037,0.0,0.0,0.86587,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,EmblemHealth,3012,2652,1992,0,-0.150001,0.0,0.997738,0.880478,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,Fidelis Care,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,MagnaCare,1512,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,Medicare,6112,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,MultiPlan,42,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,UnitedHealthcare,2301,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,WellCare,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital | Mid-Hudson Regional Hospital,first health,8,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Aetna,2259,2259,813,0,0.014114,0.0,0.005755,1.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Affinity,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Anthem / Empire BCBS,3756,3595,2883,0,0.095499,0.0,0.594159,0.957135,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Cigna,753,725,725,0,0.342966,0.0,0.0,0.962815,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,EmblemHealth,2217,2202,2202,0,0.555631,0.0,0.996367,0.993234,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Healthfirst,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,MagnaCare,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,Medicare,3056,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,MultiPlan,27,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,UnitedHealthcare,3000,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,first health,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,geisinger health commercial exchange,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,world trade center fdny,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,St. Anthony Community Hospital,world trade center other,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Aetna,2236,1983,1973,0,-0.364312,0.0,0.004034,0.886852,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Affinity,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Anthem / Empire BCBS,4535,3170,2703,0,0.005039,0.0,0.891167,0.699008,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,CDPHP,753,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Cigna,753,652,652,0,-0.174037,0.0,0.0,0.86587,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,EmblemHealth,3012,2652,1992,0,-0.150001,0.0,0.998492,0.880478,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Fidelis Care,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,MVP Health Care,2270,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,MagnaCare,1519,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,Medicare,7642,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,MultiPlan,42,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,UnitedHealthcare,2320,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,WellCare,764,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
+WMC,Westchester Medical Center | Westchester Medical Center | Westchester Medical Center | Westchester Medical Center,value options non hmo,766,0,0,0,,0.0,,0.0,westchester-medical-center-health-network
 White Plains,White Plains Hospital,Aetna,26809,14418,4404,0,-0.002951,0.0,0.402969,0.538126,white-plains-hospital
 White Plains,White Plains Hospital,Affinity,19410,0,0,0,,0.0,,0.0,white-plains-hospital
 White Plains,White Plains Hospital,Anthem / Empire BCBS,45943,30384,30141,0,-0.264927,0.0,0.671176,0.661413,white-plains-hospital
