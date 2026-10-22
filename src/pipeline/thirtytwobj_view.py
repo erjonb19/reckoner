@@ -853,6 +853,25 @@ def _flat(v: Any) -> Any:  # noqa: ANN401 - cells are mixed
     return ", ".join(map(str, v)) if isinstance(v, list | tuple) else v
 
 
+DOLLAR_CELL = re.compile(r"\$(\d[\d,]*\.\d\d)")
+RATIO_CELL = re.compile(r"\d+\.\d{3}")
+
+
+def _as_number(cell: Any) -> None:  # noqa: ANN401 - an openpyxl cell
+    """Store a single "$1,234.50" or "0.917" cell as a number, so Excel can sum it.
+
+    Ranges, flagged cells and codes (``0871``) stay text: only an exact match converts.
+    """
+    if not isinstance(cell.value, str):
+        return
+    if m := DOLLAR_CELL.fullmatch(cell.value):
+        cell.value = float(m.group(1).replace(",", ""))
+        cell.number_format = '"$"#,##0.00'
+    elif RATIO_CELL.fullmatch(cell.value):
+        cell.value = float(cell.value)
+        cell.number_format = "0.000"
+
+
 def to_xlsx(sheets: dict[str, list[dict[str, Any]]]) -> bytes:
     """An Excel workbook, one sheet per entry, header row bold and frozen."""
     from openpyxl import Workbook
@@ -871,6 +890,9 @@ def to_xlsx(sheets: dict[str, list[dict[str, Any]]]) -> bytes:
             c.font = Font(bold=True)
         for r in rows:
             ws.append([_flat(r.get(c)) for c in cols])
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                _as_number(cell)
         ws.freeze_panes = "A2"
         for i, c in enumerate(cols, 1):
             width = max([len(str(c))] + [len(str(_flat(r.get(c)) or "")) for r in rows[:200]])

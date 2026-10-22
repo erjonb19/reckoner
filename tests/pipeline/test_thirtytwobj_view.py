@@ -223,3 +223,17 @@ def test_the_summary_says_northwell_hospitals_are_not_in_the_tier(data: bj.Data)
 
 def test_missing_data_is_none_not_an_error(tmp_path: Path) -> None:
     assert bj.load(tmp_path) is None
+
+
+def test_excel_holds_single_rates_and_ratios_as_numbers() -> None:
+    """Analysts sum and sort the download; a rate stored as "$1,234.50" text cannot be."""
+    rows = [
+        {"code": "0871", "a": "$11,624.37", "ratio": "0.917", "range": "$1.00 – $2.00 ⚑"},  # noqa: RUF001
+    ]
+    ws = load_workbook(io.BytesIO(bj.to_xlsx({"t": rows})))["t"]
+
+    code, rate, ratio, rng = (c.value for c in ws[2])
+    assert code == "0871"
+    assert rate == 11624.37 and ws["B2"].number_format == '"$"#,##0.00'
+    assert ratio == 0.917
+    assert rng == "$1.00 – $2.00 ⚑"  # noqa: RUF001

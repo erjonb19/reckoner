@@ -1174,8 +1174,8 @@ def thirtytwobj_page() -> None:
         return
     if d is None:
         st.warning(
-            f"The 32BJ data is not present here (looked in `{THIRTYTWOBJ}`). It is built "
-            "locally by `scripts/32bj` and is not part of the published dataset."
+            f"The 32BJ data is not present here (looked in `{THIRTYTWOBJ}`). It is committed in "
+            "`summary/32bj` and rebuilt by `scripts/32bj`."
         )
         return
     filters = thirtytwobj_filters(d)
