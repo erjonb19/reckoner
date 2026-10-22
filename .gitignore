@@ -58,6 +58,10 @@ scratch/
 # Parsers are tested against real files, so keep trimmed samples.
 !tests/fixtures/**
 
+# The 32BJ page's data: 7.8 MB of public Anthem facility rates, built by
+# scripts/32bj from files that stay under data/ (docs/32bj-evaluation.md, 8.11).
+!summary/32bj/*.parquet
+
 # Fabric / Power BI local artifacts
 *.pbix
 *.pbit

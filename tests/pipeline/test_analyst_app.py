@@ -104,6 +104,17 @@ class FakeStreamlit(ModuleType):
                 drawn.append(body)
 
             return markdown
+        if name == "multiselect":
+
+            def multiselect(
+                label: str, options: list[str], default: object = None, key: str = "", **_: object
+            ) -> list[str]:
+                value = choices.get(label, self.session_state.get(key, default or []))
+                picked = [v for v in value if v in options]  # type: ignore[union-attr]
+                self.session_state[key] = picked
+                return picked
+
+            return multiselect
         if name == "text_input":
             return lambda label, value="", **_: choices.get(label, value)
         # The 32BJ page's widgets: the default, or what the test chose by label.
@@ -116,7 +127,9 @@ class FakeStreamlit(ModuleType):
         if name == "checkbox":
             return lambda label, value=False, **_: value
         if name == "segmented_control":
-            return lambda label, default=None, **_: choices.get(label, default)
+            return lambda label, options=None, default=None, key="", **_: choices.get(
+                label, self.session_state.get(key, default)
+            )
         if name == "Page":
             return lambda fn, **kw: SimpleNamespace(fn=fn, **kw)
         if name == "navigation":
@@ -289,7 +302,7 @@ def summary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 class TestEveryPageRuns:
-    def test_all_five_pages_execute_against_the_committed_dataset(self, tmp_path, monkeypatch):
+    def test_all_six_pages_execute_against_the_committed_dataset(self, tmp_path, monkeypatch):
         monkeypatch.setattr(view, "fetch_release_file", a_release(tmp_path))
         monkeypatch.setenv("RECKONER_32BJ", str(tmp_path / "no-32bj-data"))
 
@@ -297,13 +310,14 @@ class TestEveryPageRuns:
 
         pages = [t for t in drawn if t.startswith("page=")]
         assert pages == [
+            "page=Compare hospitals",
             "page=Rankings",
             "page=Pair detail",
             "page=Code lookup",
             "page=Coverage and data quality",
             "page=32BJ",
         ]
-        assert sum("How to read this" in t for t in drawn) == 4
+        assert sum("How to read this" in t for t in drawn) == 5
 
     def test_the_default_ranking_is_the_count(self, tmp_path, monkeypatch):
         monkeypatch.setattr(view, "fetch_release_file", a_release(tmp_path))
@@ -364,11 +378,12 @@ def test_the_theme_ships_both_modes():
 
 
 def test_the_app_needs_nothing_the_live_page_does_not_install():
-    """Community Cloud installs requirements.txt only. Streamlit brings pyarrow and altair."""
+    """Community Cloud installs requirements.txt only. Streamlit brings pyarrow and altair;
+    the 32BJ page adds DuckDB for its Parquet and openpyxl for its Excel downloads."""
     text = io.StringIO((ROOT / "requirements.txt").read_text(encoding="utf-8"))
     wanted = {line.split(">")[0].split("=")[0].strip() for line in text if line[:1].isalpha()}
 
-    assert wanted == {"streamlit"}
+    assert wanted == {"streamlit", "duckdb", "openpyxl"}
 
 
 class TestTheRoughEdges:
@@ -457,3 +472,83 @@ class TestThe32BJPage:
         page = drawn[drawn.index("page=32BJ") :]
 
         assert any("32BJ data is not present" in t for t in page)
+
+
+def a_compare_release(tmp_path: Path) -> Callable[..., view.ReleaseFile]:
+    """The Compare page's real rows (``test_compare_view``), as a release."""
+    from tests.pipeline.test_compare_view import ROWS, SYSTEM
+
+    rates = pa.table(
+        {
+            "system": [SYSTEM[r[0]] for r in ROWS],
+            "facility": [r[0] for r in ROWS],
+            "carrier": [r[1] for r in ROWS],
+            "code": [r[2] for r in ROWS],
+            "code_type": [r[3] for r in ROWS],
+            "hospital_rates": pa.array([r[4] for r in ROWS], pa.int32()),
+            "hospital_rate": [r[5] for r in ROWS],
+        }
+    )
+    codes = pa.table(
+        {"code_type": ["CPT"], "code": ["70450"], "description": ["HC CT HEAD/BRAIN W/O DYE"]}
+    )
+    for name, table in (("rates", rates), ("codes", codes)):
+        pq.write_table(table, tmp_path / f"{name}.parquet")
+
+    def fetch(metadata: object, name: str, *_: object, **__: object) -> view.ReleaseFile:
+        return view.ReleaseFile(tmp_path / name)
+
+    return fetch
+
+
+class TestComparePage:
+    def test_it_opens_on_the_montefiore_family_for_ct_head(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_compare_release(tmp_path))
+
+        drawn, fake = render()
+
+        assert drawn[0] == "page=Compare hospitals" or "page=Compare hospitals" in drawn
+        table = next(t for t in fake.tables if t and "vs_lowest" in t[0])
+        assert table[0]["hospital"] == "Nyack Hospital"
+        assert table[-1]["rate"] == "$703"
+        assert any("CT head, no contrast · Aetna" in t for t in drawn)
+        assert any("Early look." in t for t in drawn)
+        assert fake.query_params["insurer"] == "Aetna"
+        assert fake.query_params["h"].split("~")[0].startswith("Montefiore Medical Center")
+
+    def test_the_scorecard_view_runs(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_compare_release(tmp_path))
+
+        drawn, fake = render({"View": "Several services"})
+
+        assert any("services compared · Aetna" in t for t in drawn)
+        wide = next(t for t in fake.tables if t and "service" in t[0])
+        assert wide[0]["service"] == "CT head, no contrast"
+
+    def test_the_every_insurer_view_runs(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_compare_release(tmp_path))
+
+        _, fake = render({"View": "One hospital, every insurer", "Hospital": "Nyack Hospital"})
+
+        table = next(t for t in fake.tables if t and "carrier" in t[0] and "rate" in t[0])
+        assert table[0] == {"carrier": "Cigna", "rate": "$1,766", "rates_behind_it": 2}
+
+    def test_a_shared_link_restores_the_hospitals_and_insurer(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_compare_release(tmp_path))
+
+        _, fake = render(
+            query={"h": "Nyack Hospital~St. Luke's Cornwall Hospital", "insurer": "Cigna"}
+        )
+
+        assert fake.session_state["cmp_hospitals"] == [
+            "Nyack Hospital",
+            "St. Luke's Cornwall Hospital",
+        ]
+        assert fake.query_params["insurer"] == "Cigna"
+
+    def test_one_hospital_is_not_a_comparison(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_compare_release(tmp_path))
+
+        drawn, _ = render({"Hospitals (2 to 6)": ["Nyack Hospital"]})  # type: ignore[dict-item]
+
+        assert "Pick at least two hospitals to compare." in drawn
