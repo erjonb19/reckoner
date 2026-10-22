@@ -31,7 +31,13 @@ agents = [
     "anthropic>=0.70",
     "google-genai>=2.25",
 ]
+# The 32BJ exploration (scripts/32bj, the 32BJ page): queries over local Parquet.
+# Optional: nothing scheduled reads it.
+thirtytwobj = [
+    "duckdb>=1.1",
+]
 dev = [
+    "duckdb>=1.1",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "respx>=0.21",

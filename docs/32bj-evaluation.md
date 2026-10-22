@@ -360,7 +360,7 @@ each. Those groups include every system, so they say nothing about any one of th
 | Mount Sinai | The Mount Sinai Hospital, Mount Sinai Queens (LIC NPI), Mount Sinai Brooklyn (Beth Israel Brooklyn NPI) | 32BJ Tier1 | **0.917×** (≈ 1/1.09) on negotiated, fee schedule, MS-DRG `derived` and per diem; % of charges unchanged |
 | Mount Sinai | South Nassau, Diagnostic & Treatment Center, rehab, ESRD | 32BJ Tier1 | identical |
 | NYU Langone | Tisch/Kimmel (two NPIs), Long Island, Brooklyn, plus units | HMO POS or both | identical |
-| Northwell | **none for the acute-care NPIs** (NSUH, LIJ, Lenox Hill, SIUH, Forest Hills); only ESRD, psych and rehab unit NPIs | HMO POS or both, never Tier1 alone | n/a |
+| Northwell | **none for the 12 acute hospitals** (corrected 2026-10-21, section 8.10: they have standard Anthem rates in the HMO file, but no rows at all in the 32BJ file); 32BJ-tier rows only for psych units, dialysis centers, a rehab unit and an ambulatory surgery center | 32BJ Tier1 for those units | n/a |
 | St. Barnabas | none; none of its 6 NPPES organisation NPIs appears in any file | — | — |
 
 **How to read it**
@@ -369,9 +369,11 @@ each. Those groups include every system, so they say nothing about any one of th
   Empire's HMO POS rates for the same code. This is a uniform multiplier, and it
   appears in a file dated after the March 2026 Mount Sinai–32BJ agreement. That is
   consistent with the agreement, but it is an inference: the file does not say why.
-- **Northwell.** The absence of Northwell acute-care facility rates fits the press
-  release: 32BJ reaches Northwell through Northwell Direct, not Anthem. That fit is
-  also an inference.
+- **Northwell.** Northwell's acute hospitals are in Anthem's standard network but not
+  in the 32BJ tier. That fits the press release: 32BJ reaches Northwell's hospitals
+  through Northwell Direct, not Anthem. That fit is an inference. (This section first
+  said the acute hospitals had no facility rates in Anthem's files at all; the full
+  extraction in section 8.10 corrected it.)
 - **Vintage.** Both Anthem files are dated 2026-10-01, so the Tier1 vs HMO POS
   comparison has no vintage gap. Comparing them with the hospital files does: those
   are 2026-03/04.
@@ -625,13 +627,14 @@ HCPCS rows with `billing_class = institutional`.
 | NYU | Long Island Community (Patchogue) | 1831910355 |
 | NYU | NYU Hospitals Center | 1598864118 |
 | NYU | oncology, psych, rehab, ESRD and mental-health units | 11 NPIs |
-| Northwell | dialysis, psych and rehab units only: LIJ ESRD ×2, NSUH ESRD, SIUH psych/rehab/TBI/hospice, NSUH Syosset psych, LIJ Valley Stream psych/SNF, LIJ residential, Stern rehab SNF | 12 NPIs |
+| Northwell | 12 acute hospitals (standard Anthem rates only) plus units: ESRD, psych, rehab, SNF, an ambulatory surgery center | 27 NPIs (see 8.10) |
 
 The full list will be committed as `scripts/32bj/facilities.csv`, with NPPES name,
 taxonomy and city for every NPI.
 
-**Northwell's acute-care hospital NPIs** (NSUH, LIJ, Lenox Hill, SIUH, Forest Hills)
-have **no institutional rates**. They appear only as members of professional groups.
+**Northwell's acute-care hospital NPIs** have institutional rates in the standard
+Anthem file but **none in the 32BJ tier** (corrected; see 8.10). This plan first said
+they had no institutional rates at all.
 
 **Campus attribution.** In this file the billing "TIN" is an NPI, and each group lists
 member NPIs.
@@ -929,9 +932,11 @@ kept self-contained, so moving it into `streamlit_app.py` later is a cut and pas
    > Sinai Queens and Mount Sinai Brooklyn), 32BJ rates are about 8% below Anthem's
    > standard rates for the same service. Mount Sinai's other facilities, and every
    > Montefiore and NYU Langone hospital, are at the standard Anthem rate.
-   > Northwell's main hospitals have no hospital rates in this Anthem file. Only
-   > some Northwell dialysis, psychiatric and rehabilitation units appear. 32BJ
-   > reaches Northwell through a separate direct contract (Northwell Direct).
+   > Northwell's 12 main hospitals are not in the 32BJ tier: Anthem lists them only
+   > at its standard rates. Some Northwell psychiatric units, dialysis centers, a
+   > rehabilitation unit and an ambulatory surgery center are in the 32BJ tier. 32BJ
+   > reaches Northwell's hospitals through a separate direct contract (Northwell
+   > Direct).
 
 2. **Default view: top-25 tables, each with a CSV and Excel download.**
    - **Inpatient APR-DRG (Montefiore only).** One row per DRG and severity. One 32BJ
@@ -971,7 +976,7 @@ kept self-contained, so moving it into `streamlit_app.py` later is a cut and pas
      list years.
    - **Limits:**
      - the Bronx campuses are one column
-     - Northwell's acute hospitals are absent
+     - Northwell's acute hospitals are not in the 32BJ tier (standard Anthem only)
      - the hospital file is from April and the Anthem file from October
      - percent-of-charges rates have no dollar value
      - Medicare volume skews toward older patients
@@ -1099,7 +1104,104 @@ Moving them keeps them past the end of the session. It is not a backup.
    - Run the app locally to see it, without deploying.
 6. **Make a local commit per step.** No push.
 
----
+### 8.10 Build status, 2026-10-21 (night): stopped at the cross-check
+
+**Built.** All of it is local on `explore/32bj`, with nothing pushed.
+
+- **Extraction.**
+  - `extract_facility_rates.py` ran on both Anthem files.
+  - The 32BJ file: 1,669,287 non-professional prices, exactly the profile's count.
+    Its provider references expand to 114,108,476 provider-group rows; the HMO
+    file's expand to 785,905. Pass 1 took 25 minutes and pass 2 12 minutes.
+  - The HMO file: 1,679,455 non-professional prices.
+- **Facilities: 94 across the four systems.**
+  - `build_facilities.py` resolved every billing NPI with a non-professional price
+    in NPPES: 1,385 of them. 94 belong to the four systems.
+  - This found campuses the earlier name search missed:
+    - Mount Sinai: Morningside/West (billing as St. Luke's-Roosevelt), New York Eye
+      and Ear, and a second NPI for The Mount Sinai Hospital
+    - Montefiore: Burke Rehabilitation, and St. Luke's Cornwall's dialysis unit
+    - NYU: a second Long Island Community Hospital NPI
+- **Tidy table.** `facility_rates.parquet`: 1,568,115 rows, 7.6 MB, built in 26
+  seconds under a 1 GB DuckDB cap.
+  - **Structure.** It streams, with no `DISTINCT`: the first attempt ran out of memory
+    under the cap. Revenue-code lists sit in `facility_items.parquet`.
+- **Top-25 lists** from SPARCS 2023 and CMS 2024 (`volume_sources.py`).
+  - **APR-DRG** is led by normal newborn (640), vaginal delivery (560) and cesarean
+    (540).
+  - **MS-DRG** is led by sepsis (871), heart failure (291) and pneumonia (177).
+  - **Outpatient** is led by head CT, abdomen/pelvis CT, cataract surgery and
+    screening mammography.
+  - **No facility volume.** 22 of the shoppable codes have no NY facility-setting
+    volume (labs, consults, preventive visits). They rank last.
+- **The page and its logic.** These were written before the cross-check ran, which is
+  earlier than 8.9 orders. They are **not committed**, because the cross-check gates
+  them.
+  - `src/pipeline/thirtytwobj_view.py`
+  - the 32BJ page in `analyst_app.py`
+  - `tests/pipeline/test_thirtytwobj_view.py`: the 13 parsing and labelling tests
+    pass; the 7 data tests wait for a fixture.
+
+**Northwell, confirmed from the full extraction.**
+
+- **Acute hospitals.** All 12 have only standard Anthem rates, about 11,400 rows
+  each, and no rows at all in the 32BJ file:
+  - NSUH, LIJ, Cohen Children's, LIJ Valley Stream, Lenox Hill, SIUH
+  - Glen Cove, Huntington, Plainview, South Shore, Phelps, Northern Westchester
+- **Units in the 32BJ tier.**
+  - psych units: SIUH, Huntington, South Shore, NSUH Syosset, Glen Cove, LIJ Valley
+    Stream
+  - dialysis centers: NSUH Manhasset, LIJ New Hyde Park, LIJ Queens Village
+  - SIUH's rehab unit
+  - the Northern Westchester ambulatory surgery center
+- **Corrected.** Section 4, 8.1 and the page summary now say this. The earlier "no
+  acute facility rates in Anthem" came from the profile's NPI matching and was
+  wrong.
+
+**St. Luke's Cornwall cross-check: the sources disagree on outpatient rates.**
+
+| code type | on both sides | exact | within 1% | differ | median Anthem ÷ hospital |
+|---|---:|---:|---:|---:|---:|
+| APR-DRG (inpatient case rates) | 1,244 | 609 | 635 | **0** | 1.000 |
+| CPT (outpatient) | 1,913 | 88 | 842 | **983** | 1.000 (5th–95th pct 0.84–3.49) |
+| HCPCS (outpatient) | 78 | 2 | 9 | **67** | 1.754 |
+
+The "within 1%" rows are presumably rounding.
+
+- **Inpatient agrees completely.**
+- **Outpatient disagrees on about half of CPT codes and most HCPCS codes.** Where they
+  differ, Anthem is usually higher: 816 higher against 167 lower. The gap is large
+  for diagnostic tests and imaging, for example:
+
+  | code | test | hospital file | Anthem |
+  |---|---|---:|---:|
+  | 92587 | auditory evoked test | $36.03 | $755.09 |
+  | 77470 | special radiation treatment | $368.39 | $5,588.82 |
+  | 75625 | angiography | $905.02 | $6,515.89 |
+
+- **What it is not.**
+  - Not the 32BJ tier specifically: St. Luke's 32BJ and standard Anthem rates are
+    identical.
+  - Not bundle against plain rates: Anthem's bundle rates split about evenly between
+    agreeing and differing, and 71 plain-rate CPT codes differ too.
+  - Not vintage alone: a 6-month escalator would be a uniform ratio, not a spread
+    from 0.84 to 3.5.
+- **Code-level detail:** `data/raw/32bj/anthem/derived/st_lukes_crosscheck.csv`.
+
+**Stopped here for your decision.** The tables, fixture and page are not finished,
+because the outpatient tables would show Anthem's rates for codes where St. Luke's
+own file says something different. Options:
+
+1. **Publish with a caveat.** Inpatient (which agrees) as planned. Outpatient labelled
+   "Anthem's published rate; St. Luke's own file disagrees on about half of outpatient
+   codes".
+2. **Investigate first** which side is the facility rate. Two cheap tests:
+   - compare St. Luke's hospital-file 32BJ outpatient amounts with Anthem's
+     *professional* rates for the same codes. A match would mean the hospital file's
+     32BJ outpatient column is professional. This needs a re-scan of the 32BJ file's
+     professional rows, about 35 minutes.
+   - compare both sides with Medicare OPPS payment for the same codes.
+3. **Inpatient only for now.** Hold the outpatient tables until it is explained.
 
 ## Reproducing this
 
