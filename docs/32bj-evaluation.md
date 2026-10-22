@@ -1,6 +1,6 @@
 # 32BJ Health Fund: evaluation before any ingest
 
-Status: **profile only, for review.** Nothing here touches the lake, the payer
+Status: **the inpatient 32BJ page is live (section 8.11); the rest is profile only.** Nothing here touches the lake, the payer
 contract, or the pipeline. Written 2026-10-21 from five public files downloaded that
 day, the local curated hospital lake, and public registries (NPPES, ProPublica's
 Nonprofit Explorer). It sits behind the freeze (`docs/FREEZE_PLAN.md`): anything it
@@ -1263,6 +1263,75 @@ professional fees. They simply differ from Anthem's facility price for the same 
   the file alone.
 
 Outpatient stays hidden until you decide. Nothing has been added back.
+
+### 8.11 Shipped, 2026-10-22: the 32BJ page is live (inpatient only)
+
+Decision, 2026-10-22: ship the inpatient page to the public repo and the live app.
+This overrides the freeze for this page and the earlier no-push rule.
+
+**Where it runs.** Page **32BJ** at <https://reckoner-ny-2-0.streamlit.app/32bj>,
+LIVE_STATUS
+
+**What it reads.** `summary/32bj/` is committed. It holds:
+
+| file | size | content |
+|---|---:|---|
+| `facility_rates.parquet` | 7.6 MB | 1,568,115 rows |
+| `facility_items.parquet` | 0.2 MB | bundle RC lists |
+| `top25.csv` | | the code rankings |
+| `st_lukes_crosscheck.json` | | the cross-check outcome |
+
+`.gitignore` re-includes only `summary/32bj/*.parquet`. The raw Anthem downloads
+and every intermediate file stay under `data/`, which git ignores.
+`requirements.txt` gains `duckdb` and `openpyxl`, which Community Cloud installs.
+Outpatient stays off (`OUTPATIENT_UNDER_REVIEW = True`).
+
+**Checked in a real browser before pushing** (Playwright, local):
+
+- both inpatient top-25 tables load, and the outpatient note shows
+- the network filter re-renders without errors
+- 20 pasted codes resolve: 19 counted (the word `abc` is dropped as a header), 17
+  found, 1 not found, 1 duplicate, 4 ambiguous and flagged
+- the Excel download opens
+
+One display bug was fixed. Excel cells held rates as text (`"$11,624.37"`), so they
+could not be summed or sorted. They are now numbers with a currency format.
+
+**Independent check** (a separate agent that did not build the page, with read-only
+SQL of its own):
+
+- **10 random cells from the page against the Parquet: 10/10 exact.**
+- **Mount Sinai 0.917×:** every compared MS-DRG case rate at all six campuses is at
+  0.9167 (Brooklyn on its 11 comparable codes).
+- **Montefiore and NYU 1.000×:** Montefiore is at 1.000 on every code at all seven
+  acute campuses. NYU is at 1.000 everywhere it can be compared.
+- **Northwell:** 0 tier rows at the 12 acute NPIs, and 11 unit campuses in the tier.
+- **The commit:** no raw files, secrets or non-public data. The largest blob is the
+  7.6 MB Parquet.
+
+**What the check found, and what changed:**
+
+1. **The summary stated "Northwell Direct" as fact.** The Anthem files show only
+   that Northwell's acute hospitals are absent from the tier, not why. The sentence
+   now says "The Anthem files do not say how 32BJ members reach Northwell's main
+   hospitals." The press-release fit (section 4) stays an inference, here only.
+2. **St. Luke's Cornwall's psychiatric unit (NPI 1124295746) was an acute campus.**
+   It was a duplicate APR-DRG column beside the hospital's.
+   - `build_facilities.py` now leaves a labelled `... Unit` taxonomy out of acute.
+   - The rates file was rebuilt. Only labels changed: 0 rates differ, and 19,980
+     rows changed flag.
+   - The same rebuild fixed "St. Luke'S" (a `str.title` artifact).
+3. **Few codes can be compared at three campuses, and the summary now says why for
+   each.**
+   - **Mount Sinai Brooklyn (18) and NYU Langone Long Island Community (9)** bill
+     under two NPIs with different rates. Most cells are ranges (⚑), with no ratio.
+   - **NYU Langone Long Island (Mineola)** is different. The 32BJ tier lists dollar
+     inpatient rates for only 22 of its DRGs. Its case rates appear only in standard
+     Anthem and in the HMO network inside the 32BJ file. (The checker said it had no
+     tier rows at all. It has 14,468, almost all outpatient.)
+4. **The cross-check caption blended inpatient and outpatient** (67.5%). It now
+   reads: 1,244 of 1,244 inpatient case rates agree, but only 941 of 1,991
+   outpatient codes (47%). `crosscheck_st_lukes.py` writes both, as `by_setting`.
 
 ## Reproducing this
 

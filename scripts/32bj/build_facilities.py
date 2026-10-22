@@ -82,6 +82,11 @@ CAMPUS = {
 }
 
 
+def titled(s: str) -> str:
+    """Title case without str.title's "Luke'S"."""
+    return re.sub(r"'S", "'s", s.title())
+
+
 def nppes(npi: str, cache: dict[str, Any]) -> dict[str, Any]:
     if npi in cache:
         return cache[npi]
@@ -162,14 +167,17 @@ def main(derived: Path, out_csv: Path) -> None:
         if s:
             label = (
                 CAMPUS.get(npi)
-                or f"{(info.get('name') or '').title()} ({(info.get('city') or '').title()})"
+                or f"{titled(info.get('name') or '')} ({titled(info.get('city') or '')})"
             )
             out.append(
                 {
                     "npi": npi,
                     "system": s,
                     "campus": label,
-                    "acute_campus": npi in CAMPUS,
+                    # A labelled psychiatric unit (St. Luke's Cornwall) keeps its label but
+                    # is not an acute campus: its DRG rates duplicate the hospital's.
+                    "acute_campus": npi in CAMPUS
+                    and not (info.get("taxonomy_desc") or "").endswith(" Unit"),
                     "nppes_name": info.get("name"),
                     "taxonomy": info.get("taxonomy_desc"),
                     "city": info.get("city"),

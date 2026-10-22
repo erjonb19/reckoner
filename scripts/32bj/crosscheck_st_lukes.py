@@ -133,12 +133,24 @@ def main(derived: Path, lake: Path, out_csv: Path) -> None:
             "select count(*) from outcome where outcome = 'Anthem only'"
         ).fetchone()[0],
     }
+    # Inpatient and outpatient agree very differently; one blended share hides that.
+    split = {
+        setting: con.sql(f"""select count(*) filter (where outcome in
+                                 ('exact to the cent', 'within 1%')), count(*)
+                             from outcome where h_rates is not null and a_rates is not null
+                               and code_type {
+            "in ('APR-DRG', 'MS-DRG')" if setting == "inpatient" else "not in ('APR-DRG', 'MS-DRG')"
+        }""").fetchone()
+        for setting in ("inpatient", "outpatient")
+    }
+    record["by_setting"] = {s: {"agree": a, "codes": n} for s, (a, n) in split.items()}
+    (ia, i_n), (oa, o_n) = split["inpatient"], split["outpatient"]
     record["sentence"] = (
         "Cross-check: St. Luke's Cornwall's own hospital file (Anthem / Local 32BJ, April 2026) "
         "and Anthem's 32BJ tier (October 2026) give the same dollar rate, to within 1%, for "
-        f"{agree:,} of the {total:,} codes both "
-        f"publish ({record['agree_share']:.1%})."
-        if total
+        f"{ia:,} of the {i_n:,} inpatient case rates both publish, but for only {oa:,} of the "
+        f"{o_n:,} outpatient codes ({oa / o_n:.0%})."
+        if i_n and o_n
         else "Cross-check: no codes in common."
     )
     (out_csv.parent / "st_lukes_crosscheck.json").write_text(json.dumps(record, indent=1))

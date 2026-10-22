@@ -219,6 +219,44 @@ def test_the_summary_says_northwell_hospitals_are_not_in_the_tier(data: bj.Data)
     northwell = next(p for p in bj.summary_points(data) if p.startswith("Northwell"))
     assert "not in the 32BJ tier" in northwell
     assert "are in the 32BJ tier" in northwell  # the units that are
+    # The files show the absence, not the reason; a contract they do not name is not claimed.
+    assert "Northwell Direct" not in northwell
+    assert "do not say how" in northwell
+
+
+def few_codes_data(rows: str) -> bj.Data:
+    import duckdb
+
+    con = duckdb.connect()
+    con.sql(f"""create view rates as select * from (values {rows})
+                t(network, campus, acute_campus, setting, code_type, code, negotiated_type)""")
+    return bj.Data(con=con, top25=[], crosscheck=None, drg_type={}, codes={})
+
+
+def test_few_codes_because_the_tier_lacks_the_case_rates() -> None:
+    """NYU Langone Long Island: case rates at standard Anthem, few in the 32BJ tier."""
+    std = ", ".join(
+        f"('{bj.STANDARD}', 'LI', true, 'inpatient', 'MS-DRG', '{c:03d}', 'derived')"
+        for c in range(1, 11)
+    )
+    tier = f"('{bj.TIER}', 'LI', true, 'inpatient', 'MS-DRG', '001', 'negotiated')"
+
+    reason = bj.few_codes_reason(few_codes_data(f"{std}, {tier}"), "LI", 1)
+
+    assert "lists dollar inpatient rates for 1 DRGs there, against 10" in reason
+
+
+def test_few_codes_because_the_cells_are_ranges() -> None:
+    """Mount Sinai Brooklyn: both networks list every code, but under two NPIs."""
+    rows = ", ".join(
+        f"('{n}', 'B', true, 'inpatient', 'MS-DRG', '{c:03d}', 'derived')"
+        for n in (bj.TIER, bj.STANDARD)
+        for c in range(1, 11)
+    )
+
+    reason = bj.few_codes_reason(few_codes_data(rows), "B", 2)
+
+    assert "more than one rate" in reason
 
 
 def test_missing_data_is_none_not_an_error(tmp_path: Path) -> None:

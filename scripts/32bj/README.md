@@ -8,8 +8,9 @@ Exploratory work behind `docs/32bj-evaluation.md`. It reads only public files:
 
 It does not write to the lake or touch the pipeline.
 
-Every input and output lives under `data/raw/32bj/`, which is gitignored, so nothing
-in this folder is backed up by git except the code and `facilities.csv`.
+Every input and output lives under `data/raw/32bj/`, which is gitignored. The page's
+four files are copied into `summary/32bj/`, which is committed and is what the live
+app reads.
 
 ## Build (typed, re-runnable)
 
@@ -33,7 +34,9 @@ table is 114M rows.
 2. `build_facilities.py`, then `build_facility_rates.py`
 3. `volume_sources.py data/raw/32bj/volume`, then copy `top25.csv` into `data/raw/32bj/anthem/derived/`
 4. `crosscheck_st_lukes.py ... data/raw/32bj/anthem/derived/st_lukes_crosscheck.csv`
-5. `streamlit run analyst_app.py`, page **32BJ**
+5. copy `facility_rates.parquet`, `facility_items.parquet`, `top25.csv` and
+   `st_lukes_crosscheck.json` from `data/raw/32bj/anthem/derived/` into `summary/32bj/`
+6. `streamlit run analyst_app.py`, page **32BJ**
 
 ## Profiling (kept as run on 2026-10-21)
 

@@ -684,6 +684,31 @@ def rc_label(row: dict[str, Any], rc: str | None) -> str:
 # --- words ------------------------------------------------------------------------------
 
 
+# Below this many codes compared, the summary says how few there are.
+FEW_CODES = 50
+
+
+def few_codes_reason(data: Data, campus: str, compared: int) -> str:
+    """Why a campus has few codes with a ratio: the tier lacks them, or its cells are ranges."""
+    tier, standard = data.con.execute(
+        f"""select count(distinct code) filter (where network = '{TIER}'),
+                   count(distinct code) filter (where network = '{STANDARD}')
+            from rates where campus = ? and acute_campus and setting = 'inpatient'
+              and code_type in ('APR-DRG', 'MS-DRG') and negotiated_type in {DOLLAR_TYPES}""",
+        [campus],
+    ).fetchone() or (0, 0)
+    if tier < standard / 2:
+        return (
+            f"At {campus}, only {compared} codes can be compared: the 32BJ tier lists dollar "
+            f"inpatient rates for {tier} DRGs there, against {standard} at standard Anthem."
+        )
+    return (
+        f"At {campus}, only {compared} codes can be compared: Anthem lists more than one rate "
+        "for most of its services there (under more than one billing NPI), so those cells "
+        "show a range and no ratio."
+    )
+
+
 def summary_points(data: Data) -> list[str]:
     """The plain-English summary, with its numbers computed from the data rather than typed in."""
     disc = discount_summary(data, Filters(systems=tuple(SYSTEMS), include_units=False))
@@ -707,6 +732,8 @@ def summary_points(data: Data) -> list[str]:
             f"Every other acute campus with both rates ({', '.join(systems)}) is at the "
             "standard Anthem rate."
         )
+    for d in [d for d in below + at if d["codes compared"] < FEW_CODES]:
+        points.append(few_codes_reason(data, d["campus"], d["codes compared"]))
     nw = data.con.sql(f"""
         select count(distinct campus) filter (where network = '{TIER}' and acute_campus),
                count(distinct campus) filter (where network = '{STANDARD}' and acute_campus),
@@ -721,8 +748,8 @@ def summary_points(data: Data) -> list[str]:
         )
         points.append(
             f"Northwell's {nw[1]} main hospitals are not in the 32BJ tier: Anthem lists them "
-            f"only at its standard rates.{units} 32BJ reaches Northwell's hospitals through a "
-            "separate direct contract, Northwell Direct."
+            f"only at its standard rates.{units} The Anthem files do not say how 32BJ members "
+            "reach Northwell's main hospitals."
         )
     if OUTPATIENT_UNDER_REVIEW:
         points.append(OUTPATIENT_NOTE + " Only inpatient rates are shown for now.")

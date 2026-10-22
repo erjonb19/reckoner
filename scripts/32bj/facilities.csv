@@ -5,10 +5,10 @@ npi,system,campus,acute_campus,nppes_name,taxonomy,city,address,prices_in_source
 1720414154,montefiore,Montefiore New Rochelle,True,MONTEFIORE NEW ROCHELLE HOSPITAL,General Acute Care Hospital,NEW ROCHELLE,16 GUION PL,19216
 1104808062,montefiore,Montefiore Nyack,True,MONTEFIORE NYACK HOSPITAL,General Acute Care Hospital,NYACK,160 N MIDLAND AVE,19448
 1003923434,montefiore,St. Luke's Cornwall,True,ST. LUKE'S CORNWALL HOSPITAL,General Acute Care Hospital,NEWBURGH,70 DUBOIS ST,19980
-1124295746,montefiore,St. Luke's Cornwall (psych unit),True,ST LUKES CORNWALL HOSPITAL,Psychiatric Unit,NEWBURGH,70 DUBOIS ST,19980
+1124295746,montefiore,St. Luke's Cornwall (psych unit),False,ST LUKES CORNWALL HOSPITAL,Psychiatric Unit,NEWBURGH,70 DUBOIS ST,19980
 1447255153,montefiore,White Plains Hospital,True,WHITE PLAINS HOSPITAL MEDICAL CENTER,General Acute Care Hospital,WHITE PLAINS,41 E POST ROAD,19230
 1538595962,montefiore,Schaffer Extended Care Center (New Rochelle),False,SCHAFFER EXTENDED CARE CENTER,Skilled Nursing Facility,NEW ROCHELLE,16 GUION PL,8
-1013184639,montefiore,St. Luke'S Cornwall Hospital (Newburgh),False,ST. LUKE'S CORNWALL HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEWBURGH,70 DUBOIS ST,19980
+1013184639,montefiore,St. Luke's Cornwall Hospital (Newburgh),False,ST. LUKE'S CORNWALL HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEWBURGH,70 DUBOIS ST,19980
 1841295219,montefiore,Winifred Masterson Burke Rehabilitation Hospital (White Plains),False,WINIFRED MASTERSON BURKE REHABILITATION HOSPITAL,Rehabilitation Hospital,WHITE PLAINS,785 MAMARONECK AVE,4608
 1174768071,mount_sinai,Mount Sinai Brooklyn,True,BETH ISRAEL MEDICAL CENTER,General Acute Care Hospital,BROOKLYN,3201 KINGS HWY,23734
 1174689665,mount_sinai,Mount Sinai Brooklyn,True,BETH ISRAEL MEDICAL CENTER,General Acute Care Hospital,BROOKLYN,3201 KINGS HWY,23728
