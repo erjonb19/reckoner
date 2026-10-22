@@ -62,6 +62,9 @@ FLAG = "⚑"
 #: case rate but on only about half of outpatient codes. While True, every table,
 #: download and pasted-code lookup is limited to inpatient rates.
 OUTPATIENT_UNDER_REVIEW = True
+# The 32BJ rate as a share of CMS's 2024 average Medicare payment, MS-DRG rows only.
+MEDICARE_COMPARE = True
+MEDICARE_NA = "n/a, Medicare uses MS-DRG"
 OUTPATIENT_NOTE = "Outpatient rates under review: they don't yet match the hospital's own file."
 
 RC_LISTED = "bundle rate; RC listed"
@@ -171,6 +174,8 @@ class Data:
     crosscheck: dict[str, Any] | None
     drg_type: dict[str, str]  # system -> the DRG type its inpatient case rates use
     codes: dict[tuple[str, str], str]  # (code type, code) -> description
+    # (campus, MS-DRG) -> CMS average Medicare payment, from medicare_ms_drg.csv
+    medicare: dict[tuple[str, str], float] = field(default_factory=dict)
 
 
 def load(directory: Path) -> Data | None:
@@ -211,7 +216,22 @@ def load(directory: Path) -> Data | None:
             "select distinct code_type, code, any_value(description) from rates group by all"
         ).fetchall()
     }
-    return Data(con=con, top25=top25, crosscheck=crosscheck, drg_type=dict(drg), codes=codes)
+    medicare: dict[tuple[str, str], float] = {}
+    medicare_path = directory / "medicare_ms_drg.csv"
+    if medicare_path.exists():
+        with medicare_path.open(encoding="utf-8") as f:
+            medicare = {
+                (r["campus"], r["ms_drg"]): float(r["avg_medicare_payment"])
+                for r in csv.DictReader(f)
+            }
+    return Data(
+        con=con,
+        top25=top25,
+        crosscheck=crosscheck,
+        drg_type=dict(drg),
+        codes=codes,
+        medicare=medicare,
+    )
 
 
 # --- filters ----------------------------------------------------------------------------
@@ -394,10 +414,38 @@ def wide(
                 q = ratio(cells[TIER], cells[STANDARD])
                 row[f"{campus} · 32BJ ÷ standard"] = f"{q:.3f}" if q is not None else ""
         rows.append(row)
+    if MEDICARE_COMPARE and TIER in networks:
+        for row in rows:
+            for _, campus in campuses:
+                row[f"{campus} · 32BJ % of Medicare (approx.)"] = pct_of_medicare(
+                    data,
+                    row["code type"],
+                    row["code"],
+                    campus,
+                    by.get((row["code type"], row["code"], campus, TIER)),
+                )
     dates = file_dates(data, codes, filters)
     for row in rows:
         row.update(dates.get((row["code type"], row["code"]), {}))
     return Table(rows=rows, columns=list(rows[0]) if rows else [], long=long)
+
+
+def pct_of_medicare(
+    data: Data, code_type: str, code: str, campus: str, cell: dict[str, Any] | None
+) -> str:
+    """The 32BJ case rate as a percent of the campus's average Medicare payment, approximate.
+
+    Only for a single MS-DRG rate at a campus mapped to a CMS provider number; APR-DRG is
+    labelled, since Medicare pays by MS-DRG, and anything else is left blank.
+    """
+    if code_type == "APR-DRG":
+        return MEDICARE_NA
+    if code_type != "MS-DRG" or not cell or cell["min_rate"] != cell["max_rate"]:
+        return ""
+    medicare = data.medicare.get((campus, code))
+    if not medicare:
+        return ""
+    return f"{cell['min_rate'] / medicare:.0%}"
 
 
 # ``last_updated_on`` in each file's header (the extractor's .meta.json).
@@ -809,6 +857,18 @@ DEFINITIONS = [
         "Anthem's 9999-12-31 placeholder, that is, no end date.",
     ),
     (
+        "32BJ % of Medicare (approx.)",
+        "The 32BJ case rate divided by the average Medicare payment for the same MS-DRG at the "
+        "same hospital (CMS Medicare Inpatient Hospitals by Provider and Service, 2024). "
+        "Approximate: Medicare's average mixes cases and excludes patient cost-sharing; "
+        "The Mount Sinai Hospital's figure also covers Mount Sinai Queens, and NYU Langone "
+        "Hospitals' covers its Brooklyn and Long Island campuses. Blank where CMS lists "
+        "fewer than 11 Medicare stays, where the 32BJ cell is a range, or where the campus has "
+        "no clean match to a CMS provider number (Mount Sinai Queens, Brooklyn, NYEE; NYU "
+        "Langone Brooklyn and Long Island). APR-DRG rows (Montefiore) read "
+        '"n/a, Medicare uses MS-DRG".',
+    ),
+    (
         "Campus",
         "A hospital as Anthem bills it, by its NPI. Montefiore's Bronx campuses (Moses, Weiler, "
         "Wakefield) bill under one NPI, so they are one column.",
@@ -856,6 +916,12 @@ DEFINITIONS = [
 ]
 
 SOURCES = [
+    (
+        "Medicare comparison",
+        "CMS Medicare Inpatient Hospitals by Provider and Service, 2024, New York: average "
+        "Medicare payment per MS-DRG per hospital (CMS provider numbers 330024, 330046, 330198, "
+        "330214, 330141).",
+    ),
     (
         "Anthem 32BJ file",
         "NY_HYBYMED32BJ.json.gz, Empire BlueCross BlueShield, Transparency in Coverage in-network "
