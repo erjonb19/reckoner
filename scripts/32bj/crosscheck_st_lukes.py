@@ -1,4 +1,6 @@
-"""Cross-check St. Luke's Cornwall: its own hospital file (Anthem / Local 32BJ) against Anthem's 32BJ file.
+"""Cross-check St. Luke's Cornwall's own hospital file against Anthem's 32BJ file.
+
+The hospital side is its Anthem / Local 32BJ rows.
 
 Usage:
     python -I scripts/32bj/crosscheck_st_lukes.py DERIVED_DIR LAKE_DIR OUT_CSV
@@ -37,34 +39,51 @@ def main(derived: Path, lake: Path, out_csv: Path) -> None:
     con.sql(f"""
         create view anthem as
         select distinct code_type, code, setting, negotiated_type, rate, billing_npi
-        from read_parquet('{(derived / 'facility_rates.parquet').as_posix()}')
-        where network = '32BJ tier' and billing_npi in {ST_LUKES_NPIS} and negotiated_type in {DOLLAR}""")
+        from read_parquet('{(derived / "facility_rates.parquet").as_posix()}')
+        where network = '32BJ tier' and billing_npi in {ST_LUKES_NPIS}
+          and negotiated_type in {DOLLAR}""")
     con.sql(f"""
         create view hospital as
-        select distinct code_type, code, setting, methodology, round(rate_dollar, 2) as rate, file_vintage
+        select distinct code_type, code, setting, methodology,
+               round(rate_dollar, 2) as rate, file_vintage
         from read_parquet('{lake.as_posix()}/**/*.parquet', hive_partitioning = true)
         where source_url like '%{ST_LUKES_EIN}%' and plan_name_raw ilike '%32%bj%'
           and rate_kind = 'dollar' and methodology in ('case rate', 'fee schedule')
           and code_type in ('APR-DRG', 'CPT', 'HCPCS', 'RC')""")
-    print("hospital side:", con.sql("select code_type, methodology, count(*), count(distinct code), any_value(file_vintage) from hospital group by all order by 1").fetchall())
-    print("anthem side:", con.sql("select code_type, negotiated_type, count(*), count(distinct code) from anthem group by all order by 1").fetchall())
+    print(
+        "hospital side:",
+        con.sql(
+            "select code_type, methodology, count(*), count(distinct code), "
+            "any_value(file_vintage) from hospital group by all order by 1"
+        ).fetchall(),
+    )
+    print(
+        "anthem side:",
+        con.sql(
+            "select code_type, negotiated_type, count(*), count(distinct code) "
+            "from anthem group by all order by 1"
+        ).fetchall(),
+    )
 
     # One row per hospital (code type, code, methodology). The Anthem side may carry several
     # rates for a code (by setting or billing NPI); the nearest one is compared and all are kept.
     con.sql("""
         create table cmp as
-        with h as (select code_type, code, methodology, list(distinct rate order by rate) as h_rates, min(rate) as h_rate
+        with h as (select code_type, code, methodology,
+                          list(distinct rate order by rate) as h_rates, min(rate) as h_rate
                    from hospital group by all),
              a as (select code_type, code, list(distinct rate order by rate) as a_rates,
                           list(distinct negotiated_type) as a_types from anthem group by all),
-             j as (select coalesce(h.code_type, a.code_type) as code_type, coalesce(h.code, a.code) as code,
+             j as (select coalesce(h.code_type, a.code_type) as code_type,
+                          coalesce(h.code, a.code) as code,
                           h.methodology, h.h_rates, h.h_rate, a.a_rates, a.a_types
                    from h full join a on h.code_type = a.code_type and h.code = a.code)
         select *,
                case when h_rate is null or a_rates is null then null
                     else list_sort(list_transform(a_rates, x -> abs(x - h_rate)))[1] end as abs_gap,
                case when h_rate is null or a_rates is null or h_rate = 0 then null
-                    else (list_sort(list_transform(a_rates, x -> [abs(x - h_rate), x]))[1])[2] / h_rate end as ratio
+                    else (list_sort(list_transform(a_rates, x -> [abs(x - h_rate), x]))[1])[2]
+                         / h_rate end as ratio
         from j""")
     con.sql("""
         create table outcome as select *,
@@ -75,21 +94,28 @@ def main(derived: Path, lake: Path, out_csv: Path) -> None:
                else 'differs' end as outcome
         from cmp""")
     print("\noutcomes by code type:")
-    for r in con.sql("select code_type, outcome, count(*) from outcome group by all order by 1, 3 desc").fetchall():
+    for r in con.sql(
+        "select code_type, outcome, count(*) from outcome group by all order by 1, 3 desc"
+    ).fetchall():
         print("  ", r)
     print("\nratio (Anthem / hospital) where both sides have the code:")
-    for r in con.sql("""select code_type, count(*), round(quantile_cont(ratio, 0.05), 4), round(median(ratio), 4),
+    for r in con.sql("""select code_type, count(*), round(quantile_cont(ratio, 0.05), 4),
+                               round(median(ratio), 4),
                                round(quantile_cont(ratio, 0.95), 4)
                         from outcome where ratio is not null group by 1 order by 1""").fetchall():
         print("  ", r)
     print("\n20 largest disagreements:")
     for r in con.sql("""select code_type, code, methodology, h_rates, a_rates, round(ratio, 3)
-                        from outcome where outcome = 'differs' order by abs(ln(ratio)) desc nulls last limit 20""").fetchall():
+                        from outcome where outcome = 'differs'
+                        order by abs(ln(ratio)) desc nulls last limit 20""").fetchall():
         print("  ", r)
-    con.sql(f"copy (select * from outcome order by code_type, code) to '{out_csv.as_posix()}' (header)")
+    con.sql(
+        f"copy (select * from outcome order by code_type, code) to '{out_csv.as_posix()}' (header)"
+    )
 
     # A short record for the page and the doc: counts per outcome among codes on both sides.
-    both = con.sql("""select outcome, count(*) from outcome where h_rates is not null and a_rates is not null
+    both = con.sql("""select outcome, count(*) from outcome
+                      where h_rates is not null and a_rates is not null
                       group by 1""").fetchall()
     counts = dict(both)
     total = sum(counts.values())
@@ -100,13 +126,21 @@ def main(derived: Path, lake: Path, out_csv: Path) -> None:
         "outcomes": counts,
         "agree_share": round(agree / total, 4) if total else None,
         "median_ratio": round(med, 4) if med is not None else None,
-        "hospital_only": con.sql("select count(*) from outcome where outcome = 'hospital file only'").fetchone()[0],
-        "anthem_only": con.sql("select count(*) from outcome where outcome = 'Anthem only'").fetchone()[0],
+        "hospital_only": con.sql(
+            "select count(*) from outcome where outcome = 'hospital file only'"
+        ).fetchone()[0],
+        "anthem_only": con.sql(
+            "select count(*) from outcome where outcome = 'Anthem only'"
+        ).fetchone()[0],
     }
     record["sentence"] = (
-        f"Cross-check: St. Luke's Cornwall's own hospital file (Anthem / Local 32BJ, April 2026) and Anthem's 32BJ "
-        f"tier (October 2026) give the same dollar rate, to within 1%, for {agree:,} of the {total:,} codes both "
-        f"publish ({record['agree_share']:.1%})." if total else "Cross-check: no codes in common.")
+        "Cross-check: St. Luke's Cornwall's own hospital file (Anthem / Local 32BJ, April 2026) "
+        "and Anthem's 32BJ tier (October 2026) give the same dollar rate, to within 1%, for "
+        f"{agree:,} of the {total:,} codes both "
+        f"publish ({record['agree_share']:.1%})."
+        if total
+        else "Cross-check: no codes in common."
+    )
     (out_csv.parent / "st_lukes_crosscheck.json").write_text(json.dumps(record, indent=1))
     print("\n", json.dumps(record, indent=1))
 

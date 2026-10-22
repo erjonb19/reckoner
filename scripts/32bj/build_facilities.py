@@ -1,4 +1,6 @@
-"""Find every facility of the four systems that bills a non-professional Anthem rate; write facilities.csv.
+"""Find every facility of the four systems billing a non-professional Anthem rate.
+
+Writes facilities.csv.
 
 Usage:
     python -I scripts/32bj/build_facilities.py DERIVED_DIR OUT_CSV
@@ -26,11 +28,14 @@ from typing import Any
 import duckdb
 
 SYSTEM_NAMES = {
-    "northwell": r"northwell|north shore[- ]?(lij|university)|long island jewish|lenox hill|staten island univ|cohen child"
-                 r"|zucker|plainview hosp|syosset hosp|south shore univ|huntington hosp|glen cove hosp|mather hosp"
-                 r"|peconic bay|phelps|northern westchester|stern family center",
-    "mount_sinai": r"mount sinai|mt\.? sinai|icahn|beth israel|new york eye (and|&) ear|south nassau|st\.? luke'?s[- ]roosevelt",
-    "montefiore": r"montefiore|einstein|nyack hosp|burke rehab|white plains hosp|st\.? luke'?s cornwall|mount vernon hosp|schaffer",
+    "northwell": r"northwell|north shore[- ]?(lij|university)|long island jewish|lenox hill"
+    r"|staten island univ|cohen child|zucker|plainview hosp|syosset hosp|south shore univ"
+    r"|huntington hosp|glen cove hosp|mather hosp"
+    r"|peconic bay|phelps|northern westchester|stern family center",
+    "mount_sinai": r"mount sinai|mt\.? sinai|icahn|beth israel|new york eye (and|&) ear"
+    r"|south nassau|st\.? luke'?s[- ]roosevelt",
+    "montefiore": r"montefiore|einstein|nyack hosp|burke rehab|white plains hosp"
+    r"|st\.? luke'?s cornwall|mount vernon hosp|schaffer",
     "nyu": r"\bnyu\b|langone|new york university|winthrop",
 }
 # Names that match a pattern above but are not the system (found while building the list).
@@ -82,7 +87,9 @@ def nppes(npi: str, cache: dict[str, Any]) -> dict[str, Any]:
         return cache[npi]
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(f"https://npiregistry.cms.hhs.gov/api/?version=2.1&number={npi}", timeout=30) as r:
+            with urllib.request.urlopen(
+                f"https://npiregistry.cms.hhs.gov/api/?version=2.1&number={npi}", timeout=30
+            ) as r:
                 res = json.load(r).get("results") or []
             break
         except Exception:
@@ -94,12 +101,20 @@ def nppes(npi: str, cache: dict[str, Any]) -> dict[str, Any]:
         return cache[npi]
     r = res[0]
     b = r["basic"]
-    tax = next((t for t in r.get("taxonomies", []) if t.get("primary")), (r.get("taxonomies") or [{}])[0])
+    tax = next(
+        (t for t in r.get("taxonomies", []) if t.get("primary")), (r.get("taxonomies") or [{}])[0]
+    )
     addr = next((a for a in r.get("addresses", []) if a.get("address_purpose") == "LOCATION"), {})
-    cache[npi] = {"type": r.get("enumeration_type"),
-                  "name": b.get("organization_name") or f'{b.get("first_name", "")} {b.get("last_name", "")}'.strip(),
-                  "taxonomy": tax.get("code"), "taxonomy_desc": tax.get("desc"),
-                  "city": addr.get("city"), "state": addr.get("state"), "address": addr.get("address_1")}
+    cache[npi] = {
+        "type": r.get("enumeration_type"),
+        "name": b.get("organization_name")
+        or f"{b.get('first_name', '')} {b.get('last_name', '')}".strip(),
+        "taxonomy": tax.get("code"),
+        "taxonomy_desc": tax.get("desc"),
+        "city": addr.get("city"),
+        "state": addr.get("state"),
+        "address": addr.get("address_1"),
+    }
     time.sleep(0.15)
     return cache[npi]
 
@@ -121,7 +136,8 @@ def main(derived: Path, out_csv: Path) -> None:
     con.sql("set threads = 2")
     con.sql(f"set temp_directory = '{(derived / '_spill').as_posix()}'")
     rows = con.sql(f"""
-        with p as (select source_file, unnest(provider_references) gid from read_parquet('{derived.as_posix()}/*.prices.parquet')),
+        with p as (select source_file, unnest(provider_references) gid
+                   from read_parquet('{derived.as_posix()}/*.prices.parquet')),
              c as (select source_file, gid, count(*) n from p group by all)
         select g.tin_value npi, sum(c.n) prices
         from c join read_parquet('{derived.as_posix()}/*.groups.parquet') g
@@ -130,8 +146,12 @@ def main(derived: Path, out_csv: Path) -> None:
         group by 1 order by 2 desc""").fetchall()
     cache_path = derived / "nppes_cache.json"
     cache: dict[str, Any] = json.loads(cache_path.read_text()) if cache_path.exists() else {}
-    print(f"{len(rows)} billing NPIs with non-professional prices; {sum(1 for n, _ in rows if n not in cache)} to look up",
-          file=sys.stderr, flush=True)
+    print(
+        f"{len(rows)} billing NPIs with non-professional prices; "
+        f"{sum(1 for n, _ in rows if n not in cache)} to look up",
+        file=sys.stderr,
+        flush=True,
+    )
     out = []
     for i, (npi, n) in enumerate(rows, 1):
         info = nppes(npi, cache)
@@ -140,17 +160,34 @@ def main(derived: Path, out_csv: Path) -> None:
             print(f"  {i}/{len(rows)}", file=sys.stderr, flush=True)
         s = system_of(info.get("name") or "")
         if s:
-            label = CAMPUS.get(npi) or f'{(info.get("name") or "").title()} ({(info.get("city") or "").title()})'
-            out.append({"npi": npi, "system": s, "campus": label, "acute_campus": npi in CAMPUS,
-                        "nppes_name": info.get("name"), "taxonomy": info.get("taxonomy_desc"),
-                        "city": info.get("city"), "address": info.get("address"), "prices_in_source": n})
+            label = (
+                CAMPUS.get(npi)
+                or f"{(info.get('name') or '').title()} ({(info.get('city') or '').title()})"
+            )
+            out.append(
+                {
+                    "npi": npi,
+                    "system": s,
+                    "campus": label,
+                    "acute_campus": npi in CAMPUS,
+                    "nppes_name": info.get("name"),
+                    "taxonomy": info.get("taxonomy_desc"),
+                    "city": info.get("city"),
+                    "address": info.get("address"),
+                    "prices_in_source": n,
+                }
+            )
     cache_path.write_text(json.dumps(cache))
     missing = [k for k in CAMPUS if k not in {o["npi"] for o in out}]
     with out_csv.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(out[0]))
         w.writeheader()
         w.writerows(sorted(out, key=lambda o: (o["system"], not o["acute_campus"], o["campus"])))
-    print(f"wrote {len(out)} facilities to {out_csv}; hand-labelled campuses with no rates: {missing}", file=sys.stderr)
+    print(
+        f"wrote {len(out)} facilities to {out_csv}; "
+        f"hand-labelled campuses with no rates: {missing}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

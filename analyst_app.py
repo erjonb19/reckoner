@@ -23,6 +23,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from pipeline import analyst_view as view
+from pipeline import thirtytwobj_view as bj
 
 # The committed dataset. RECKONER_SUMMARY points the page at another copy, which
 # is how the tests run every page against facility-grain rows before the
@@ -714,6 +715,252 @@ monthly. Comparisons more than 400 days apart are refused rather than reported.
     )
 
 
+# --- 32BJ ------------------------------------------------------------------------
+# Self-contained: its own data, its own sidebar, nothing shared with the pages above,
+# so it can move to another entry point as one block. Logic in
+# ``pipeline.thirtytwobj_view``; the data is local (``scripts/32bj``) and the page
+# says so when it is absent.
+
+THIRTYTWOBJ = Path(
+    os.environ.get("RECKONER_32BJ") or Path(__file__).parent / "data/raw/32bj/anthem/derived"
+)
+
+
+@st.cache_resource(show_spinner="Opening the 32BJ rates…")
+def load_32bj() -> bj.Data | None:
+    return bj.load(THIRTYTWOBJ)
+
+
+def thirtytwobj_filters(d: bj.Data) -> bj.Filters:
+    st.sidebar.markdown("**32BJ filters**")
+    opts = bj.options(d)
+    systems = st.sidebar.multiselect(
+        "System",
+        opts["systems"],
+        default=[s for s in bj.DEFAULT_SYSTEMS if s in opts["systems"]],
+        format_func=lambda s: bj.SYSTEMS.get(s, s),
+        key="bj_systems",
+    )
+    campuses = st.sidebar.multiselect(
+        "Campus",
+        bj.options(d, systems)["campuses"],
+        key="bj_campuses",
+        help="Empty means every campus.",
+    )
+    if bj.OUTPATIENT_UNDER_REVIEW:
+        setting = "inpatient"
+        st.sidebar.caption(f"Inpatient only. {bj.OUTPATIENT_NOTE}")
+    else:
+        setting = st.sidebar.radio(
+            "Inpatient or outpatient",
+            ["All", "inpatient", "outpatient"],
+            horizontal=True,
+            key="bj_setting",
+        )
+    code_types = st.sidebar.multiselect("Code type", opts["code_types"], key="bj_code_types")
+    network = st.sidebar.radio(
+        "Network",
+        [bj.BOTH, bj.TIER, bj.STANDARD],
+        key="bj_network",
+        help="32BJ tier: Anthem's 32BJ hospital network. Standard: Anthem's HMO POS network.",
+    )
+    units = st.sidebar.checkbox(
+        "Include units and clinics",
+        key="bj_units",
+        help="Psychiatric, rehabilitation and dialysis units, labs and clinics, besides the "
+        "acute campuses.",
+    )
+    return bj.Filters(
+        systems=tuple(systems),
+        campuses=tuple(campuses),
+        setting=setting,
+        code_types=tuple(code_types),
+        network=network,
+        include_units=units,
+    )
+
+
+def bj_downloads(table: bj.Table, name: str, key: str) -> None:
+    a, b = st.columns(2)
+    a.download_button(
+        "Download Excel",
+        bj.to_xlsx({name[:31]: table.rows, "Detail": table.long}),
+        file_name=f"32bj-{name}.xlsx",
+        key=f"{key}_x",
+        disabled=not table.rows,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    b.download_button(
+        "Download CSV",
+        bj.to_csv(table.rows),
+        file_name=f"32bj-{name}.csv",
+        mime="text/csv",
+        key=f"{key}_c",
+        disabled=not table.rows,
+    )
+
+
+def bj_show(table: bj.Table) -> None:
+    if not table.rows:
+        st.info("No rates for these codes under these filters.")
+        return
+    st.dataframe(
+        table.rows,
+        column_config={
+            "volume": st.column_config.NumberColumn("Volume", format="localized"),
+            "description": st.column_config.TextColumn("Description", width="medium"),
+        },
+        hide_index=True,
+    )
+
+
+def thirtytwobj_page() -> None:
+    st.title("32BJ hospital rates")
+    st.caption("32BJ Health Fund's Anthem tier beside standard Anthem rates, per hospital campus.")
+    try:
+        d = load_32bj()
+    except ImportError:
+        st.warning(
+            "The 32BJ page needs DuckDB, which this install does not have "
+            "(`pip install -e .[thirtytwobj]`)."
+        )
+        return
+    if d is None:
+        st.warning(
+            f"The 32BJ data is not present here (looked in `{THIRTYTWOBJ}`). It is built "
+            "locally by `scripts/32bj` and is not part of the published dataset."
+        )
+        return
+    filters = thirtytwobj_filters(d)
+
+    st.markdown("#### What this shows")
+    for point in bj.summary_points(d):
+        st.markdown(f"- {point}")
+    if d.crosscheck:
+        st.caption(d.crosscheck.get("sentence", ""))
+
+    with st.expander("32BJ ÷ standard, per campus"):
+        disc = bj.discount_summary(d, filters)
+        st.dataframe(disc, hide_index=True)
+
+    st.markdown("#### Choose codes")
+    pasted = st.text_area(
+        "Paste codes",
+        height=120,
+        key="bj_paste",
+        placeholder="One per line, or a column copied from Excel. Two columns (revenue code, "
+        "CPT) are read as pairs.",
+    )
+    labels = {f"{t} {c} · {desc}"[:120]: (t, c) for (t, c), desc in sorted(d.codes.items())}
+    picked = st.multiselect(
+        "Or pick codes", list(labels), key="bj_pick", placeholder="Search by code or description"
+    )
+    paste = bj.parse_paste(pasted or "")
+    res = bj.resolve(paste, d.codes.keys(), [labels[p] for p in picked])
+
+    if paste.entries or picked:
+        a, b, c, e, f = st.columns(5)
+        a.metric("Pasted", paste.pasted)
+        b.metric("Found", len(paste.entries) - len(res.not_found))
+        c.metric("Not found", len(res.not_found))
+        e.metric("Duplicates", paste.duplicates)
+        f.metric("Ambiguous", len(res.ambiguous))
+        if paste.split_note:
+            st.caption(f"Read as APR-DRG with severity: {', '.join(paste.split_note[:10])}")
+        if res.ambiguous:
+            st.warning(
+                "Some codes match more than one kind of code. Every match is shown, flagged "
+                "here, not guessed."
+            )
+            st.dataframe(res.ambiguous, hide_index=True)
+        if res.not_found:
+            with st.expander(f"Not found ({len(res.not_found)})"):
+                st.write(", ".join(res.not_found[:500]))
+                st.download_button(
+                    "Download not-found codes",
+                    "\n".join(res.not_found).encode(),
+                    file_name="32bj-not-found.csv",
+                    mime="text/csv",
+                    key="bj_nf",
+                )
+        extra = {k: {"pasted RC": rc} for k, rc in res.rc_for.items()}
+        table = bj.wide(d, res.found, filters, extra)
+        if res.rc_for:
+            for r in table.long:
+                r["RC link"] = bj.rc_label(r, res.rc_for.get((r["code_type"], r["code"])))
+        st.markdown(f"#### Your codes ({len(res.found)})")
+        if bj.OUTPATIENT_UNDER_REVIEW:
+            st.info(
+                f"{bj.OUTPATIENT_NOTE} Outpatient codes you pasted or picked show no rates "
+                "until then."
+            )
+        bj_show(table)
+        bj_downloads(table, "your-codes", "bj_dl_yours")
+        if res.rc_for:
+            st.caption(
+                "Revenue-code pairs: each cell, and the RC link column in the Excel detail "
+                f"sheet, says whether the CPT rate is a {bj.RC_LISTED!r}, "
+                f"{bj.RC_NOT_LISTED!r} or {bj.RC_NOT_SPECIFIC!r}."
+            )
+        all_rows = table.long
+    else:
+        all_rows = []
+        for name in bj.visible_tables():
+            title = bj.TOP_TABLES[name][0]
+            if filters.setting == "outpatient" and name != "outpatient":
+                continue
+            if filters.setting == "inpatient" and name == "outpatient":
+                continue
+            table = bj.top_table(d, name, filters)
+            st.markdown(f"#### Top 25 · {title}")
+            st.caption(bj.top_caption(d, name))
+            bj_show(table)
+            bj_downloads(table, name, f"bj_dl_{name}")
+            all_rows += table.long
+        if bj.OUTPATIENT_UNDER_REVIEW:
+            st.markdown("#### Top 25 · Outpatient · CPT/HCPCS")
+            st.info(bj.OUTPATIENT_NOTE)
+
+    st.download_button(
+        "Download findings workbook (summary, definitions, data)",
+        bj.findings_workbook(d, all_rows),
+        file_name="32bj-findings.xlsx",
+        key="bj_findings",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    st.markdown("#### Other kinds of rate")
+    st.caption(
+        "Kept apart from the dollar tables: they are not comparable with a case rate or a fee."
+    )
+    for kind, label in (
+        ("per diem", "Per diem (per day)"),
+        ("percentage", "Percent of charges"),
+        ("rc", "Revenue-code rates"),
+    ):
+        with st.expander(label):
+            rows = bj.other_methods(d, filters, kind)
+            st.dataframe(rows[:2000], hide_index=True)
+            st.download_button(
+                "Download CSV",
+                bj.to_csv(rows),
+                file_name=f"32bj-{kind.replace(' ', '-')}.csv",
+                mime="text/csv",
+                key=f"bj_other_{kind}",
+                disabled=not rows,
+            )
+
+    st.markdown("#### Definitions")
+    for term, meaning in bj.DEFINITIONS:
+        st.markdown(f"**{term}.** {meaning}")
+    st.markdown("#### Where the data comes from")
+    for term, meaning in bj.SOURCES:
+        st.markdown(f"**{term}.** {meaning}")
+    st.markdown("#### Limits")
+    for limit in bj.LIMITS:
+        st.markdown(f"- {limit}")
+
+
 RANKINGS = st.Page(rankings_page, title="Rankings", icon=":material/leaderboard:", default=True)
 PAIR = st.Page(pair_page, title="Pair detail", icon=":material/compare_arrows:", url_path="pair")
 LOOKUP = st.Page(lookup_page, title="Code lookup", icon=":material/search:", url_path="code")
@@ -721,8 +968,12 @@ COVERAGE = st.Page(
     coverage_page, title="Coverage and data quality", icon=":material/rule:", url_path="coverage"
 )
 
+THIRTYTWOBJ_PAGE = st.Page(
+    thirtytwobj_page, title="32BJ", icon=":material/apartment:", url_path="32bj"
+)
+
 if not data.tables:
     st.error("No summary dataset found in `summary/`.")
     st.stop()
 
-st.navigation([RANKINGS, PAIR, LOOKUP, COVERAGE]).run()
+st.navigation([RANKINGS, PAIR, LOOKUP, COVERAGE, THIRTYTWOBJ_PAGE]).run()

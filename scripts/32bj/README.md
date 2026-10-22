@@ -17,10 +17,23 @@ in this folder is backed up by git except the code and `facilities.csv`.
 |---|---|---|
 | `extract_facility_rates.py` | an Anthem in-network `.json.gz` | `<stem>.items/groups/prices.parquet` + `.meta.json` in `data/raw/32bj/anthem/derived/` |
 | `build_facilities.py` | those Parquet files + NPPES | `facilities.csv` (committed) |
-| `crosscheck_st_lukes.py` | the Parquet + the hospital lake | `st_lukes_crosscheck.csv` |
-| `volume_sources.py` | SPARCS and CMS volume files | `top25.csv` |
+| `build_facility_rates.py` | those Parquet files + `facilities.csv` | `facility_rates.parquet` + `facility_items.parquet`, what the 32BJ page reads |
+| `crosscheck_st_lukes.py` | `facility_rates.parquet` + the hospital lake | `st_lukes_crosscheck.csv` + `.json` |
+| `volume_sources.py` | SPARCS and CMS volume APIs | `top25.csv` (copy it into the derived folder for the page) |
+| `rescan_professional.py` | the 32BJ `.json.gz` + St. Luke's provider references | St. Luke's professional rates, to test the outpatient disagreement |
+| `make_test_fixture.py` | `facility_rates.parquet` | `tests/fixtures/thirtytwobj/`, a slice of real rows |
 
 Each takes its paths as arguments. Run with `python -I`, from the repository root.
+DuckDB steps are capped at 1 GB and spill to `derived/_spill`: the 32BJ file's groups
+table is 114M rows.
+
+## Order
+
+1. `extract_facility_rates.py` on `NY_HYBYMED32BJ` (about 37 min) and `NY_HXRLMED0000_06_06` (about 2 min)
+2. `build_facilities.py`, then `build_facility_rates.py`
+3. `volume_sources.py data/raw/32bj/volume`, then copy `top25.csv` into `data/raw/32bj/anthem/derived/`
+4. `crosscheck_st_lukes.py ... data/raw/32bj/anthem/derived/st_lukes_crosscheck.csv`
+5. `streamlit run analyst_app.py`, page **32BJ**
 
 ## Profiling (kept as run on 2026-10-21)
 

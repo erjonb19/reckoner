@@ -37,26 +37,47 @@ import pyarrow.parquet as pq
 
 BATCH = 100_000
 
-ITEMS = pa.schema([
-    ("source_file", pa.string()), ("item_idx", pa.int32()),
-    ("billing_code_type", pa.string()), ("billing_code_type_version", pa.string()),
-    ("billing_code", pa.string()), ("severity_of_illness", pa.string()),
-    ("description", pa.string()), ("negotiation_arrangement", pa.string()),
-    ("bundled_rcs", pa.list_(pa.string())), ("bundled_other", pa.list_(pa.string())),
-])
-GROUPS = pa.schema([
-    ("source_file", pa.string()), ("provider_group_id", pa.int64()), ("pg_idx", pa.int32()),
-    ("network_names", pa.list_(pa.string())), ("tin_type", pa.string()), ("tin_value", pa.string()),
-    ("npis", pa.list_(pa.string())),
-])
-PRICES = pa.schema([
-    ("source_file", pa.string()), ("item_idx", pa.int32()), ("rate_idx", pa.int32()),
-    ("provider_references", pa.list_(pa.int64())), ("billing_class", pa.string()),
-    ("negotiated_type", pa.string()), ("setting", pa.string()),
-    ("service_code", pa.list_(pa.string())), ("modifier", pa.list_(pa.string())),
-    ("negotiated_rate", pa.float64()), ("expiration_date", pa.string()),
-    ("additional_information", pa.string()),
-])
+ITEMS = pa.schema(
+    [
+        ("source_file", pa.string()),
+        ("item_idx", pa.int32()),
+        ("billing_code_type", pa.string()),
+        ("billing_code_type_version", pa.string()),
+        ("billing_code", pa.string()),
+        ("severity_of_illness", pa.string()),
+        ("description", pa.string()),
+        ("negotiation_arrangement", pa.string()),
+        ("bundled_rcs", pa.list_(pa.string())),
+        ("bundled_other", pa.list_(pa.string())),
+    ]
+)
+GROUPS = pa.schema(
+    [
+        ("source_file", pa.string()),
+        ("provider_group_id", pa.int64()),
+        ("pg_idx", pa.int32()),
+        ("network_names", pa.list_(pa.string())),
+        ("tin_type", pa.string()),
+        ("tin_value", pa.string()),
+        ("npis", pa.list_(pa.string())),
+    ]
+)
+PRICES = pa.schema(
+    [
+        ("source_file", pa.string()),
+        ("item_idx", pa.int32()),
+        ("rate_idx", pa.int32()),
+        ("provider_references", pa.list_(pa.int64())),
+        ("billing_class", pa.string()),
+        ("negotiated_type", pa.string()),
+        ("setting", pa.string()),
+        ("service_code", pa.list_(pa.string())),
+        ("modifier", pa.list_(pa.string())),
+        ("negotiated_rate", pa.float64()),
+        ("expiration_date", pa.string()),
+        ("additional_information", pa.string()),
+    ]
+)
 
 
 class CutAt:
@@ -74,7 +95,7 @@ class CutAt:
             # the text before the key ends "...],"; closing the object keeps the JSON valid
             self.done = True
             return b[: max(0, i - len(self.tail))] + b'"_cut":0}'
-        self.tail = b[-len(self.m):]
+        self.tail = b[-len(self.m) :]
         return b
 
 
@@ -87,7 +108,7 @@ class Sink:
         self.writer = pq.ParquetWriter(path, schema, compression="zstd")
         self.rows = 0
 
-    def add(self, **row: Any) -> None:
+    def add(self, **row: Any) -> None:  # noqa: ANN401 - one row of mixed column types
         for k, v in self.cols.items():
             v.append(row.get(k))
         self.rows += 1
@@ -104,7 +125,7 @@ class Sink:
         self.writer.close()
 
 
-def strs(xs: Any) -> list[str] | None:
+def strs(xs: Any) -> list[str] | None:  # noqa: ANN401 - whatever ijson produced
     return [str(x) for x in xs] if xs else None
 
 
@@ -127,13 +148,23 @@ def main(src: Path, out_dir: Path) -> None:
             nets = strs(ref.get("network_name"))
             for i, pg in enumerate(ref.get("provider_groups") or []):
                 tin = pg.get("tin") or {}
-                groups.add(source_file=src.name, provider_group_id=int(ref["provider_group_id"]), pg_idx=i,
-                           network_names=nets, tin_type=tin.get("type"), tin_value=str(tin.get("value")),
-                           npis=strs(pg.get("npi")))
+                groups.add(
+                    source_file=src.name,
+                    provider_group_id=int(ref["provider_group_id"]),
+                    pg_idx=i,
+                    network_names=nets,
+                    tin_type=tin.get("type"),
+                    tin_value=str(tin.get("value")),
+                    npis=strs(pg.get("npi")),
+                )
     groups.close()
     meta["group_rows"] = groups.rows
     meta["pass1_seconds"] = round(time.time() - t0)
-    print(f"pass1: {groups.rows} provider-group rows, {meta['pass1_seconds']}s", file=sys.stderr, flush=True)
+    print(
+        f"pass1: {groups.rows} provider-group rows, {meta['pass1_seconds']}s",
+        file=sys.stderr,
+        flush=True,
+    )
 
     items = Sink(out_dir / f"{stem}.items.parquet", ITEMS)
     prices = Sink(out_dir / f"{stem}.prices.parquet", PRICES)
@@ -141,15 +172,32 @@ def main(src: Path, out_dir: Path) -> None:
     with gzip.open(src, "rb") as f:
         for idx, item in enumerate(ijson.items(f, "in_network.item")):
             if idx and idx % 5000 == 0:
-                print(f"  {idx} items, {prices.rows} prices kept, {time.time() - t0:.0f}s", file=sys.stderr, flush=True)
+                print(
+                    f"  {idx} items, {prices.rows} prices kept, {time.time() - t0:.0f}s",
+                    file=sys.stderr,
+                    flush=True,
+                )
             bundled = item.get("bundled_codes") or []
-            items.add(source_file=src.name, item_idx=idx, billing_code_type=item.get("billing_code_type"),
-                      billing_code_type_version=str(item.get("billing_code_type_version")),
-                      billing_code=str(item.get("billing_code")), severity_of_illness=item.get("severity_of_illness"),
-                      description=item.get("description"), negotiation_arrangement=item.get("negotiation_arrangement"),
-                      bundled_rcs=[str(b["billing_code"]) for b in bundled if b.get("billing_code_type") == "RC"] or None,
-                      bundled_other=[f'{b.get("billing_code_type")}:{b.get("billing_code")}' for b in bundled
-                                     if b.get("billing_code_type") != "RC"] or None)
+            items.add(
+                source_file=src.name,
+                item_idx=idx,
+                billing_code_type=item.get("billing_code_type"),
+                billing_code_type_version=str(item.get("billing_code_type_version")),
+                billing_code=str(item.get("billing_code")),
+                severity_of_illness=item.get("severity_of_illness"),
+                description=item.get("description"),
+                negotiation_arrangement=item.get("negotiation_arrangement"),
+                bundled_rcs=[
+                    str(b["billing_code"]) for b in bundled if b.get("billing_code_type") == "RC"
+                ]
+                or None,
+                bundled_other=[
+                    f"{b.get('billing_code_type')}:{b.get('billing_code')}"
+                    for b in bundled
+                    if b.get("billing_code_type") != "RC"
+                ]
+                or None,
+            )
             for r, nr in enumerate(item.get("negotiated_rates") or []):
                 if nr.get("provider_groups"):
                     inline += 1  # none seen in profiling; counted so a change is visible
@@ -158,17 +206,31 @@ def main(src: Path, out_dir: Path) -> None:
                     if pr.get("billing_class") == "professional":
                         professional += 1
                         continue
-                    prices.add(source_file=src.name, item_idx=idx, rate_idx=r, provider_references=refs,
-                               billing_class=pr.get("billing_class"), negotiated_type=pr.get("negotiated_type"),
-                               setting=pr.get("setting"), service_code=strs(pr.get("service_code")),
-                               modifier=strs(pr.get("billing_code_modifier")),
-                               negotiated_rate=float(pr["negotiated_rate"]) if pr.get("negotiated_rate") is not None else None,
-                               expiration_date=pr.get("expiration_date"),
-                               additional_information=pr.get("additional_information"))
+                    prices.add(
+                        source_file=src.name,
+                        item_idx=idx,
+                        rate_idx=r,
+                        provider_references=refs,
+                        billing_class=pr.get("billing_class"),
+                        negotiated_type=pr.get("negotiated_type"),
+                        setting=pr.get("setting"),
+                        service_code=strs(pr.get("service_code")),
+                        modifier=strs(pr.get("billing_code_modifier")),
+                        negotiated_rate=float(pr["negotiated_rate"])
+                        if pr.get("negotiated_rate") is not None
+                        else None,
+                        expiration_date=pr.get("expiration_date"),
+                        additional_information=pr.get("additional_information"),
+                    )
     items.close()
     prices.close()
-    meta.update(items=items.rows, prices_kept=prices.rows, professional_prices_skipped=professional,
-                inline_provider_group_rates=inline, seconds=round(time.time() - t0))
+    meta.update(
+        items=items.rows,
+        prices_kept=prices.rows,
+        professional_prices_skipped=professional,
+        inline_provider_group_rates=inline,
+        seconds=round(time.time() - t0),
+    )
     (out_dir / f"{stem}.meta.json").write_text(json.dumps(meta, indent=1))
     print("done", json.dumps(meta), file=sys.stderr)
 
