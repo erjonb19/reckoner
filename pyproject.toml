@@ -31,7 +31,13 @@ agents = [
     "anthropic>=0.70",
     "google-genai>=2.25",
 ]
+# The 32BJ exploration (scripts/32bj, the 32BJ page): queries over local Parquet.
+# Optional: nothing scheduled reads it.
+thirtytwobj = [
+    "duckdb>=1.1,<2",
+]
 dev = [
+    "duckdb>=1.1,<2",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "respx>=0.21",
@@ -68,6 +74,8 @@ addopts = "-q"
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+# The 32BJ profiling probes are kept exactly as run (scripts/32bj/README.md).
+extend-exclude = ["scripts/32bj/profiling"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ANN", "RUF"]

@@ -117,6 +117,15 @@ class FakeStreamlit(ModuleType):
             return multiselect
         if name == "text_input":
             return lambda label, value="", **_: choices.get(label, value)
+        # The 32BJ page's widgets: the default, or what the test chose by label.
+        if name == "text_area":
+            return lambda label, value="", **_: choices.get(label, value)
+        if name == "multiselect":
+            return lambda label, options, default=None, **_: list(default or [])
+        if name == "radio":
+            return lambda label, options, index=0, **_: choices.get(label, options[index])
+        if name == "checkbox":
+            return lambda label, value=False, **_: value
         if name == "segmented_control":
             return lambda label, options=None, default=None, key="", **_: choices.get(
                 label, self.session_state.get(key, default)
@@ -293,8 +302,9 @@ def summary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 class TestEveryPageRuns:
-    def test_all_five_pages_execute_against_the_committed_dataset(self, tmp_path, monkeypatch):
+    def test_all_six_pages_execute_against_the_committed_dataset(self, tmp_path, monkeypatch):
         monkeypatch.setattr(view, "fetch_release_file", a_release(tmp_path))
+        monkeypatch.setenv("RECKONER_32BJ", str(tmp_path / "no-32bj-data"))
 
         drawn, _ = render({"Code or description": "70450"})
 
@@ -305,6 +315,7 @@ class TestEveryPageRuns:
             "page=Pair detail",
             "page=Code lookup",
             "page=Coverage and data quality",
+            "page=32BJ",
         ]
         assert sum("How to read this" in t for t in drawn) == 5
 
@@ -367,11 +378,12 @@ def test_the_theme_ships_both_modes():
 
 
 def test_the_app_needs_nothing_the_live_page_does_not_install():
-    """Community Cloud installs requirements.txt only. Streamlit brings pyarrow and altair."""
+    """Community Cloud installs requirements.txt only. Streamlit brings pyarrow and altair;
+    the 32BJ page adds DuckDB for its Parquet and openpyxl for its Excel downloads."""
     text = io.StringIO((ROOT / "requirements.txt").read_text(encoding="utf-8"))
     wanted = {line.split(">")[0].split("=")[0].strip() for line in text if line[:1].isalpha()}
 
-    assert wanted == {"streamlit"}
+    assert wanted == {"streamlit", "duckdb", "openpyxl"}
 
 
 class TestTheRoughEdges:
@@ -416,6 +428,50 @@ def test_the_page_loads_the_serif_for_headings():
     css = "\n".join(fake.styles)
     assert "family=Source+Serif+4" in css and "family=Inter+Tight" in css
     assert 'h1, h2, h3, h4 { font-family: "Source Serif 4"' in css
+
+
+class TestThe32BJPage:
+    """The 32BJ page against the fixture of real Anthem rows (tests/fixtures/thirtytwobj)."""
+
+    FIXTURE = ROOT / "tests" / "fixtures" / "thirtytwobj"
+
+    def draw(self, tmp_path, monkeypatch, choices=None):
+        monkeypatch.setattr(view, "fetch_release_file", a_release(tmp_path))
+        monkeypatch.setenv("RECKONER_32BJ", str(self.FIXTURE))
+        return render(choices)
+
+    def test_inpatient_tables_show_and_outpatient_is_held_back(self, tmp_path, monkeypatch):
+        from pipeline import thirtytwobj_view as bj
+
+        drawn, _ = self.draw(tmp_path, monkeypatch)
+        page = drawn[drawn.index("page=32BJ") :]
+
+        assert "#### Top 25 · Inpatient · APR-DRG" in page
+        assert "#### Top 25 · Inpatient · MS-DRG" in page
+        assert bj.OUTPATIENT_NOTE in page
+        assert not any(
+            t.startswith("dataframe rows=0") for t in page[: page.index(bj.OUTPATIENT_NOTE)]
+        )
+
+    def test_pasted_codes_show_inpatient_rates_and_the_review_note(self, tmp_path, monkeypatch):
+        from pipeline import thirtytwobj_view as bj
+
+        drawn, fake = self.draw(tmp_path, monkeypatch, {"Paste codes": "DRG\n470\n70450\n470"})
+        page = drawn[drawn.index("page=32BJ") :]
+
+        assert any(t.startswith("#### Your codes") for t in page)
+        assert any(bj.OUTPATIENT_NOTE in t for t in page)
+        shown = fake.tables[-4]  # the "your codes" table, before the three other-methods tables
+        assert {r["code"] for r in shown} >= {"470"}
+
+    def test_missing_data_says_so(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(view, "fetch_release_file", a_release(tmp_path))
+        monkeypatch.setenv("RECKONER_32BJ", str(tmp_path / "nothing-here"))
+
+        drawn, _ = render()
+        page = drawn[drawn.index("page=32BJ") :]
+
+        assert any("32BJ data is not present" in t for t in page)
 
 
 def a_compare_release(tmp_path: Path) -> Callable[..., view.ReleaseFile]:

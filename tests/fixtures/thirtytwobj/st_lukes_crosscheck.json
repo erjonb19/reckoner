@@ -1,0 +1,23 @@
+{
+ "codes_on_both_sides": 3235,
+ "outcomes": {
+  "within 1%": 1486,
+  "differs": 1050,
+  "exact to the cent": 699
+ },
+ "agree_share": 0.6754,
+ "median_ratio": 1.0,
+ "hospital_only": 1972,
+ "anthem_only": 6540,
+ "by_setting": {
+  "inpatient": {
+   "agree": 1244,
+   "codes": 1244
+  },
+  "outpatient": {
+   "agree": 941,
+   "codes": 1991
+  }
+ },
+ "sentence": "Cross-check: St. Luke's Cornwall's own hospital file (Anthem / Local 32BJ, April 2026) and Anthem's 32BJ tier (October 2026) give the same dollar rate, to within 1%, for 1,244 of the 1,244 inpatient case rates both publish, but for only 941 of the 1,991 outpatient codes (47%)."
+}

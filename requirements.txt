@@ -1,4 +1,7 @@
 # Streamlit Community Cloud installs from this file. The pipeline's own
-# dependencies live in pyproject.toml -- the page needs none of them, because it
-# reads committed CSV and makes no network calls.
+# dependencies live in pyproject.toml. The summary pages read committed CSV and
+# make no network calls; the 32BJ page reads committed Parquet through DuckDB and
+# writes Excel downloads with openpyxl.
 streamlit>=1.40
+duckdb>=1.1,<2
+openpyxl>=3.1

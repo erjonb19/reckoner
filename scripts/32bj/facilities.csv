@@ -1,0 +1,95 @@
+npi,system,campus,acute_campus,nppes_name,taxonomy,city,address,prices_in_source
+1134892847,montefiore,Montefiore Einstein Advanced Care (Elmsford),True,MONTEFIORE EINSTEIN ADVANCED CARE,"Internal Medicine, Cardiovascular Disease",ELMSFORD,555 TAXTER RD,4608
+1952476988,montefiore,Montefiore Medical Center (Bronx),True,MONTEFIORE MEDICAL CENTER,General Acute Care Hospital,BRONX,111 E 210TH ST,19892
+1992131320,montefiore,Montefiore Mount Vernon,True,MONTEFIORE MOUNT VERNON HOSPITAL,General Acute Care Hospital,MOUNT VERNON,12 N 7TH AVE,19198
+1720414154,montefiore,Montefiore New Rochelle,True,MONTEFIORE NEW ROCHELLE HOSPITAL,General Acute Care Hospital,NEW ROCHELLE,16 GUION PL,19216
+1104808062,montefiore,Montefiore Nyack,True,MONTEFIORE NYACK HOSPITAL,General Acute Care Hospital,NYACK,160 N MIDLAND AVE,19448
+1003923434,montefiore,St. Luke's Cornwall,True,ST. LUKE'S CORNWALL HOSPITAL,General Acute Care Hospital,NEWBURGH,70 DUBOIS ST,19980
+1124295746,montefiore,St. Luke's Cornwall (psych unit),False,ST LUKES CORNWALL HOSPITAL,Psychiatric Unit,NEWBURGH,70 DUBOIS ST,19980
+1447255153,montefiore,White Plains Hospital,True,WHITE PLAINS HOSPITAL MEDICAL CENTER,General Acute Care Hospital,WHITE PLAINS,41 E POST ROAD,19230
+1538595962,montefiore,Schaffer Extended Care Center (New Rochelle),False,SCHAFFER EXTENDED CARE CENTER,Skilled Nursing Facility,NEW ROCHELLE,16 GUION PL,8
+1013184639,montefiore,St. Luke's Cornwall Hospital (Newburgh),False,ST. LUKE'S CORNWALL HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEWBURGH,70 DUBOIS ST,19980
+1841295219,montefiore,Winifred Masterson Burke Rehabilitation Hospital (White Plains),False,WINIFRED MASTERSON BURKE REHABILITATION HOSPITAL,Rehabilitation Hospital,WHITE PLAINS,785 MAMARONECK AVE,4608
+1174768071,mount_sinai,Mount Sinai Brooklyn,True,BETH ISRAEL MEDICAL CENTER,General Acute Care Hospital,BROOKLYN,3201 KINGS HWY,23734
+1174689665,mount_sinai,Mount Sinai Brooklyn,True,BETH ISRAEL MEDICAL CENTER,General Acute Care Hospital,BROOKLYN,3201 KINGS HWY,23728
+1104982917,mount_sinai,Mount Sinai Morningside/West (St. Luke's-Roosevelt),True,ST LUKES ROOSEVELT HOSPITAL CENTER,General Acute Care Hospital,NEW YORK,1000 10TH AVE,23712
+1245248939,mount_sinai,Mount Sinai Queens,True,MOUNT SINAI HOSPITAL,General Acute Care Hospital,LONG ISLAND CITY,2510 30TH AVE,23668
+1922079094,mount_sinai,Mount Sinai South Nassau,True,SOUTH NASSAU COMMUNITIES HOSPITAL,General Acute Care Hospital,OCEANSIDE,1 HEALTHY WAY,36995
+1245251222,mount_sinai,New York Eye and Ear Infirmary,True,NEW YORK EYE & EAR INFIRMARY,Special Hospital,NEW YORK CITY,310 EAST 14TH STREET,20978
+1932103413,mount_sinai,The Mount Sinai Hospital,True,MOUNT SINAI HOSPITAL,General Acute Care Hospital,NEW YORK,1 GUSTAVE L LEVY PL,23736
+1053721563,mount_sinai,The Mount Sinai Hospital,True,THE MOUNT SINAI HOSPITAL,General Acute Care Hospital,NEW YORK,1 GUSTAVE L LEVY PL # 6000,22266
+1942363098,mount_sinai,Beth Israel Ambulatory Care Services Corp (Brooklyn),False,BETH ISRAEL AMBULATORY CARE SERVICES CORP,"Clinic/Center, Ambulatory Surgical",BROOKLYN,3121 KINGS HIGHWAY,13194
+1063657963,mount_sinai,Beth Israel Medical Center (New York),False,BETH ISRAEL MEDICAL CENTER,Psychiatric Unit,NEW YORK,FIRST AVENUE & 16TH STREET,23728
+1649415571,mount_sinai,Beth Israel Medical Center (New York),False,BETH ISRAEL MEDICAL CENTER,Rehabilitation Unit,NEW YORK,FIRST AVENUE AND 16TH STREET,23728
+1831391911,mount_sinai,Beth Israel Medical Center (New York),False,BETH ISRAEL MEDICAL CENTER,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW YORK,2465 BROADWAY,22244
+1265634356,mount_sinai,Beth Israel Medical Center (New York),False,BETH ISRAEL MEDICAL CENTER,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW YORK,1555 3RD AVE,22244
+1467654558,mount_sinai,Beth Israel Medical Center (New York),False,BETH ISRAEL MEDICAL CENTER,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW YORK,120 E 16TH ST,22244
+1699798934,mount_sinai,Beth Israel Medical Center (Suite 12S34),False,BETH ISRAEL MEDICAL CENTER,Clinical Medical Laboratory,SUITE 12S34,10 NATHAN D PERLMAN PLACE,22244
+1669476156,mount_sinai,Mount Sinai Diagnostic And Treatment Center (New York),False,MOUNT SINAI DIAGNOSTIC AND TREATMENT CENTER,Clinic/Center,NEW YORK,1 GUSTAVE L LEVY PL,22266
+1033206362,mount_sinai,Mount Sinai Hospital (New York),False,MOUNT SINAI HOSPITAL,Clinical Medical Laboratory,NEW YORK,1 GUSTAVE L LEVY PL,23736
+1033186093,mount_sinai,Mount Sinai Hospital (New York),False,MOUNT SINAI HOSPITAL,Psychiatric Hospital,NEW YORK,1 GUSTAVE L LEVY PL,23736
+1417925181,mount_sinai,Mount Sinai Hospital (New York),False,MOUNT SINAI HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW YORK,1 GUSTAVE L LEVY PL BLDG LEVEL,23736
+1669440327,mount_sinai,Mount Sinai Hospital (New York),False,MOUNT SINAI HOSPITAL,Rehabilitation Hospital,NEW YORK,1 GUSTAVE L LEVY PL,22266
+1619944683,mount_sinai,Mount Sinai Hospital (New York),False,MOUNT SINAI HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW YORK,520 E 117TH ST,22266
+1811968993,mount_sinai,South Nassau Communities Hospital (Oceanside),False,SOUTH NASSAU COMMUNITIES HOSPITAL,Psychiatric Unit,OCEANSIDE,1 HEALTHY WAY,22858
+1245201300,mount_sinai,South Nassau Communities Hospital (Oceanside),False,SOUTH NASSAU COMMUNITIES HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",OCEANSIDE,1 HEALTHY WAY,22858
+1699745984,mount_sinai,South Nassau Communities Hospital (Oceanside),False,SOUTH NASSAU COMMUNITIES HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",OCEANSIDE,3618 OCEANSIDE RD,22858
+1548676943,mount_sinai,South Nassau Communities Hospital (Oceanside),False,SOUTH NASSAU COMMUNITIES HOSPITAL,Skilled Nursing Facility,OCEANSIDE,1 HEALTHY WAY,14
+1417192311,mount_sinai,St Lukes Roosevelt Hospital Center (New York),False,ST LUKES ROOSEVELT HOSPITAL CENTER,Rehabilitation Unit,NEW YORK,1111 AMSTERDAM AVE,23712
+1508001405,mount_sinai,St. Lukes Roosevelt Hospital Center (New York),False,ST. LUKES ROOSEVELT HOSPITAL CENTER,Psychiatric Unit,NEW YORK,1111 AMSTERDAM AVENUE,23712
+1174530349,northwell,Northwell Cohen Children's,True,LONG ISLAND JEWISH MEDICAL CENTER,"General Acute Care Hospital, Children",NEW HYDE PARK,26901 76TH AVE,11393
+1295743060,northwell,Northwell Glen Cove,True,GLEN COVE HOSPITAL,General Acute Care Hospital,GLEN COVE,101 SAINT ANDREWS LN,11398
+1508845322,northwell,Northwell Huntington,True,HUNTINGTON HOSPITAL ASSOCIATION,General Acute Care Hospital,HUNTINGTON,270 PARK AVE,11393
+1346603107,northwell,Northwell LIJ Valley Stream,True,LONG ISLAND JEWISH MEDICAL CENTER,General Acute Care Hospital,VALLEY STREAM,900 FRANKLIN AVE,11393
+1477616571,northwell,Northwell Lenox Hill,True,LENOX HILL HOSPITAL,General Acute Care Hospital,NEW YORK,100 E 77TH ST,11408
+1285641514,northwell,Northwell Long Island Jewish Medical Center,True,LONG ISLAND JEWISH MEDICAL CENTER,General Acute Care Hospital,NEW HYDE PARK,270-05 76 AVE,11393
+1366459570,northwell,Northwell North Shore University Hospital,True,NORTH SHORE UNIVERSITY HOSPITAL,General Acute Care Hospital,MANHASSET,300 COMMUNITY DRIVE,13274
+1912992215,northwell,Northwell Northern Westchester,True,NORTHERN WESTCHESTER HOSPITAL ASSOCIATION,General Acute Care Hospital,MOUNT KISCO,400 E MAIN ST,11393
+1720185267,northwell,Northwell Phelps,True,PHELPS MEMORIAL HOSPITAL ASSOCIATION,General Acute Care Hospital,SLEEPY HOLLOW,701 N BROADWAY,11393
+1083621130,northwell,Northwell Plainview,True,PLAINVIEW HOSPITAL,General Acute Care Hospital,PLAINVIEW,888 OLD COUNTRY RD,11398
+1457369381,northwell,Northwell South Shore University Hospital,True,SOUTH SHORE UNIVERSITY HOSPITAL,General Acute Care Hospital,BAY SHORE,301 E MAIN ST,11393
+1407877137,northwell,Northwell Staten Island University Hospital,True,STATEN ISLAND UNIVERSITY HOSPITAL,General Acute Care Hospital,STATEN ISLAND,475 SEAVIEW AVE,11393
+1013924927,northwell,Glen Cove Hospital (Glen Cove),False,GLEN COVE HOSPITAL,Psychiatric Unit,GLEN COVE,ST ANDREWS LANE,7572
+1336157791,northwell,Glen Cove Hospital (Westbury),False,GLEN COVE HOSPITAL,Rehabilitation Unit,WESTBURY,972 BRUSH HOLLOW RD,4172
+1194900654,northwell,Huntington Hospital Association (Huntington),False,HUNTINGTON HOSPITAL ASSOCIATION,Psychiatric Unit,HUNTINGTON,270 PARK AVE,22786
+1326135971,northwell,Long Island Jewish Medical Center (New Hyde Park),False,LONG ISLAND JEWISH MEDICAL CENTER,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",NEW HYDE PARK,27005 76TH AVE,22786
+1982611190,northwell,Long Island Jewish Medical Center (New Hyde Park),False,LONG ISLAND JEWISH MEDICAL CENTER,Psychiatric Unit,NEW HYDE PARK,270-05 76 AVE,4090
+1891861787,northwell,Long Island Jewish Medical Center (New Hyde Park),False,LONG ISLAND JEWISH MEDICAL CENTER,"Residential Treatment Facility, Physical Disabilities",NEW HYDE PARK,27005 76TH AVE,124
+1093723488,northwell,Long Island Jewish Medical Center (Queens Village),False,LONG ISLAND JEWISH MEDICAL CENTER,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",QUEENS VILLAGE,22022 HILLSIDE AVENUE,22786
+1750737565,northwell,Long Island Jewish Medical Center (Valley Stream),False,LONG ISLAND JEWISH MEDICAL CENTER,Psychiatric Unit,VALLEY STREAM,900 FRANKLIN AVE,106
+1396753224,northwell,Long Island Jewish Medical Center (Valley Stream),False,LONG ISLAND JEWISH MEDICAL CENTER,Skilled Nursing Facility,VALLEY STREAM,900 FRANKLIN AVE,8
+1952317711,northwell,North Shore University Hospital (Manhasset),False,NORTH SHORE UNIVERSITY HOSPITAL,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",MANHASSET,300 COMMUNITY DR,22786
+1295742468,northwell,North Shore University Hospital (Syosset),False,NORTH SHORE UNIVERSITY HOSPITAL,Psychiatric Unit,SYOSSET,NSUH AT SYOSSET HOSPITAL,15096
+1598258865,northwell,Northern Westchester Facility Project Llc (Yorktown Heights),False,NORTHERN WESTCHESTER FACILITY PROJECT LLC,"Clinic/Center, Ambulatory Surgical",YORKTOWN HEIGHTS,2651 STRANG BLVD STE 101,13182
+1396178356,northwell,Northern Westchester Hospital Association (Mount Kisco),False,NORTHERN WESTCHESTER HOSPITAL ASSOCIATION,Medicare Defined Swing Bed Unit,MOUNT KISCO,400 E MAIN ST,10
+1437187150,northwell,Northwell Health Stern Family Center For Rehabilitation (Manhasset),False,NORTHWELL HEALTH STERN FAMILY CENTER FOR REHABILITATION,Skilled Nursing Facility,MANHASSET,330 COMMUNITY DR,8
+1497917918,northwell,Phelps Memorial Hospital Association (Sleepy Hollow),False,PHELPS MEMORIAL HOSPITAL ASSOCIATION,Psychiatric Hospital,SLEEPY HOLLOW,701 N BROADWAY,110
+1114189636,northwell,Phelps Memorial Hospital Association (Sleepy Hollow),False,PHELPS MEMORIAL HOSPITAL ASSOCIATION,Rehabilitation Hospital,SLEEPY HOLLOW,701 N BROADWAY,22
+1063615318,northwell,Phelps Memorial Hospital Association (Sleepy Hollow),False,PHELPS MEMORIAL HOSPITAL ASSOCIATION,"Hospice Care, Community Based",SLEEPY HOLLOW,701 N BROADWAY,18
+1366450298,northwell,South Shore University Hospital (Bay Shore),False,SOUTH SHORE UNIVERSITY HOSPITAL,Psychiatric Unit,BAY SHORE,301 E MAIN ST,22786
+1912925199,northwell,Staten Island University Hospital (Staten Island),False,STATEN ISLAND UNIVERSITY HOSPITAL,Psychiatric Unit,STATEN ISLAND,475 SEAVIEW AVE,22786
+1225062193,northwell,Staten Island University Hospital (Staten Island),False,STATEN ISLAND UNIVERSITY HOSPITAL,Rehabilitation Unit,STATEN ISLAND,475 SEAVIEW AVE,7494
+1396755922,northwell,Staten Island University Hospital (Staten Island),False,STATEN ISLAND UNIVERSITY HOSPITAL,"Hospice, Inpatient",STATEN ISLAND,78 MEISNER AVE,18
+1386654515,northwell,Staten Island University Hospital - Tbi (Staten Island),False,STATEN ISLAND UNIVERSITY HOSPITAL - TBI,Rehabilitation Unit,STATEN ISLAND,475 SEAVIEW AVE,22
+1619341716,nyu,NYU Langone Brooklyn,True,NYU LANGONE HOSPITALS,General Acute Care Hospital,BROOKLYN,150 55TH ST,25424
+1427616002,nyu,NYU Langone Long Island,True,NYU LANGONE HOSPITALS,General Acute Care Hospital,MINEOLA,259 1ST ST,30600
+1053354100,nyu,NYU Langone Long Island Community (Patchogue),True,LONG ISLAND COMMUNITY HOSPITAL AT NYU LANGONE HEALTH,General Acute Care Hospital,PATCHOGUE,101 HOSPITAL RD,25430
+1831910355,nyu,NYU Langone Long Island Community (Patchogue),True,NYU LANGONE HOSPITALS,General Acute Care Hospital,PATCHOGUE,101 HOSPITAL RD,25424
+1801992631,nyu,NYU Langone Tisch/Kimmel,True,NYU LANGONE HOSPITALS,General Acute Care Hospital,NEW YORK,550 1ST AVE,50345
+1669578324,nyu,NYU Langone Tisch/Kimmel,True,NYU LANGONE HOSPITALS,General Acute Care Hospital,NEW YORK,301 E 17TH ST,32956
+1598864118,nyu,NYU Langone Tisch/Kimmel,True,NYU HOSPITALS CENTER,General Acute Care Hospital,NEW YORK,550 1ST AVE,25424
+1528133147,nyu,Long Island Community Hospital At Nyu Langone Health (Patchogue),False,LONG ISLAND COMMUNITY HOSPITAL AT NYU LANGONE HEALTH,Psychiatric Unit,PATCHOGUE,101 HOSPITAL ROAD,25430
+1902029796,nyu,Long Island Community Hospital At Nyu Langone Health (Shirley),False,LONG ISLAND COMMUNITY HOSPITAL AT NYU LANGONE HEALTH,"Clinic/Center, Mental Health (Including Community Mental Health Center)",SHIRLEY,550 MONTAUK HIGHWAY,124
+1760480628,nyu,Nyu Langone Hospitals (Bethpage),False,NYU LANGONE HOSPITALS,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",BETHPAGE,530 HICKSVILLE ROAD,25424
+1437523537,nyu,Nyu Langone Hospitals (Brooklyn),False,NYU LANGONE HOSPITALS,Rehabilitation Unit,BROOKLYN,150 55TH ST,8906
+1528432622,nyu,Nyu Langone Hospitals (Brooklyn),False,NYU LANGONE HOSPITALS,Psychiatric Unit,BROOKLYN,150 55TH ST,7622
+1346614443,nyu,Nyu Langone Hospitals (Brooklyn),False,NYU LANGONE HOSPITALS,Ambulance,BROOKLYN,150 55TH ST,18
+1083612089,nyu,Nyu Langone Hospitals (Mineola),False,NYU LANGONE HOSPITALS,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",MINEOLA,200 OLD COUNTRY ROAD,25424
+1366541989,nyu,Nyu Langone Hospitals (New York),False,NYU LANGONE HOSPITALS,Psychiatric Unit,NEW YORK,550 1ST AVE,25430
+1659470276,nyu,Nyu Langone Hospitals (New York),False,NYU LANGONE HOSPITALS,Rehabilitation Unit,NEW YORK,550 1ST AVE,25424
+1437230034,nyu,Nyu Langone Hospitals (New York),False,NYU LANGONE HOSPITALS,"Clinic/Center, Oncology",NEW YORK,160 E 34TH ST,25424
+1275632895,nyu,Nyu Langone Hospitals (New York),False,NYU LANGONE HOSPITALS,Rehabilitation Unit,NEW YORK,301 E 17TH ST,11526
+1487743480,nyu,Nyu Langone Hospitals (Patchogue),False,NYU LANGONE HOSPITALS,"Clinic/Center, End-Stage Renal Disease (ESRD) Treatment",PATCHOGUE,109 WEST MAIN STREET,50195
+1508687021,nyu,Nyu Langone Hospitals (Patchogue),False,NYU LANGONE HOSPITALS,Psychiatric Unit,PATCHOGUE,101 HOSPITAL RD,25424
+1013724061,nyu,Nyu Langone Hospitals (Patchogue),False,NYU LANGONE HOSPITALS,"Clinic/Center, Mental Health (Including Community Mental Health Center)",PATCHOGUE,101 HOSPITAL RD,124
+1609877364,nyu,Nyu Langone Hospitals (Patchogue),False,NYU LANGONE HOSPITALS,"Hospice Care, Community Based",PATCHOGUE,105 WEST MAIN STREET,18
