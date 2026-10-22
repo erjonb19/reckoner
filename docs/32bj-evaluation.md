@@ -358,15 +358,16 @@ each. Those groups include every system, so they say nothing about any one of th
 |---|---|---|---|
 | Montefiore | Montefiore Medical Center (Bronx), Nyack, New Rochelle, Mount Vernon, White Plains, St. Luke's Cornwall | 32BJ Tier1 | **identical** (11,032 of 11,171 code keys identical, the rest overlap); inpatient as APR-DRG `derived` |
 | Mount Sinai | The Mount Sinai Hospital, Mount Sinai Queens (LIC NPI), Mount Sinai Brooklyn (Beth Israel Brooklyn NPI) | 32BJ Tier1 | **0.917×** (≈ 1/1.09) on negotiated, fee schedule, MS-DRG `derived` and per diem; % of charges unchanged |
-| Mount Sinai | South Nassau, Diagnostic & Treatment Center, rehab, ESRD | 32BJ Tier1 | identical |
+| Mount Sinai | South Nassau, Diagnostic & Treatment Center, rehab, ESRD | 32BJ Tier1 | identical on the rows this profile compared; **corrected in 8.10**: South Nassau's inpatient MS-DRG case rates are 0.917× too, and so are Morningside/West's and New York Eye and Ear's |
 | NYU Langone | Tisch/Kimmel (two NPIs), Long Island, Brooklyn, plus units | HMO POS or both | identical |
 | Northwell | **none for the 12 acute hospitals** (corrected 2026-10-21, section 8.10: they have standard Anthem rates in the HMO file, but no rows at all in the 32BJ file); 32BJ-tier rows only for psych units, dialysis centers, a rehab unit and an ambulatory surgery center | 32BJ Tier1 for those units | n/a |
 | St. Barnabas | none; none of its 6 NPPES organisation NPIs appears in any file | — | — |
 
 **How to read it**
 
-- **Mount Sinai.** The 32BJ file prices three Mount Sinai acute campuses 8.3% below
-  Empire's HMO POS rates for the same code. This is a uniform multiplier, and it
+- **Mount Sinai.** The 32BJ file prices Mount Sinai acute campuses 8.3% below
+  Empire's HMO POS rates for the same code: three campuses in this profile, all six
+  acute campuses' inpatient case rates in the full extraction (8.10). This is a uniform multiplier, and it
   appears in a file dated after the March 2026 Mount Sinai–32BJ agreement. That is
   consistent with the agreement, but it is an inference: the file does not say why.
 - **Northwell.** Northwell's acute hospitals are in Anthem's standard network but not
@@ -1202,6 +1203,66 @@ own file says something different. Options:
      professional rows, about 35 minutes.
    - compare both sides with Medicare OPPS payment for the same codes.
 3. **Inpatient only for now.** Hold the outpatient tables until it is explained.
+
+**Decision, 2026-10-21: options 3 and 2.**
+
+- **Option 3 done.** The page shows inpatient tables only. Outpatient sits behind one
+  switch, `OUTPATIENT_UNDER_REVIEW` in `src/pipeline/thirtytwobj_view.py`, with the
+  note "Outpatient rates under review: they don't yet match the hospital's own file."
+  The switch hides outpatient everywhere it could appear:
+  - the top-25 tables
+  - pasted and picked codes
+  - the per diem, percentage and RC tables
+  - the downloads
+- **Option 2's first test run** (below).
+
+**Mount Sinai, corrected from the full extraction.** With every billing NPI resolved
+and campuses assigned by billing NPI, all six Mount Sinai acute campuses carry
+inpatient MS-DRG case rates at exactly 0.917× standard in the 32BJ tier:
+
+- The Mount Sinai Hospital, Queens and Brooklyn
+- Morningside/West, New York Eye and Ear, and South Nassau
+
+Section 4's "South Nassau identical" held only for the outpatient fee-schedule rows
+that profile compared: those are at 1.000. Montefiore's seven campuses and NYU's four
+are at 1.000 on every inpatient code compared.
+
+**The professional-fee test: the explanation does not hold.**
+
+- **Method.**
+  - `rescan_professional.py` streamed the 32BJ file once more, in 17 minutes.
+  - It kept every **professional** price on the 4,567 provider references that
+    include St. Luke's (as billing NPI): 82,727 prices over 9,963 codes.
+  - It also kept every distinct professional rate Anthem publishes for those codes,
+    for **any** provider.
+  - DuckDB stayed under the 1 GB cap, and nothing was killed.
+- **Results.**
+
+  | St. Luke's 32BJ outpatient code (hospital file) | codes | equals a St. Luke's professional rate | within 1% of one | equals any Anthem professional rate |
+  |---|---:|---:|---:|---:|
+  | disagrees with Anthem's facility rate | 1,050 | 0 | 0 | 0 |
+  | agrees with Anthem's facility rate | 941 | 0 | 0 | 0 |
+
+- **Not a fixed multiple either.** The hospital-file amounts are about **10× St.
+  Luke's professional rates**: median 10.7×, 10th–90th percentile 7.1–14.3×, against
+  the office-setting (POS 11), no-modifier professional rate.
+
+So the disagreeing amounts in St. Luke's own file are facility-scale prices, not
+professional fees. They simply differ from Anthem's facility price for the same code.
+
+**What is left to explain it, untested:**
+
+- **The other comparison benchmark.** Compare both sides with Medicare OPPS payment
+  for the same codes. If one side tracks a fixed percentage of OPPS, it is likely the
+  contract's actual basis.
+- **Vintage, but not as a uniform escalator.** A mid-year contract change between
+  April and October that re-priced some outpatient categories (diagnostic tests and
+  imaging stand out) and not others would look like this.
+- **A different fee schedule in the hospital file.** Which of the hospital's
+  fee-schedule versions it published under the Local 32BJ label cannot be told from
+  the file alone.
+
+Outpatient stays hidden until you decide. Nothing has been added back.
 
 ## Reproducing this
 
