@@ -1270,7 +1270,29 @@ Decision, 2026-10-22: ship the inpatient page to the public repo and the live ap
 This overrides the freeze for this page and the earlier no-push rule.
 
 **Where it runs.** Page **32BJ** at <https://reckoner-ny-2-0.streamlit.app/32bj>,
-LIVE_STATUS
+live since 2026-10-22 (PR #107). PR #108 added three things:
+
+- a **file date** column (`last_updated_on`, 2026-10-01)
+- a **rate expires** column (all Anthem rows are 9999-12-31, shown as "none listed")
+- an approximate **32BJ % of Medicare** column on MS-DRG rows
+
+The Medicare figure is the 32BJ case rate divided by CMS's 2024 average Medicare
+payment for the same MS-DRG at the same hospital, from Medicare Inpatient Hospitals
+by Provider and Service. It covers only five campuses with a clean match to a CMS
+provider number:
+
+| CMS provider number | campus |
+|---|---|
+| 330024 | The Mount Sinai Hospital (this number also covers Mount Sinai Queens) |
+| 330046 | Morningside/West |
+| 330198 | South Nassau |
+| 330214 | NYU Langone Tisch/Kimmel (this number also covers NYU's Brooklyn and Long Island campuses) |
+| 330141 | Long Island Community |
+
+Montefiore's APR-DRG rows read "n/a, Medicare uses MS-DRG". Five cells were
+spot-checked against the raw CMS rows. The column turns off with `MEDICARE_COMPARE`.
+Gross charge and cash price from the hospitals' own files were not added (the
+timebox).
 
 **What it reads.** `summary/32bj/` is committed. It holds:
 
