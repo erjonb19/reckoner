@@ -394,7 +394,37 @@ def wide(
                 q = ratio(cells[TIER], cells[STANDARD])
                 row[f"{campus} · 32BJ ÷ standard"] = f"{q:.3f}" if q is not None else ""
         rows.append(row)
+    dates = file_dates(data, codes, filters)
+    for row in rows:
+        row.update(dates.get((row["code type"], row["code"]), {}))
     return Table(rows=rows, columns=list(rows[0]) if rows else [], long=long)
+
+
+# ``last_updated_on`` in each file's header (the extractor's .meta.json).
+FILE_DATES = {TIER_FILE: "2026-10-01", STANDARD_FILE: "2026-10-01"}
+# The TiC schema's "no end date" value.
+NO_EXPIRY = "9999-12-31"
+
+
+def file_dates(
+    data: Data, codes: Sequence[tuple[str, str]], filters: Filters
+) -> dict[tuple[str, str], dict[str, str]]:
+    """Per code: the file date(s) and rate expiration date(s) behind its cells."""
+    if not codes:
+        return {}
+    pairs = ", ".join(f"('{t}', '{c}')" for t, c in codes)
+    out = {}
+    for t, c, files, expiries in data.con.sql(f"""
+            select code_type, code, list(distinct source_file order by source_file),
+                   list(distinct expiration_date order by expiration_date)
+            from rates where (code_type, code) in ({pairs}) and {filters.where()}
+            group by all""").fetchall():
+        expiry = [e if e != NO_EXPIRY else "none listed" for e in expiries if e]
+        out[(t, c)] = {
+            "file date": ", ".join(sorted({FILE_DATES.get(f, "?") for f in files})),
+            "rate expires": ", ".join(expiry) or "none listed",
+        }
+    return out
 
 
 def discount_summary(data: Data, filters: Filters) -> list[dict[str, Any]]:
@@ -771,6 +801,12 @@ DEFINITIONS = [
         "32BJ ÷ standard",
         "The 32BJ rate divided by the standard rate. 0.917 means 8.3% lower; 1.000 means the same. "
         "Shown only when both cells hold a single rate.",
+    ),
+    (
+        "File date and rate expires",
+        "File date is the last_updated_on date in the header of the Anthem file a rate comes "
+        'from. Rate expires is the expiration_date Anthem gives the rate; "none listed" means '
+        "Anthem's 9999-12-31 placeholder, that is, no end date.",
     ),
     (
         "Campus",

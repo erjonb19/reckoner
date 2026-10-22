@@ -275,3 +275,12 @@ def test_excel_holds_single_rates_and_ratios_as_numbers() -> None:
     assert rate == 11624.37 and ws["B2"].number_format == '"$"#,##0.00'
     assert ratio == 0.917
     assert rng == "$1.00 – $2.00 ⚑"  # noqa: RUF001
+
+
+def test_tables_carry_file_date_and_expiration(data: bj.Data) -> None:
+    table = bj.top_table(data, "inpatient_ms_drg", bj.Filters(systems=bj.DEFAULT_SYSTEMS))
+    filled = [r for r in table.rows if any(k.endswith("32BJ") and r[k] not in ("", "—") for k in r)]
+    assert filled
+    for r in filled:
+        assert r["file date"] == "2026-10-01"
+        assert r["rate expires"] == "none listed"  # every row in the file is 9999-12-31
