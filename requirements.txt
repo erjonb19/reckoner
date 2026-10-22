@@ -3,5 +3,5 @@
 # make no network calls; the 32BJ page reads committed Parquet through DuckDB and
 # writes Excel downloads with openpyxl.
 streamlit>=1.40
-duckdb>=1.1
+duckdb>=1.1,<2
 openpyxl>=3.1
