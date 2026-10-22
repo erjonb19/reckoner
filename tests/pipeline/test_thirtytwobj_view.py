@@ -275,3 +275,30 @@ def test_excel_holds_single_rates_and_ratios_as_numbers() -> None:
     assert rate == 11624.37 and ws["B2"].number_format == '"$"#,##0.00'
     assert ratio == 0.917
     assert rng == "$1.00 – $2.00 ⚑"  # noqa: RUF001
+
+
+def test_tables_carry_file_date_and_expiration(data: bj.Data) -> None:
+    table = bj.top_table(data, "inpatient_ms_drg", bj.Filters(systems=bj.DEFAULT_SYSTEMS))
+    filled = [r for r in table.rows if any(k.endswith("32BJ") and r[k] not in ("", "—") for k in r)]
+    assert filled
+    for r in filled:
+        assert r["file date"] == "2026-10-01"
+        assert r["rate expires"] == "none listed"  # every row in the file is 9999-12-31
+
+
+def test_percent_of_medicare_only_for_single_ms_drg_rates(data: bj.Data) -> None:
+    cell = {"min_rate": 30_000.0, "max_rate": 30_000.0}
+    data.medicare[("X", "470")] = 10_000.0
+
+    assert bj.pct_of_medicare(data, "MS-DRG", "470", "X", cell) == "300%"
+    assert bj.pct_of_medicare(data, "APR-DRG", "4701", "X", cell) == bj.MEDICARE_NA
+    ranged = {"min_rate": 1.0, "max_rate": 2.0}
+    assert bj.pct_of_medicare(data, "MS-DRG", "470", "X", ranged) == ""  # a range: no share
+    assert bj.pct_of_medicare(data, "MS-DRG", "470", "Unmapped", cell) == ""
+    del data.medicare[("X", "470")]
+
+
+def test_montefiore_apr_drg_rows_say_medicare_uses_ms_drg(data: bj.Data) -> None:
+    table = bj.top_table(data, "inpatient_apr_drg", bj.Filters(systems=bj.DEFAULT_SYSTEMS))
+    shares = {v for r in table.rows for k, v in r.items() if k.endswith("(approx.)")}
+    assert shares <= {bj.MEDICARE_NA}
