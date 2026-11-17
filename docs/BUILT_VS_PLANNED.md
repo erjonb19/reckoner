@@ -480,6 +480,32 @@ Real code, but not yet load-bearing.
 
 ---
 
+## Saved ideas, not committed
+
+*From the "Portfolio project upgrade stages" chat (Oct 25 to Nov 3, 2026), saved by the owner on 2026-11-17 before that chat was deleted. Ideas, not commitments: none is in the Order of work, and each needs the owner's OK before it starts.*
+
+- **An insight-first app rebuild, with a written plan first.** Issue #93
+  (`docs/design/streamlit-redesign.md`, 2026-09-23) is the starting proposal and still waits on
+  its five decisions. The Oct 8 showcase plan adds: a Brief, Explore, Trust landing page with four
+  to six precomputed findings, a definitions box, advanced controls hidden by default, a
+  cold-start wake page, rate-limited demo access, and a screenshot walkthrough as a fallback (the
+  pattern governed-clinical-agent built).
+- **A repricing copilot** that calls the APR-DRG payment engine as a tool (planned for December).
+- **An MCP server** exposing rate lookup, the APR-DRG calculation and the reconciliation mart, with
+  a supervisor routing between A1 and A2 (proposed Oct 5).
+- **A negotiation brief agent** that writes a payer prep memo with row-level citations into the
+  marts (proposed Oct 14).
+- **Tracing and cost per agent run, and an alert when a new file vintage moves a reconciled
+  share** (proposed Oct 14).
+- **Check the live link.** The README points to reckoner-ny.streamlit.app, while the 32BJ page
+  (`docs/32bj-evaluation.md`) is on reckoner-ny-2-0. Confirm which app is live and make the README
+  and resume agree.
+- *Already captured elsewhere:* the self-healing AIOps layer is Phase 4 of
+  `docs/reckoner_phase3_claude_code_brief.md`; A2 v2, A3's and A4's generative halves are under
+  "Not started"; the mart OOM is fixed (#47).
+
+---
+
 ## Findings, with the caveats attached
 
 ### Refusals and levers (2026-09-23, seven systems, ADR 0006 grain)
